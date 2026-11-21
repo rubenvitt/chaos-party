@@ -4,6 +4,7 @@
  *
  *   pnpm build:apple-assets                    # alles nach build/apple-assets/
  *   pnpm build:apple-assets --nur=figuren      # nur Figuren (≈ 30 s)
+ *   pnpm build:apple-assets --nur=requisiten   # nur Requisiten der Minispiele (≈ 5 s)
  *   pnpm build:apple-assets --nur=brett        # nur die Kulissen (je Brett ≈ 3–10 min, Software-Rendering)
  *   pnpm build:apple-assets --nur=brett --brett=wackelwald   # nur eine Kulisse
  *   pnpm build:apple-assets --out=<ordner>     # anderer Ausgabeordner
@@ -18,6 +19,9 @@
  *     USDZ (`packages/assets/usd/glb_to_usdz.py`), mit Feld-Ankern `feld_<id>` aus game-core;
  *   - `brett.szene.json` (Kamera, Licht, Figurenorte, Felder), `brett.instanzen.json` (Gras);
  *   jedes Brett braucht im Manifest ein Artefakt `bretter/<brett-id>/brett.usdz`;
+ * - `requisiten/<id>.usdz` je Requisit aus `PROP_IDS` (CHAOS-221) direkt aus
+ *   `packages/assets/blender/props.py --usdz`: Vertexfarben als Farbtextur gebacken,
+ *   Laufzeit-Materialien `akzent`/`zustand` weiß; jedes braucht ein Manifest-Artefakt;
  * - `herkunft.json`: Lizenzen und Herkunft je Artefakt aus `packages/assets/manifest.json`.
  *
  * Danach prüft `packages/assets/usd/check_usdz.py` (usd-core, ohne Mac) alles, auf einem Mac
@@ -45,6 +49,7 @@ import { provenance } from '../packages/assets/src/builds.ts';
 import { BOARD_REGISTRY } from '../packages/game-core/src/board/registry.ts';
 import { CHARACTER_IDS } from '../packages/assets/src/contract.ts';
 import { ManifestSchema } from '../packages/assets/src/manifest.ts';
+import { PROP_IDS } from '../packages/assets/src/props.ts';
 import { exportBoards } from './lib/board-export.mjs';
 import { boardImageProblems, glbImageNames } from './lib/board-images.mjs';
 
@@ -58,10 +63,13 @@ if (!build) throw new Error(`Build „${BUILD}“ fehlt im Manifest`);
 const args = process.argv.slice(2);
 /** @param {string} name */
 const option = (name) => args.find((a) => a.startsWith(`--${name}=`))?.split('=')[1];
+const PARTS = ['figuren', 'brett', 'requisiten'];
 const only = option('nur');
-if (only && only !== 'figuren' && only !== 'brett') {
-  throw new Error(`--nur=${only}: erlaubt sind figuren oder brett`);
+if (only && !PARTS.includes(only)) {
+  throw new Error(`--nur=${only}: erlaubt sind ${PARTS.join(', ')}`);
 }
+/** Teil bauen? Ohne `--nur` alle. */
+const wants = (/** @type {string} */ part) => only === undefined || only === part;
 const out = resolve(root, option('out') ?? build.out);
 const onlyBoard = option('brett');
 const boardIds = BOARD_REGISTRY.map((info) => info.id).filter(
@@ -70,10 +78,12 @@ const boardIds = BOARD_REGISTRY.map((info) => info.id).filter(
 if (boardIds.length === 0) throw new Error(`--brett=${String(onlyBoard)}: Brett nicht im Register`);
 /** Artefakt-Pfad der Kulisse eines Bretts (CHAOS-212). */
 const boardPath = (/** @type {string} */ id) => `bretter/${id}/brett.usdz`;
-// Vor dem langen Export: Fehlt einem Brett die Herkunft im Manifest, gleich abbrechen.
-for (const id of boardIds) {
-  if (!build.artifacts.some((a) => a.path === boardPath(id))) {
-    throw new Error(`Artefakt ${boardPath(id)} fehlt im Manifest (builds.${BUILD}.artifacts)`);
+/** Artefakt-Pfad eines Requisits (CHAOS-221). */
+const propPath = (/** @type {string} */ id) => `requisiten/${id}.usdz`;
+// Vor dem langen Export: Fehlt einem Brett oder Requisit die Herkunft im Manifest, gleich abbrechen.
+for (const path of [...boardIds.map(boardPath), ...PROP_IDS.map(propPath)]) {
+  if (!build.artifacts.some((a) => a.path === path)) {
+    throw new Error(`Artefakt ${path} fehlt im Manifest (builds.${BUILD}.artifacts)`);
   }
 }
 const check = !args.includes('--ohne-pruefung');
@@ -129,7 +139,7 @@ const py = python();
 mkdirSync(join(out, 'figuren'), { recursive: true });
 const started = Date.now();
 
-if (only !== 'brett') {
+if (wants('figuren')) {
   for (const id of CHARACTER_IDS) {
     run(py, ['packages/assets/blender/build.py', id, join(out, 'figuren', `${id}.usdz`)], {
       quiet: /^Figur /,
@@ -137,7 +147,18 @@ if (only !== 'brett') {
   }
 }
 
-if (only !== 'figuren') {
+if (wants('requisiten')) {
+  const dir = join(out, 'requisiten');
+  rmSync(dir, { recursive: true, force: true });
+  run(py, ['packages/assets/blender/props.py', '--usdz', 'all', dir], {
+    quiet: /^(Requisit|Deckkraft) /,
+  });
+  for (const id of PROP_IDS) {
+    if (!existsSync(join(dir, `${id}.usdz`))) throw new Error(`${propPath(id)} nicht erzeugt`);
+  }
+}
+
+if (wants('brett')) {
   // Kulisse vor CHAOS-212 lag direkt im Ausgabeordner; alte Reste nicht mitprüfen oder einpacken.
   for (const file of ['brett.usdz', 'brett.szene.json', 'brett.instanzen.json']) {
     rmSync(join(out, file), { force: true });

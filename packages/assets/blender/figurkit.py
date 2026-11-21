@@ -442,9 +442,25 @@ def _uses_vertex_colors(mat: bpy.types.Material | None) -> bool:
     )
 
 
-def bake_vertex_colors(image_name: str, size: int = ATLAS_SIZE) -> bpy.types.Image | None:
+def bake_vertex_colors(
+    image_name: str,
+    size: int = ATLAS_SIZE,
+    *,
+    pack_shape: str = "CONCAVE",
+    island_margin: float = 0.008,
+    bake_margin: int = 16,
+) -> bpy.types.Image | None:
     """Vertexfarben aller Figurenteile in eine gemeinsame Farbtextur backen und die Materialien
     darauf umstellen (Base Color ← Textur statt ← Vertexfarbe).
+
+    `pack_shape`: Form beim Neupacken der UV-Inseln. `CONCAVE` nutzt die Fläche am besten, braucht
+    bei vielen kleinen Inseln aber bis zu einer Minute (Toaster: 60 s); die Requisiten nehmen
+    `AABB` (Millisekunden, ebenfalls ohne Überlappung, CHAOS-221).
+
+    `island_margin` (Anteil der Kantenlänge) und `bake_margin` (Pixel) gehören zusammen: Blender
+    backt Teil für Teil und füllt den Rand eines Teils auch über Inseln anderer Teile. Der Rand
+    muss deshalb kleiner als der Abstand der Inseln sein; bei kleinen Texturen (Requisiten, 256²)
+    färbte der Standardrand von 16 px sonst Metall rot (Milchkanne, CHAOS-221).
 
     Warum: RealityKit ignoriert Vertexfarben im Material (`UsdPrimvarReader`) und zeigt sie nur
     ohne Material (EXP-017). Mit Textur bleiben Rauheit, Clearcoat, Metall und Leuchten als
@@ -478,7 +494,7 @@ def bake_vertex_colors(image_name: str, size: int = ATLAS_SIZE) -> bpy.types.Ima
     # CHAOS-162: Smart UV Project packte bei den feiner unterteilten Figuren Inseln übereinander
     # (blaue Knopf-Flecken auf der Sockenspitze). Neu packen, mit Rand, ohne Überlappung.
     bpy.ops.uv.select_all(action="SELECT")
-    bpy.ops.uv.pack_islands(udim_source="CLOSEST_UDIM", rotate=True, margin_method="FRACTION", margin=0.008, shape_method="CONCAVE")
+    bpy.ops.uv.pack_islands(udim_source="CLOSEST_UDIM", rotate=True, margin_method="FRACTION", margin=island_margin, shape_method=pack_shape)
     bpy.ops.object.mode_set(mode="OBJECT")
 
     image = bpy.data.images.new(image_name, size, size, alpha=False)
@@ -499,9 +515,25 @@ def bake_vertex_colors(image_name: str, size: int = ATLAS_SIZE) -> bpy.types.Ima
     scene.cycles.device = "CPU"
     scene.cycles.samples = 1
     bake = scene.render.bake
-    bake.margin = 16
+    bake.margin = bake_margin
     bake.margin_type = "EXTEND"
-    bpy.ops.object.bake(type="DIFFUSE", pass_filter={"COLOR"}, use_clear=True, margin=16)
+    # Der Diffus-Farbpass ist Grundfarbe × (1 − Metallic) × (1 − Transmission) × Alpha: Messing
+    # (Schraubi) und Metall- oder Glas-Requisiten kämen fast schwarz bzw. abgedunkelt in den Atlas
+    # (CHAOS-221). Fürs Backen diese Eingänge neutral stellen, danach zurück.
+    neutral = {"Metallic": 0.0, "Transmission Weight": 0.0, "Alpha": 1.0}
+    saved: list[tuple[bpy.types.NodeSocket, float]] = []
+    for mat in materials:
+        for node in mat.node_tree.nodes:
+            if node.bl_idname != "ShaderNodeBsdfPrincipled":
+                continue
+            for name, value in neutral.items():
+                socket = node.inputs[name]
+                if not socket.is_linked and socket.default_value != value:
+                    saved.append((socket, socket.default_value))
+                    socket.default_value = value
+    bpy.ops.object.bake(type="DIFFUSE", pass_filter={"COLOR"}, use_clear=True, margin=bake_margin)
+    for socket, value in saved:
+        socket.default_value = value
 
     for mat in materials:
         tree = mat.node_tree
