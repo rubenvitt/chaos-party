@@ -384,14 +384,15 @@ export function MinigameScreen(props: MinigameScreenProps) {
       soundEngine().play('tick', { pitch: introSeconds === 1 ? 1.25 : 1 });
     }
   }, [introSeconds]);
-  // CHAOS-214: Statt Countdown tickt jedes neue „Bereit“, das letzte etwas höher.
+  // CHAOS-214: Statt Countdown tickt jedes neue „Bereit“, das letzte etwas höher; mehrere in
+  // derselben Nachricht ticken einzeln.
   const progress = stageName === 'intro' ? readyProgress(view) : null;
   const readyDone = progress?.done ?? 0;
   const readyTotal = progress?.total ?? 0;
   const lastReady = useRef(readyDone);
   useEffect(() => {
-    if (readyDone > lastReady.current) {
-      soundEngine().play('tick', { pitch: readyDone >= readyTotal ? 1.25 : 1 });
+    for (let count = lastReady.current + 1; count <= readyDone; count++) {
+      soundEngine().play('tick', { pitch: count >= readyTotal ? 1.25 : 1 });
     }
     lastReady.current = readyDone;
   }, [readyDone, readyTotal]);
