@@ -3,10 +3,13 @@ Nahbild einer Figur mit Blender als Python-Modul (CHAOS-162): ganze Figur aus de
 ersten Idle-Pose, Dreiviertelansicht und Profil nebeneinander, zum Beurteilen von Form und
 Detail ohne Mac und ohne Browser.
 
-    .venv-blender/bin/python packages/assets/blender/nahbild.py sock <ziel.png> [--samples=64]
+    .venv-blender/bin/python packages/assets/blender/nahbild.py sock <ziel.png> [--samples=64] [--atlas[=<rand>]]
 
 Licht und Kamera wie die Porträts (`portrait.py`), Hintergrund neutral grau. Das Material
 `akzent` behält die Vorgabefarbe aus dem Figurenskript.
+
+`--atlas`: Farben wie im USDZ aus dem gebackenen Farbatlas statt aus den Vertexfarben
+(`figurkit.bake_vertex_colors`); `--atlas=16` backt mit diesem Rand in Pixeln (CHAOS-234).
 """
 
 from __future__ import annotations
@@ -20,6 +23,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 import bpy  # noqa: E402
 
+import figurkit as k  # noqa: E402
 import portrait as p  # noqa: E402
 import struktur  # noqa: E402
 
@@ -30,14 +34,18 @@ VIEWS = (("dreiviertel", 28.0, 6.0), ("profil", 90.0, 4.0), ("oben", 20.0, 38.0)
 def main() -> None:
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     opts = dict(a[2:].split("=", 1) for a in sys.argv[1:] if a.startswith("--") and "=" in a)
+    atlas = "--atlas" in sys.argv[1:] or "atlas" in opts
     if len(args) != 2 or args[0] not in p.FRAMING:
-        print(f"Aufruf: nahbild.py <{'|'.join(p.FRAMING)}> <ziel.png> [--samples=64]")
+        print(f"Aufruf: nahbild.py <{'|'.join(p.FRAMING)}> <ziel.png> [--samples=64] [--atlas[=<rand>]]")
         raise SystemExit(1)
     figure, target = args[0], Path(args[1]).resolve()
     target.parent.mkdir(parents=True, exist_ok=True)
 
     importlib.import_module(figure).build()
     struktur.apply()  # Feinstruktur wie im Export (CHAOS-172)
+    if atlas:
+        margin = int(opts.get("atlas", k.ATLAS_BAKE_MARGIN))
+        k.bake_vertex_colors(f"{figure}_farbe", bake_margin=margin)
     p.pose_idle()
     p.lights()
     p.render_settings(int(opts.get("samples", "64")), denoise=True)

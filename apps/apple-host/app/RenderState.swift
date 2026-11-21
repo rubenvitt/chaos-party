@@ -33,6 +33,26 @@ struct RenderState: Decodable, Equatable {
         var board: String?
         /// Knöpfe der Brett-Auswahl in Lobby-Reihenfolge, zuletzt „Zufall“; genau einer ist gewählt.
         var boards: [BoardChoice]?
+        /// Minispiele der Rotation mit Sperre und Favorit in Katalog-Reihenfolge (CHAOS-216); umschalten über
+        /// `hostCommand("minigame:favorite=<id>")` bzw. `"minigame:blocked=<id>"`. Leer bei einem Server ohne Rotation.
+        var minigames: [LobbyMinigame]?
+        /// Stand für den Knopf „Minispiele“: `short` „4 im Topf · 2 ★ · 1 ⦸“, `long` zum Vorlesen.
+        var minigameSummary: MinigameSummary?
+    }
+
+    /// Ein Minispiel der Rotation (CHAOS-216, `lobby.settings.minigames` vom Server, CHAOS-85).
+    struct LobbyMinigame: Decodable, Equatable, Hashable, Identifiable {
+        var id: String
+        var title: String
+        /// Gesperrt: kommt in keiner Partie (außer alle wären gesperrt).
+        var blocked: Bool
+        /// Favorit: kommt öfter.
+        var favorite: Bool
+    }
+
+    struct MinigameSummary: Decodable, Equatable {
+        var short: String
+        var long: String
     }
 
     /// Ein Brett der Lobby-Auswahl (CHAOS-197), fertig beschriftet vom Kern (`boardOptions`).

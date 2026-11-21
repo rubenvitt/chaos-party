@@ -19,6 +19,11 @@ Exit-Code 1 bei Fehlern. Geprüft wird:
 - Bretter (`bretter/<brett-id>/brett.usdz`, CHAOS-212): jeder Feld-Anker aus `brett.szene.json`
   daneben genau einmal und am richtigen Ort, alle Grundmeshes der Instanz-Gruppen vorhanden,
   Texturen eingebettet, `board` in `brett.szene.json` gleich dem Ordnernamen;
+- Requisiten (`requisiten/<id>.usdz`, CHAOS-221): Manifest-Eintrag `requisit-<id>`, Wurzel-Prim
+  `<id>`, Boden bei y = 0, Grundfläche mittig, Höhe wie im Manifest; Materialien dieselben wie im
+  GLB aus CHAOS-88 (`PROP_MATERIALS`); jedes Mesh hat ein Material, keine Vertexfarbe im Shader,
+  die Farbe kommt aus einer eingebetteten Textur; Laufzeit-Materialien (`akzent`, `zustand`)
+  weiß und ohne Textur, damit der Host sie färben kann; `glas` durchscheinend;
 - mit `--vollstaendig`: jedes Artefakt aus `builds.apple-host` im Manifest liegt vor (so prüft
   der volle Build, dass alle Bretter des Registers erzeugt wurden).
 
@@ -60,6 +65,14 @@ Der Waschbär-Kopf steht bewusst über (großer Kopf auf schmalem Hals) und ist 
 """
 AUFLAGE_BAND = 0.02
 AUFLAGE_LUECKE = 0.03
+
+PROP_MATERIALS = ("lack", "matt", "glas", "metall", "akzent", "zustand")
+"""Wie `PROP_MATERIALS` in `packages/assets/src/props.ts`."""
+PROP_RUNTIME = ("akzent", "zustand")
+"""Laufzeit-Materialien: weiß, ohne Textur; der Host färbt sie (Slot-Farbe, Spielzustand)."""
+PROP_GROUND_TOLERANCE = 0.005
+"""Meter. `requisitkit.Prop.finish` stellt das Requisit exakt auf den Boden und mittig."""
+PROP_HEIGHT_TOLERANCE = 0.01
 
 errors: list[str] = []
 notes: list[str] = []
@@ -327,6 +340,116 @@ def check_board(path: Path) -> None:
     )
 
 
+def glb_materials(path: Path) -> dict[str, float]:
+    """Materialnamen und Alpha (`baseColorFactor[3]`) aus dem JSON-Teil einer GLB-Datei."""
+    data = path.read_bytes()
+    length = int.from_bytes(data[12:16], "little")
+    doc = json.loads(data[20 : 20 + length])
+    return {
+        m.get("name", ""): float(m.get("pbrMetallicRoughness", {}).get("baseColorFactor", [1, 1, 1, 1])[3])
+        for m in doc.get("materials", [])
+    }
+
+
+def check_prop(path: Path, manifest: dict, repo: Path) -> None:
+    """Requisit (CHAOS-221): Vertrag wie das GLB aus CHAOS-88, Farbe aus der Textur."""
+    prop = path.stem
+    label = f"requisiten/{path.name}"
+    entry = next((a for a in manifest["assets"] if a["id"] == f"requisit-{prop}"), None)
+    if entry is None:
+        fail(f"{label}: kein Manifest-Eintrag requisit-{prop}")
+        return
+    stage = Usd.Stage.Open(str(path))
+    if UsdGeom.GetStageUpAxis(stage) != UsdGeom.Tokens.y:
+        fail(f"{label}: Achse oben ist {UsdGeom.GetStageUpAxis(stage)} statt Y")
+    root_name = prop.replace("-", "_")
+    if not [p for p in stage.Traverse() if p.GetName() == root_name and p.IsA(UsdGeom.Xform)]:
+        fail(f"{label}: Wurzelknoten „{root_name}“ fehlt")
+
+    materials = {p.GetName(): p for p in stage.Traverse() if p.IsA(UsdShade.Material)}
+    unknown = sorted(set(materials) - set(PROP_MATERIALS))
+    if unknown:
+        fail(f"{label}: unbekannte Materialien {unknown} (erlaubt: {list(PROP_MATERIALS)})")
+    glb = repo / entry["path"]
+    expected: dict[str, float] = {}
+    if glb.exists():
+        expected = glb_materials(glb)
+        if set(expected) != set(materials):
+            fail(f"{label}: Materialien {sorted(materials)} ≠ GLB {sorted(expected)}")
+    else:
+        fail(f"{label}: GLB {entry['path']} fehlt zum Vergleich")
+
+    bound: set[str] = set()
+    for prim in stage.Traverse():
+        if not prim.IsA(UsdGeom.Mesh):
+            continue
+        material, _ = UsdShade.MaterialBindingAPI(prim).ComputeBoundMaterial()
+        if not material:
+            fail(f"{label}: Mesh {prim.GetPath()} ohne Material")
+            continue
+        name = material.GetPrim().GetName()
+        bound.add(name)
+        if prim.GetName() != f"{root_name}_{name}":
+            fail(f"{label}: Mesh {prim.GetName()} statt {root_name}_{name} (ein Mesh je Material)")
+        primvars = {pv.GetPrimvarName() for pv in UsdGeom.PrimvarsAPI(prim).GetPrimvars()}
+        for shader in Usd.PrimRange(material.GetPrim()):
+            if shader.IsA(UsdShade.Shader) and UsdShade.Shader(shader).GetIdAttr().Get() == "UsdPrimvarReader_float2":
+                varname = UsdShade.Shader(shader).GetInput("varname").Get()
+                if varname not in primvars:
+                    fail(f"{label}: {prim.GetPath()} hat keine UV-Primvar „{varname}“")
+    for name in sorted(set(materials) - bound):
+        fail(f"{label}: Material „{name}“ an keinem Mesh")
+
+    for name, mat in materials.items():
+        surfaces = [
+            UsdShade.Shader(p)
+            for p in Usd.PrimRange(mat)
+            if p.IsA(UsdShade.Shader) and UsdShade.Shader(p).GetIdAttr().Get() == "UsdPreviewSurface"
+        ]
+        for p in Usd.PrimRange(mat):
+            if p.IsA(UsdShade.Shader) and UsdShade.Shader(p).GetIdAttr().Get() == "UsdPrimvarReader_float3":
+                fail(f"{label}: {p.GetPath()} liest eine Vertexfarbe (RealityKit ignoriert das)")
+        if len(surfaces) != 1:
+            fail(f"{label}: Material „{name}“ hat {len(surfaces)} UsdPreviewSurface statt einer")
+            continue
+        diffuse = surfaces[0].GetInput("diffuseColor")
+        sources = diffuse.GetConnectedSources()[0] if diffuse else []
+        if name in PROP_RUNTIME:
+            color = diffuse.Get() if diffuse else None
+            if sources or color is None or any(abs(c - 1.0) > 1e-3 for c in color):
+                fail(f"{label}: Laufzeit-Material „{name}“ nicht weiß und ohne Textur (färbt der Host)")
+        elif not sources or UsdShade.Shader(sources[0].source.GetPrim()).GetIdAttr().Get() != "UsdUVTexture":
+            fail(f"{label}: Material „{name}“ ohne Farbtextur (Vertexfarben gebacken?)")
+        # Deckkraft wie im GLB (Glas 0,55); Blenders USD-Export lässt sie sonst bei 1 (set_opacity.py).
+        opacity_input = surfaces[0].GetInput("opacity")
+        opacity = opacity_input.Get() if opacity_input else None
+        opacity = 1.0 if opacity is None else float(opacity)
+        want = expected.get(name, 1.0)
+        if abs(opacity - want) > 1e-3:
+            fail(f"{label}: Deckkraft von „{name}“ {opacity:.2f}, im GLB {want:.2f}")
+
+    with zipfile.ZipFile(path) as package:
+        textures = [n for n in package.namelist() if n.lower().endswith(".png")]
+    if set(materials) - set(PROP_RUNTIME) and not textures:
+        fail(f"{label}: keine Farbtextur eingebettet")
+
+    box = world_bounds(stage, Usd.TimeCode.Default().GetValue())
+    lo, hi = box.GetMin(), box.GetMax()
+    if abs(lo[1]) > PROP_GROUND_TOLERANCE:
+        fail(f"{label}: Boden bei y = {lo[1]:.3f} statt 0")
+    for axis, name in ((0, "x"), (2, "z")):
+        middle = (lo[axis] + hi[axis]) / 2
+        if abs(middle) > PROP_GROUND_TOLERANCE:
+            fail(f"{label}: Grundfläche nicht mittig ({name} = {middle:.3f})")
+    height = hi[1] - lo[1]
+    if "height" in entry and abs(height - entry["height"]) > PROP_HEIGHT_TOLERANCE:
+        fail(f"{label}: Höhe {height:.3f} m, Manifest {entry['height']} m")
+    notes.append(
+        f"{label}: {path.stat().st_size / 1024:.0f} KiB, Höhe {height:.3f} m, "
+        f"Materialien {sorted(materials)}, {len(textures)} Textur(en)"
+    )
+
+
 def main() -> None:
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     if len(args) != 1:
@@ -341,6 +464,7 @@ def main() -> None:
         sorted(root.glob("*.usdz"))
         + sorted((root / "figuren").glob("*.usdz"))
         + sorted((root / "bretter").glob("*/brett.usdz"))
+        + sorted((root / "requisiten").glob("*.usdz"))
     )
     if not files:
         fail(f"{root}: keine USDZ-Dateien")
@@ -356,6 +480,8 @@ def main() -> None:
                 check_figure(path, manifest, tmp)
             elif path.name == "brett.usdz":
                 check_board(path)
+            elif path.parent.name == "requisiten":
+                check_prop(path, manifest, manifest_path.resolve().parents[2])
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
