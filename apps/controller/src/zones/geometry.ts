@@ -10,7 +10,7 @@
  * - **Zonen-lokal**: Pixel im Inhalt der Zone, *vor* ihrer Drehung. Eine um 180° gedrehte
  *   Zone (Spieler sitzt gegenüber) hat ihr lokales „oben“ auf dem Bildschirm unten.
  */
-import type { Action, Button, CharacterId, Layout, SlotNumber } from '@chaos-party/protocol';
+import type { Action, Button, CharacterId, Layout, SlotNumber, Vote } from '@chaos-party/protocol';
 import type { IntroReadyState } from '../minigame/view.ts';
 
 export interface Point {
@@ -54,8 +54,17 @@ export type ChoiceControlKind = `choice:${number}:${string}`;
 /** Figurenkarte der Lobby (v4, CHAOS-36): `pick:<characterId>`. */
 export type PickControlKind = `pick:${string}`;
 
+/** Daumen nach dem Minispiel (CHAOS-218): `vote:up` bzw. `vote:down`. */
+export type VoteControlKind = `vote:${Vote}`;
+
 export type ControlKind =
-  'stick' | 'button-a' | 'button-b' | 'ready' | ChoiceControlKind | PickControlKind;
+  | 'stick'
+  | 'button-a'
+  | 'button-b'
+  | 'ready'
+  | ChoiceControlKind
+  | PickControlKind
+  | VoteControlKind;
 
 /** Ein Bedienelement in Zonen-lokalen Koordinaten. */
 export interface ControlGeometry {
@@ -93,6 +102,17 @@ export function parsePickControl(kind: ControlKind | null): string | null {
   if (!kind?.startsWith('pick:')) return null;
   const id = kind.slice('pick:'.length);
   return id.length > 0 ? id : null;
+}
+
+export function voteControl(vote: Vote): VoteControlKind {
+  return `vote:${vote}`;
+}
+
+/** Daumen eines Daumen-Knopfs, sonst `null`. */
+export function parseVoteControl(kind: ControlKind | null): Vote | null {
+  if (kind === 'vote:up') return 'up';
+  if (kind === 'vote:down') return 'down';
+  return null;
 }
 
 /** Vollständige Zone: Lage, lokale Größe, Bedienelemente. */
@@ -296,6 +316,11 @@ export interface ZoneControlsInput {
    * Fehlt = Anleitung mit fester Zeit, keine Fußzeile.
    */
   readonly introReady?: Exclude<IntroReadyState, 'timer'>;
+  /**
+   * Nur Minispiel-Ergebnis, während der Server `rate` anbietet (CHAOS-218): Daumen hoch/runter
+   * in der Fußzeile unter der Ergebniskarte. Beide bleiben antippbar (Umentscheiden).
+   */
+  readonly vote?: true;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -390,6 +415,7 @@ export function layoutZoneControls(local: Size, input: ZoneControlsInput): Contr
     if (input.introReady === 'guard' || input.introReady === 'button') {
       return [introReadyControl(local, input.introReady === 'guard')];
     }
+    if (input.vote === true) return voteControls(local);
     return input.choices ? layoutChoiceControls(boardZoneFrames(local).body, input.choices) : [];
   }
 
@@ -643,6 +669,62 @@ function introReadyControl(local: Size, inert: boolean): ControlGeometry {
   };
   const ready = control('ready', rect, HIT_SLOP);
   return inert ? { ...ready, inert: true } : ready;
+}
+
+/* ---------------------------------------------------------------------------
+ * Daumen nach dem Minispiel (CHAOS-218): Frage und zwei Knöpfe in der Fußzeile
+ * ------------------------------------------------------------------------- */
+
+/** Daumen-Knöpfe werden höchstens so breit (große Zonen sehen sonst leer aus). */
+export const MAX_VOTE_WIDTH = 112;
+/** Mindestbreite eines Daumen-Knopfs (Touch-Ziel, Emoji passt). */
+export const MIN_VOTE_WIDTH = 72;
+/** Abstand der Daumen: beide Trefferflächen (mit Zugabe) berühren sich nicht. */
+export const VOTE_GAP = 2 * HIT_SLOP + 4;
+/** Abstand zwischen Frage und Knöpfen. */
+export const VOTE_QUESTION_GAP = 16;
+/** Unter dieser Breite entfällt die Frage neben den Knöpfen (die Knöpfe sprechen für sich). */
+export const MIN_VOTE_QUESTION_WIDTH = 120;
+
+export interface MinigameVoteFrames {
+  /** Ergebniskarte (wie {@link minigameZoneFrames} mit Fußzeile). */
+  readonly card: Rect;
+  /** Fußzeile für Frage und Daumen. */
+  readonly foot: Rect;
+  /** „Hat's Spaß gemacht?“ links der Knöpfe; Breite 0, wenn die Zone zu schmal ist. */
+  readonly question: Rect;
+  readonly up: Rect;
+  readonly down: Rect;
+}
+
+/**
+ * Bereiche der Ergebnisanzeige mit Daumen (lokal; Darstellung und Trefferprüfung).
+ * Frage und Knöpfe teilen sich die Fußzeile an ihrer Mitte: Frage rechtsbündig links davon,
+ * 👍 und 👎 rechts davon. Ist die Hälfte zu schmal, stehen nur die Knöpfe mittig.
+ */
+export function minigameVoteFrames(local: Size): MinigameVoteFrames {
+  const { card, foot } = minigameZoneFrames(local, true);
+  const width = clamp(foot.height * 1.45, MIN_VOTE_WIDTH, MAX_VOTE_WIDTH);
+  const buttons = 2 * width + VOTE_GAP;
+  const center = rectCenter(foot).x;
+  const half = foot.width / 2 - VOTE_QUESTION_GAP / 2;
+  const withQuestion = half >= buttons && half >= MIN_VOTE_QUESTION_WIDTH;
+  const left = withQuestion ? center + VOTE_QUESTION_GAP / 2 : center - buttons / 2;
+  const question: Rect = withQuestion
+    ? { x: foot.x, y: foot.y, width: half, height: foot.height }
+    : { x: center, y: foot.y, width: 0, height: foot.height };
+  const up: Rect = { x: left, y: foot.y, width, height: foot.height };
+  const down: Rect = { x: left + width + VOTE_GAP, y: foot.y, width, height: foot.height };
+  return { card, foot, question, up, down };
+}
+
+/** 👍 und 👎 mit Trefferzugabe; wählen beim Abheben auf dem Knopf. */
+function voteControls(local: Size): ControlGeometry[] {
+  const frames = minigameVoteFrames(local);
+  return [
+    control(voteControl('up'), frames.up, HIT_SLOP),
+    control(voteControl('down'), frames.down, HIT_SLOP),
+  ];
 }
 
 /* ---------------------------------------------------------------------------
