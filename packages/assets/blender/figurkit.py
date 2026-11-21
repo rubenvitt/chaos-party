@@ -402,6 +402,14 @@ def export_glb(path: str) -> None:
 ATLAS_SIZE = 1024
 """Kantenlänge der Farbtextur, in die die Vertexfarben gebacken werden (eine je Figur)."""
 
+ATLAS_ISLAND_MARGIN = 0.008
+"""Abstand der UV-Inseln im Figuren-Atlas (Anteil der Kantenlänge, ≈ 8 px bei 1024²)."""
+
+ATLAS_BAKE_MARGIN = 4
+"""Bake-Rand der Figuren in Pixeln: höchstens der halbe Inselabstand, damit die Ränder zweier
+Nachbarinseln sich nicht über deren Inseln schieben. Mit 16 px übermalte der Rand Kanten anderer
+Teile (Roboter 1 960 px, Kaktus 381 px; `atlas_rand.py`, CHAOS-234)."""
+
 ATLAS_UV = "farbatlas"
 """UV-Map des Farbatlas (im USD als `st` exportiert, die Struktur-Map bleibt `struktur`)."""
 
@@ -447,8 +455,8 @@ def bake_vertex_colors(
     size: int = ATLAS_SIZE,
     *,
     pack_shape: str = "CONCAVE",
-    island_margin: float = 0.008,
-    bake_margin: int = 16,
+    island_margin: float = ATLAS_ISLAND_MARGIN,
+    bake_margin: int = ATLAS_BAKE_MARGIN,
 ) -> bpy.types.Image | None:
     """Vertexfarben aller Figurenteile in eine gemeinsame Farbtextur backen und die Materialien
     darauf umstellen (Base Color ← Textur statt ← Vertexfarbe).
@@ -459,12 +467,37 @@ def bake_vertex_colors(
 
     `island_margin` (Anteil der Kantenlänge) und `bake_margin` (Pixel) gehören zusammen: Blender
     backt Teil für Teil und füllt den Rand eines Teils auch über Inseln anderer Teile. Der Rand
-    muss deshalb kleiner als der Abstand der Inseln sein; bei kleinen Texturen (Requisiten, 256²)
-    färbte der Standardrand von 16 px sonst Metall rot (Milchkanne, CHAOS-221).
+    muss deshalb höchstens halb so groß wie der Abstand der Inseln sein; bei kleinen Texturen
+    (Requisiten, 256²) färbte ein Rand von 16 px sonst Metall rot (Milchkanne, CHAOS-221), bei den
+    Figuren übermalte er Kanten anderer Teile (CHAOS-234). Messen mit `atlas_rand.py`.
 
     Warum: RealityKit ignoriert Vertexfarben im Material (`UsdPrimvarReader`) und zeigt sie nur
     ohne Material (EXP-017). Mit Textur bleiben Rauheit, Clearcoat, Metall und Leuchten als
     `UsdPreviewSurface` erhalten. Sheen und Subsurface kennt UsdPreviewSurface nicht.
+    """
+    prepared = prepare_atlas(image_name, size, pack_shape=pack_shape, island_margin=island_margin)
+    if prepared is None:
+        return None
+    image, materials = prepared
+    bake_atlas(materials, image, bake_margin)
+    use_atlas(materials)
+    return image
+
+
+def prepare_atlas(
+    image_name: str,
+    size: int = ATLAS_SIZE,
+    *,
+    pack_shape: str = "CONCAVE",
+    island_margin: float = ATLAS_ISLAND_MARGIN,
+    alpha: bool = False,
+) -> tuple[bpy.types.Image, list[bpy.types.Material]] | None:
+    """Erster Schritt von `bake_vertex_colors`: UV-Map `farbatlas` abwickeln und packen, leere
+    Textur anlegen und in jedem Material einen Bildknoten darauf setzen (noch nicht verdrahtet).
+
+    Einzeln aufrufbar, damit `atlas_rand.py` (CHAOS-234) auf derselben Abwicklung mehrmals mit
+    verschiedenen Rändern backen kann. `alpha`: Textur mit Alphakanal (nur zum Messen: Pixel
+    außerhalb der Inseln bleiben durchsichtig).
     """
     scene = bpy.context.scene
     objects = [
@@ -497,7 +530,7 @@ def bake_vertex_colors(
     bpy.ops.uv.pack_islands(udim_source="CLOSEST_UDIM", rotate=True, margin_method="FRACTION", margin=island_margin, shape_method=pack_shape)
     bpy.ops.object.mode_set(mode="OBJECT")
 
-    image = bpy.data.images.new(image_name, size, size, alpha=False)
+    image = bpy.data.images.new(image_name, size, size, alpha=alpha)
     image.colorspace_settings.name = "sRGB"
     materials = sorted({m for o in objects for m in o.data.materials if m}, key=lambda m: m.name)
     for mat in materials:
@@ -510,7 +543,18 @@ def bake_vertex_colors(
         uv.name = "farbatlas_uv"
         uv.uv_map = ATLAS_UV
         mat.node_tree.links.new(uv.outputs["UV"], node.inputs["Vector"])
+    return image, materials
 
+
+def bake_atlas(materials: Sequence[bpy.types.Material], image: bpy.types.Image, bake_margin: int) -> None:
+    """Vertexfarben der gewählten Figurenteile in `image` backen (Abwicklung aus `prepare_atlas`).
+
+    `bake_margin` (Pixel, `EXTEND`) muss kleiner als der Inselabstand sein, siehe
+    `bake_vertex_colors`.
+    """
+    for mat in materials:
+        mat.node_tree.nodes["farbatlas"].image = image
+    scene = bpy.context.scene
     scene.render.engine = "CYCLES"
     scene.cycles.device = "CPU"
     scene.cycles.samples = 1
@@ -535,6 +579,9 @@ def bake_vertex_colors(
     for socket, value in saved:
         socket.default_value = value
 
+
+def use_atlas(materials: Sequence[bpy.types.Material]) -> None:
+    """Materialien vom Vertexfarben- auf den Atlas-Knoten umstellen (letzter Schritt)."""
     for mat in materials:
         tree = mat.node_tree
         atlas = tree.nodes["farbatlas"]
@@ -547,7 +594,6 @@ def bake_vertex_colors(
             for link in list(vc.outputs["Color"].links):
                 tree.links.new(atlas.outputs["Color"], link.to_socket)
             tree.nodes.remove(vc)
-    return image
 
 
 def add_badge_anchor(rig: bpy.types.Object, name: str = "abzeichen") -> bpy.types.Object:
