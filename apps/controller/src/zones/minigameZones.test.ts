@@ -8,7 +8,11 @@ import {
   MAX_INTRO_READY_WIDTH,
   MINIGAME_FOOT_GAP,
   minigameFootHeight,
+  minigameVoteFrames,
   minigameZoneFrames,
+  MIN_VOTE_WIDTH,
+  parseVoteControl,
+  voteControl,
   rectCenter,
   ZONE_PADDING,
   toScreen,
@@ -281,5 +285,98 @@ describe('Bereit-Knopf der Anleitung in Zonen (CHAOS-214)', () => {
     expect(introZones(LANDSCAPE, legacy)[0]?.controls).toEqual([]);
     // Ergebnis bietet nie „Bereit“ an.
     expect(zoneControlsInput(resultsContext(ALL), undefined, 1).introReady).toBeUndefined();
+  });
+});
+
+describe('Daumen nach dem Minispiel in Zonen (CHAOS-218)', () => {
+  function voteContext(actions: Action[], vote?: 'up' | 'down'): SlotContext {
+    const base = resultsContext(ONLY_A);
+    return {
+      ...base,
+      actions,
+      ...(base.minigame && { minigame: { ...base.minigame, ...(vote && { vote }) } }),
+    };
+  }
+  const offered = voteContext(['rate']);
+
+  it('nur solange der Server `rate` anbietet, sonst keine Bedienelemente', () => {
+    expect(parseVoteControl(voteControl('down'))).toBe('down');
+    expect(parseVoteControl('ready')).toBeNull();
+    expect(parseVoteControl(null)).toBeNull();
+    expect(zoneControlsInput(offered, undefined, 1).vote).toBe(true);
+    expect(kinds(zones(LANDSCAPE, () => offered, [1, 2])[0])).toEqual(['vote:up', 'vote:down']);
+    // Abstimmen vorbei (Pause, nächste Phase) bzw. älterer Server ohne `rate`.
+    expect(zoneControlsInput(voteContext([]), undefined, 1).vote).toBeUndefined();
+    expect(kinds(zones(LANDSCAPE, () => voteContext([]), [1, 2])[0])).toEqual([]);
+    // Spiel läuft: `rate` würde hier nichts bedeuten (nur die Ergebnisanzeige).
+    const play = playContext(ALL, ['move', 'button-a', 'button-b', 'rate']);
+    expect(zoneControlsInput(play, undefined, 1).vote).toBeUndefined();
+    // Eine schon abgegebene Stimme lässt beide Daumen aktiv (Umentscheiden).
+    const voted = zones(LANDSCAPE, () => voteContext(['rate'], 'up'), [1, 2])[0];
+    expect(voted?.controls.every((c) => c.inert === undefined)).toBe(true);
+  });
+
+  it('Knöpfe in der Fußzeile: ganz in der Zone, ohne Überlappung mit Ergebnis und Frage', () => {
+    for (const viewport of [LANDSCAPE, PORTRAIT, MINI_LANDSCAPE]) {
+      for (const seats of [1, 2, 3, 4] as const) {
+        const slots = ([1, 2, 3, 4] as const).slice(0, seats);
+        for (const zone of zones(viewport, () => offered, slots)) {
+          const frames = minigameVoteFrames(zone.local);
+          const [up, down] = zone.controls;
+          if (!up || !down) throw new Error('Daumen fehlen');
+          for (const thumb of [up, down]) {
+            expect(inside(thumb.hit, zone.local)).toBe(true);
+            expect(thumb.rect.width).toBeGreaterThanOrEqual(MIN_VOTE_WIDTH);
+            expect(thumb.rect.height).toBeGreaterThanOrEqual(64);
+            expect(overlaps(thumb.rect, frames.card)).toBe(false);
+            expect(overlaps(thumb.rect, frames.question)).toBe(false);
+          }
+          // Trefferflächen (mit Zugabe) berühren sich nicht: kein Daumen löst den anderen aus.
+          expect(overlaps(up.hit, down.hit)).toBe(false);
+          expect(up.rect.x).toBeLessThan(down.rect.x);
+          // Zwei Zonen (Standard am iPad) haben Platz für die Frage daneben.
+          if (seats <= 2) expect(frames.question.width).toBeGreaterThanOrEqual(120);
+          // Die Ergebniskarte behält genug Höhe für Platz, Punkte und Münzen.
+          expect(frames.card.height).toBeGreaterThan(seats <= 2 ? 300 : 180);
+        }
+      }
+    }
+  });
+
+  it('schmale Zone: Knöpfe mittig, die Frage entfällt', () => {
+    const frames = minigameVoteFrames({ width: 300, height: 500 });
+    expect(frames.question.width).toBe(0);
+    const middle = (frames.up.x + frames.down.x + frames.down.width) / 2;
+    expect(Math.abs(middle - 150)).toBeLessThan(1);
+    expect(frames.up.x).toBeGreaterThanOrEqual(ZONE_PADDING);
+  });
+
+  it('Treffer je Zone: zwei Zonen stimmen gleichzeitig unterschiedlich ab', () => {
+    for (const viewport of [LANDSCAPE, PORTRAIT]) {
+      const list = zones(viewport, () => offered, [1, 2]);
+      const tracker = createZoneTracker(list);
+      expect(tracker.start(1, at(list, 1, 'vote:up'))).toEqual([]);
+      expect(tracker.start(2, at(list, 2, 'vote:down'))).toEqual([]);
+      expect(tracker.view(1).votesHeld).toEqual(['vote:up']);
+      expect(tracker.view(2).votesHeld).toEqual(['vote:down']);
+      expect([...tracker.end(1), ...tracker.end(2)]).toEqual([
+        { type: 'vote', slot: 1, vote: 'up' },
+        { type: 'vote', slot: 2, vote: 'down' },
+      ]);
+      // Umentscheiden: derselbe Finger tippt den anderen Daumen.
+      tracker.start(3, at(list, 1, 'vote:down'));
+      expect(tracker.end(3)).toEqual([{ type: 'vote', slot: 1, vote: 'down' }]);
+    }
+  });
+
+  it('Wegrutschen oder Ende der Ergebnisanzeige: keine Stimme', () => {
+    const list = zones(LANDSCAPE, () => offered, [1, 2]);
+    const tracker = createZoneTracker(list);
+    tracker.start(1, at(list, 1, 'vote:up'));
+    tracker.move(1, at(list, 2, 'vote:up'));
+    expect(tracker.end(1, at(list, 2, 'vote:up'))).toEqual([]);
+    tracker.start(2, at(list, 1, 'vote:down'));
+    tracker.setZones(zones(LANDSCAPE, () => voteContext([]), [1, 2]));
+    expect(tracker.end(2)).toEqual([]);
   });
 });
