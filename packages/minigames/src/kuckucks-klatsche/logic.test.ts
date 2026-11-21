@@ -1,5 +1,6 @@
 import { createMinigameRng, type Slot } from '@chaos-party/minigame-sdk';
 import { describe, expect, it } from 'vitest';
+import { KuckuckDoorWatcher } from './bot.ts';
 import { kuckucksKlatscheHighlights } from './highlights.ts';
 import { KUCKUCK_RULES, KuckucksKlatscheLogic, type Clapper, type KuckuckRules } from './logic.ts';
 
@@ -235,5 +236,23 @@ describe('Kuckucks-Klatsche: Höhepunkte', () => {
     expect(kuckucksKlatscheHighlights(logic, names)).toEqual([
       'Blau klaut einen Kuckuck nach dem Gong.',
     ]);
+  });
+});
+
+describe('KI-Bot sieht nur die Türen (CHAOS-180)', () => {
+  it('leitet Rappeln, Öffnen und Gong aus den Türen ab, genau wie die Logik sie meldet', () => {
+    const logic = new KuckucksKlatscheLogic([1, 2, 3, 4], createMinigameRng(12), 30_000);
+    const watcher = new KuckuckDoorWatcher();
+    const visible = new Set(['rattle', 'open', 'gong']);
+    let compared = 0;
+    while (!logic.ended) {
+      logic.step(1 / 60);
+      const fromLogic = logic.drainEvents().filter((event) => visible.has(event.type));
+      const seen = watcher.look(logic);
+      const key = (event: { type: string; door?: number }) => `${event.type}:${event.door}`;
+      expect(seen.map(key).sort()).toEqual(fromLogic.map(key).sort());
+      compared += seen.length;
+    }
+    expect(compared).toBeGreaterThan(50);
   });
 });

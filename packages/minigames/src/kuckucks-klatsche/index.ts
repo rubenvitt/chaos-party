@@ -28,6 +28,8 @@ import type { Scene } from '@babylonjs/core/scene.js';
 import { symbolMesh } from '@chaos-party/minigame-kit/babylon';
 import {
   rankByScore,
+  type MinigameBotDriver,
+  type MinigameBotOptions,
   type MinigameInput,
   type MinigameResult,
   type Slot,
@@ -43,6 +45,7 @@ import type {
   MinigamePlayer,
 } from '@chaos-party/minigame-sdk/babylon';
 import { markVisual } from '@chaos-party/minigame-sdk/babylon';
+import { createKuckuckBot } from './bot.ts';
 import { kuckucksKlatscheHighlights } from './highlights.ts';
 import { KUCKUCKS_KLATSCHE_INFO } from './info.ts';
 import { FINTE_KINDS, KuckucksKlatscheLogic, type FinteKind, type KuckuckEvent } from './logic.ts';
@@ -200,6 +203,11 @@ export class KuckucksKlatsche implements Minigame {
   start(): void {
     this.running = true;
     this.ctx?.fx.sound('go');
+  }
+
+  /** KI-Platz (CHAOS-180): Bot sieht nur die Türen, wie am Bildschirm. */
+  createBot(options: MinigameBotOptions): MinigameBotDriver {
+    return createKuckuckBot(options, () => this.logic);
   }
 
   handleInput(slot: Slot, input: MinigameInput): void {

@@ -29,6 +29,9 @@
  * - **Anzeige:** Kamera setzt das Minispiel in `prepare`. Text-Overlays (Anleitung, Countdown,
  *   Punkte, Ergebnis) macht der Host aus `info` und `getHud()`; das Minispiel zeichnet kein
  *   eigenes HTML.
+ * - **KI (CHAOS-180, ADR-020):** Minispiele der Rotation liefern `createBot` (nach `prepare`
+ *   aufrufbar). Der Bot liest nur, was am Bildschirm sichtbar ist, und gibt Eingaben zurück;
+ *   die Laufzeit schickt sie durch denselben Eingang wie Controller-Eingaben (`bot.ts`).
  * - **Look (CHAOS-62, optional):** Gibt die Laufzeit `ctx.look` mit, ruft das Minispiel in
  *   `prepare` genau einmal `look.backdrop(…)` auf und legt dann **kein** eigenes Licht, keinen
  *   Boden bis zum Horizont und keinen Hintergrund an; Materialien holt es über
@@ -37,6 +40,7 @@
 import type { Material } from '@babylonjs/core/Materials/material.js';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
 import type { Scene } from '@babylonjs/core/scene.js';
+import type { MinigameBotDriver, MinigameBotOptions } from '../bot.ts';
 import type {
   CharacterId,
   MinigameCue,
@@ -234,6 +238,12 @@ export interface Minigame {
   getCue?(): MinigameCue | null;
   /** Alles entfernen, was das Minispiel angelegt hat (idempotent). */
   dispose(): void;
+  /**
+   * KI-Spieler für einen Platz (CHAOS-180, ADR-020). Pflicht für Minispiele der Rotation
+   * (Vertragstest `catalog.test.ts`), sonst optional. Wird nach `prepare` aufgerufen. Der Bot
+   * liest nur Beobachtbares und liefert Eingaben; er ändert den Spielzustand nie selbst.
+   */
+  createBot?(options: MinigameBotOptions): MinigameBotDriver;
 }
 
 /** Ein Minispiel-Modul: Steckbrief (rein) + Fabrik. */
