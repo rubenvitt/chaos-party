@@ -306,7 +306,8 @@ private struct PadButton: View {
 
 /// Texts of the minigame card (port of `MinigameIntro`). If the minigame already ran this match
 /// (`repeat`, CHAOS-66/CHAOS-128), the intro is short: kicker „Nochmal!“, title and controls,
-/// no tagline and no steps (players already know the game).
+/// no tagline and no steps (players already know the game). The team role card (CHAOS-229)
+/// shows in both, because the line-up is drawn anew for every run.
 struct MinigameCardText: Equatable {
     static let repeatKicker = "Nochmal!"
 
@@ -422,6 +423,7 @@ struct MinigameCard: View {
         if let tagline = text.tagline {
             Text(tagline).font(.title3).foregroundStyle(Palette.dim).multilineTextAlignment(.center)
         }
+        if let team = minigame.team { TeamRoleCard(team: team) }
         if !text.instructions.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(Array(text.instructions.enumerated()), id: \.offset) { index, line in
@@ -476,6 +478,9 @@ struct MinigameCard: View {
                 Text(tied ? "Geteilter Platz \(place)!" : "Platz \(place)!").font(.largeTitle.bold())
             }
             .accessibilityElement(children: .combine)
+            if let outcome = minigame.team?.resultText {
+                Text(outcome).font(.title2.bold()).multilineTextAlignment(.center)
+            }
             Text(tied && place == 1 ? "Gemeinsam gewonnen!" : Self.cheers[place] ?? "Gut gespielt!")
                 .font(.title2.weight(.semibold))
             if let score = minigame.score {
