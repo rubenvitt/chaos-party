@@ -45,8 +45,9 @@ export const BOARD_REGISTRY: readonly BoardInfo[] = [
     id: WACKELWALD.id,
     board: WACKELWALD,
     theme: 'wald',
-    tagline: 'Rundkurs mit Klippenweg, Sumpf und Wackelbrücke',
-    recommendedRounds: 10,
+    tagline: 'Großer Rundkurs mit Lichtung, Bachlauf, Baumkronenweg und Sumpf',
+    // EXP-037: Nach 12 Runden ist jeder einmal ums Brett, kaum jemand bleibt ohne Trophäe.
+    recommendedRounds: 12,
   },
   {
     id: RUMMELPLATZ.id,

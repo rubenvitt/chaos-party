@@ -1695,6 +1695,73 @@ body,
   opacity: 0.7;
 }
 
+/* Team-Ansage (CHAOS-89): Gruppen mit Symbol, Name und Mitgliedern; Farbe nur zusätzlich.
+ * Eine Zeile je Gruppe, damit die Karte bei 1280×720 nicht überläuft. */
+.minigame-teams {
+  display: grid;
+  gap: 6px;
+  padding: 8px 0 4px;
+}
+
+.minigame-teams-head {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.minigame-teams-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.minigame-team {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px 6px 8px;
+  border: 3px solid var(--team-color, #999);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--team-color, #999) 18%, white);
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.minigame-team-mark {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--team-color, #999);
+  color: white;
+  font-size: 22px;
+}
+
+.minigame-team-members {
+  display: flex;
+  gap: 10px;
+  font-weight: 700;
+}
+
+.minigame-team-member {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.minigame-teams-note {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
 /* Bereitschaft in der Anleitung (CHAOS-214): je Spieler ein Chip, bereit = grün mit Häkchen.
  * Kompakt (zwei Zeilen), damit auch die längste Anleitung bei 1280×720 in die Karte passt. */
 .minigame-ready {

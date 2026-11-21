@@ -18,8 +18,12 @@ import { median } from '@chaos-party/metrics';
 
 /** Szenen mit Marken: Brett, Minispiel-Bühne, Siegerpodest. */
 export type MarkedScene = 'brett' | 'minispiel' | 'podest';
-/** `aufbau`: Aufbau beginnt; `sichtbar`: vorbereitete Szene wird gezeigt; `erstes-bild`. */
-export type ScenePoint = 'aufbau' | 'sichtbar' | 'erstes-bild';
+/**
+ * `angefragt`: Der Stand nennt die neue Szene, ihr Code lädt eventuell noch (Minispiel-Chunk,
+ * CHAOS-86); `aufbau`: Aufbau beginnt; `sichtbar`: vorbereitete Szene wird gezeigt;
+ * `erstes-bild`.
+ */
+export type ScenePoint = 'angefragt' | 'aufbau' | 'sichtbar' | 'erstes-bild';
 
 export interface SceneMark {
   readonly scene: MarkedScene;
@@ -38,10 +42,15 @@ export interface SceneTransition {
   /** Z. B. „brett → minispiel“, „minispiel → brett“, „zählung → podest“, „lobby → brett“. */
   readonly label: string;
   readonly to: MarkedScene;
-  /** Marke `aufbau`. */
+  /** Beginn des ersten Fensters: Marke `angefragt`, sonst `aufbau`. */
   readonly startAt: number;
-  /** Summe der Fensterlängen (Aufbau bis erstes Bild, beim Podest plus Zeigen bis Bild). */
+  /**
+   * Summe der Fensterlängen (Anfrage bzw. Aufbau bis erstes Bild, beim Podest plus Zeigen bis
+   * Bild).
+   */
   readonly waitMs: number;
+  /** Von `angefragt` bis `aufbau` (Warten auf Code, CHAOS-86); 0 ohne Anfrage-Marke. */
+  readonly requestMs: number;
   /** Alle Fenster mit erstem Bild abgeschlossen. */
   readonly complete: boolean;
   readonly longTasks: number;
@@ -65,6 +74,9 @@ export interface TransitionSummary {
   readonly blockedMedianMs: number | null;
   /** Median der Wartezeit bis zum ersten Bild je Vorkommen. */
   readonly waitMedianMs: number | null;
+  /** Median und Höchstwert der Zeit von `angefragt` bis `aufbau` (CHAOS-86). */
+  readonly requestMedianMs: number | null;
+  readonly requestMaxMs: number;
 }
 
 interface Window {
@@ -78,6 +90,7 @@ interface Building {
   readonly label: string;
   readonly to: MarkedScene;
   readonly startAt: number;
+  readonly requestMs: number;
   readonly windows: Window[];
 }
 
@@ -98,6 +111,8 @@ export function sceneTransitions(
   const sorted = [...marks].sort((a, b) => a.at - b.at);
   const built: Building[] = [];
   let previous: MarkedScene | null = null;
+  // Offene Anfrage je Szene; gilt nur bis zum nächsten Aufbau (gleich welcher Szene).
+  const requested = new Map<MarkedScene, number>();
   const closeOpen = (at: number) => {
     for (const building of built) {
       for (const window of building.windows) window.end ??= at;
@@ -105,14 +120,19 @@ export function sceneTransitions(
   };
   for (const mark of sorted) {
     const current = [...built].reverse().find((b) => b.to === mark.scene);
-    if (mark.point === 'aufbau') {
+    if (mark.point === 'angefragt') {
+      if (!requested.has(mark.scene)) requested.set(mark.scene, mark.at);
+    } else if (mark.point === 'aufbau') {
       // Ein neuer Aufbau beendet alle offenen Fenster (die alte Szene zeigt kein erstes Bild mehr).
       closeOpen(mark.at);
+      const start = requested.get(mark.scene) ?? mark.at;
+      requested.clear();
       built.push({
         label: labelOf(previous, mark.scene),
         to: mark.scene,
-        startAt: mark.at,
-        windows: [{ start: mark.at, end: null, framed: false }],
+        startAt: start,
+        requestMs: mark.at - start,
+        windows: [{ start, end: null, framed: false }],
       });
       previous = mark.scene;
     } else if (mark.point === 'sichtbar') {
@@ -140,6 +160,7 @@ export function sceneTransitions(
       label: building.label,
       to: building.to,
       startAt: building.startAt,
+      requestMs: building.requestMs,
       waitMs: windows.reduce((sum, window) => sum + (window.end - window.start), 0),
       complete,
       longTasks: overlapping.length,
@@ -165,5 +186,7 @@ export function summarizeTransitions(transitions: readonly SceneTransition[]): T
     longestMedianMs: median(list.map((t) => t.longestMs)),
     blockedMedianMs: median(list.map((t) => t.blockedMs)),
     waitMedianMs: median(list.map((t) => t.waitMs)),
+    requestMedianMs: median(list.map((t) => t.requestMs)),
+    requestMaxMs: list.reduce((max, t) => Math.max(max, t.requestMs), 0),
   }));
 }

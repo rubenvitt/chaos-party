@@ -24,6 +24,9 @@ cp -R "$root/apps/controller/dist" "$out/controller"
 # Porträts für die Spielerkarten der Lobby (CHAOS-36/142), aus dem Repo.
 mkdir -p "$out/portraits"
 cp "$root"/packages/assets/textures/portraits/*.webp "$out/portraits/"
+# Klang-Dateien (CHAOS-223, CC0, Herkunft im Asset-Manifest): Swift spielt sie statt der Rezepte.
+mkdir -p "$out/sounds"
+cp "$root"/packages/assets/sounds/*.mp3 "$out/sounds/"
 # Brett-Kulissen je Brett (CHAOS-212: bretter/<brett-id>/) und Figuren als USDZ (CHAOS-140, docs/apple-assets.md),
 # dazu Herkunft und Lizenzen. Wackelwald (Standardbrett) muss da sein, die App fällt bei fehlenden Brettern darauf zurück.
 assets="${APPLE_ASSETS:-$root/build/apple-assets}"
@@ -44,4 +47,4 @@ else
   echo "prepare.sh: USDZ-Assets fehlen in $assets (erst \`pnpm build:apple-assets\`, oder OHNE_ASSETS=1)" >&2
   exit 1
 fi
-echo "payload: $(du -sh "$out" | cut -f1) (JS-Kern, Havok, Controller, Porträts$([ -d "$out/szene" ] && echo ", Brett und Figuren"))"
+echo "payload: $(du -sh "$out" | cut -f1) (JS-Kern, Havok, Controller, Porträts, $(find "$out/sounds" -name '*.mp3' | wc -l | tr -d ' ') Klänge$([ -d "$out/szene" ] && echo ", Brett und Figuren"))"

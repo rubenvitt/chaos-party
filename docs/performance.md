@@ -1,6 +1,6 @@
 # Performance: Bildrate und Latenz (M4)
 
-**Stand:** 2026-11-17 (Baseline nach Natur-Look von Lobby und Podest, CHAOS-133; Standbild je Szenenwechsel, CHAOS-153) · **Aufgabe:** CHAOS-39, CHAOS-73, CHAOS-133, CHAOS-153 · **Grundlage:** ARCHITECTURE „Testing strategy“ Punkt 4, [ADR-010](decisions/ADR-010-messanzeige.md) (Messanzeige aus M1)
+**Stand:** 2026-11-20 (Chunk je Minispiel und Marke `angefragt`, CHAOS-86; Baseline nach Natur-Look von Lobby und Podest, CHAOS-133; Standbild je Szenenwechsel, CHAOS-153) · **Aufgabe:** CHAOS-39, CHAOS-73, CHAOS-133, CHAOS-153, CHAOS-86 · **Grundlage:** ARCHITECTURE „Testing strategy“ Punkt 4, [ADR-010](decisions/ADR-010-messanzeige.md) (Messanzeige aus M1)
 
 Kurz: Gemessen wird an zwei Stellen – **auf echter Hardware** mit der Messanzeige (`?debug=1`, Ruben, Abschnitt 11 der [Gerätecheckliste](device-test-checklist.md#11-m4--performance-für-chaos-43)) und **automatisch** im Headless-Chromium mit Software-Rendering (`pnpm perf`). Die automatischen Werte erlauben **nur relative Vergleiche** auf demselben Rechner (vorher/nachher). Sie sagen nichts darüber, wie flüssig das Spiel auf Rubens PC oder Fernseher läuft.
 
@@ -33,7 +33,7 @@ Die Messanzeige aus M1 misst jetzt **je Szene**. Jede Szene meldet sich beim Auf
 
 - „Kopieren“ legt wie bisher eine Zeile mit den Gesamtwerten ab; **„Alle Szenen kopieren“** eine Zeile je Szene plus Grafikkarte, Auflösung und User-Agent. Auf der Konsole liefert `__chaosPerf.summary()` denselben Text, `__chaosPerf.report()` die Zahlen.
 - Beim Szenenwechsel werden wartende Eingänge verworfen: Die Ladezeit der nächsten Szene ist keine Eingabelatenz.
-- **Standbild je Szenenwechsel** (CHAOS-153): Brett, Minispiel-Bühne und Podest setzen Marken `chaos:<szene>:aufbau` (Aufbau beginnt), beim Podest zusätzlich `:sichtbar` (vorbereitetes Podest wird gezeigt), und `:erstes-bild` (`performance.mark`, im Performance-Profil der DevTools sichtbar; `apps/host/src/debug/sceneMarks.ts`). Dazu protokolliert der Host Long Tasks (`PerformanceObserver`, Typ `longtask`, ≥ 50 ms, nur Chromium/Edge). `__chaosPerf.transitions()` liefert je Übergang (`lobby → brett`, `brett → minispiel`, `minispiel → brett`, `zählung → podest`) den **längsten Block**, die blockierte Zeit und die Wartezeit bis zum ersten Bild (`transitions.ts`). Fenster: Aufbau bis erstes Bild; beim Podest Vorbereitung (während der Zählung) bis zum vorab gezeichneten Bild **plus** Zeigen bis zum ersten Bild danach, nicht die Zählung dazwischen. Eine Long Task zählt mit voller Dauer, wenn sie ein Fenster überlappt: Entsorgen der alten Szene und `new Engine(…)` der neuen laufen oft in derselben Aufgabe, die vor der Marke beginnt.
+- **Standbild je Szenenwechsel** (CHAOS-153): Brett, Minispiel-Bühne und Podest setzen Marken `chaos:<szene>:aufbau` (Aufbau beginnt), beim Podest zusätzlich `:sichtbar` (vorbereitetes Podest wird gezeigt), bei der Minispiel-Bühne zusätzlich `:angefragt` (Empfang des Stands, der das Minispiel nennt; der Übergang zählt dann ab da und weist die Zeit bis zum Aufbau als `requestMs` aus, CHAOS-86), und `:erstes-bild` (`performance.mark`, im Performance-Profil der DevTools sichtbar; `apps/host/src/debug/sceneMarks.ts`). Dazu protokolliert der Host Long Tasks (`PerformanceObserver`, Typ `longtask`, ≥ 50 ms, nur Chromium/Edge). `__chaosPerf.transitions()` liefert je Übergang (`lobby → brett`, `brett → minispiel`, `minispiel → brett`, `zählung → podest`) den **längsten Block**, die blockierte Zeit und die Wartezeit bis zum ersten Bild (`transitions.ts`). Fenster: Aufbau bis erstes Bild; beim Podest Vorbereitung (während der Zählung) bis zum vorab gezeichneten Bild **plus** Zeigen bis zum ersten Bild danach, nicht die Zählung dazwischen. Eine Long Task zählt mit voller Dauer, wenn sie ein Fenster überlappt: Entsorgen der alten Szene und `new Engine(…)` der neuen laufen oft in derselben Aufgabe, die vor der Marke beginnt.
 - Grenzen wie in ADR-010: Eingabe→Frame endet am Ende des JS-Renderings (ohne GPU, Compositor, Bildschirm). Der Weg Finger → Bild als Ganzes lässt sich nur per Zeitlupenvideo messen (Checkliste PF7).
 
 ### Controller (`…&debug=1`)
@@ -293,6 +293,33 @@ Heap nach GC schwankt um ≤ 2 MB (≤ 3 %), der Höchstwert um bis zu 30 %. Die
 
 Der längste Block Brett → Minispiel (Perf-Partie auf dem Mac, Median 0,79–0,84 s) ist **kein** Kontextaufbau. Mit Messmarken ([EXP-030](experiments.md)) wandert er immer zum ersten synchronen GL-Aufruf nach dem Ausblenden des Bretts (`new Engine(…)`, eine Größenänderung der Leinwand oder ein Aufruf beim Figuren-Laden) und dauert dort ≈ 0,8 s. Wird die Bühne 1,5 s später aufgebaut, kostet `new Engine(…)` 15–20 ms und der längste Block sinkt auf 124–150 ms. Lesart: SwiftShader arbeitet beim Wechsel noch vorausgelaufene Brett-Bilder ab. Eine über die Partie geteilte Minispiel-Engine brachte keinen Gewinn (Median 789–1344 ms) und wurde verworfen. Die Kennzahl „brett → minispiel“ misst auf SwiftShader also vor allem diese Warteschlange; ob auf echter Hardware ein Standbild bleibt, zeigt nur N4.
 
+## 3j. Ein Chunk je Minispiel (CHAOS-86)
+
+Mit ~200 Minispielen (CHAOS-80) wüchse die Minispiel-Bühne aus §3c um ≈ 30–90 kB je Spiel, und die App lädt sie schon in der Lobby vor. Jetzt lädt der Host jedes Spiel als eigenen Chunk über `@chaos-party/minigames/lazy`, sobald der Stand das Minispiel der Runde nennt ([ADR-004 Nachtrag 2](decisions/ADR-004-host-szene.md)).
+
+**Bundle** (Production-Build, `pnpm check:bundle`, 2026-11-20):
+
+| Was | vorher (`main` 097aa5a) | nachher |
+|---|---|---|
+| Start (statisch) | 414 kB (gzip 133 kB), 5 Dateien | 420 kB (gzip 135 kB), 6 Dateien (Steckbriefe als `minispiel-katalog` 7,7 kB) |
+| Minispiel-Bühne (statische Kette, lädt vorab in der Lobby) | 2.737 kB (gzip 737 kB) mit allen 6 Spielen | **2.568 kB (gzip 694 kB)** ohne Spiel |
+| je Minispiel zusätzlich zur Bühne | – (in der Bühne) | 31–87 kB (gzip 11–22 kB) |
+
+Was mit jedem neuen Spiel im Start bleibt: sein Steckbrief (`info.ts`, ≈ 0,3–0,5 kB) und eine Lade-Zeile. Der Start wächst also nicht mit dem Spiel-Code, die Bühne gar nicht.
+
+**Warten beim Start eines Minispiels.** Die Marke `minispiel:aufbau` sitzt in der Bühne, also *nach* dem Laden des Spiel-Chunks. Neu ist deshalb die Marke `minispiel:angefragt` auf dem Empfang des Stands, der das Minispiel nennt (`App.tsx`). Die Übergänge zählen ab da; `requestMs` (Anfrage bis Aufbau) steht in `perf-results/partie*.json` unter `transitions`/`transitionList`. Vorher-Lauf = `main` plus nur diese Marke. Perf-Partie, je 5 Wechsel brett → minispiel, SwiftShader, gleicher Rechner:
+
+| Lauf | Anfrage → Aufbau je Wechsel ms | Median | Wartezeit bis erstes Bild Median ms |
+|---|---|---|---|
+| vorher | 302 · 2 · 24 · 2 · 1 | 2 | 1642 |
+| nachher, erster Entwurf (Bühne wartet per Suspense) | 302 · 302 · 350 · 303 · 302 | 302 | 1587 |
+| nachher (Bühne erst mit geladenem Modul) | 15 · 14 · 142 · 11 · 10 | 14 | 1575 |
+| nachher, Wiederholung | 34 · 16 · 92 · 12 · 9 | 16 | 1534 |
+
+- **Gefunden dabei: Suspense-Drossel.** Hat React einmal einen Fallback gezeigt, deckt es den Inhalt frühestens nach 300 ms auf. Der erste Entwurf (`use()` in der Bühne) kostete so jedes Minispiel 300 ms. Dasselbe galt schon vorher für das **erste** Minispiel jeder Partie (302 ms): `React.lazy` hält auch einen längst vorgeladenen Chunk beim ersten Rendern an. Jetzt lädt die App Bühnen-Chunk und Spiel-Modul selbst (`useMinigameStage`, `useMinigameModuleStatus`) und hängt die Bühne erst ein, wenn beides da ist.
+- **Ergebnis:** Über die Partie wartet der Host weniger als vorher (Summe 163–192 statt 331 ms), weil die 300 ms am ersten Minispiel wegfallen. Je späterem Minispiel kommen ≈ 10 ms dazu (Chunk holen und ausführen, lokal ausgeliefert), bei einem Spiel 70–120 ms. Gegenüber 1,0–2,1 s bis zum ersten Bild der Anleitung liegt das im Rauschen der Wartezeit (±30 %, §2).
+- **Nicht geprüft:** Ladezeit auf Rubens PC und am Fernseher (N4 der Gerätecheckliste). Früher vorladen ginge nur, wenn der Server das Minispiel vor `minigame-intro` nennt (CHAOS-225).
+
 ## 4. Umgesetzte Optimierungen
 
 | Engpass (belegt durch) | Änderung | Ergebnis |
@@ -300,6 +327,7 @@ Der längste Block Brett → Minispiel (Perf-Partie auf dem Mac, Median 0,79–0
 | Brett rendert hinter Trophäenzählung und Podest weiter: 2 Render-Schleifen, 2 Szenen je Bild (`finale`/`podest`: Schleifen 2) | `BoardScene.setRenderPaused`: Sobald das Finale das Brett überdeckt, stoppt `BoardStage` die Render-Schleife des Bretts; nur die Regie läuft per `requestAnimationFrame` weiter (Stand, HUD). Die Leinwand behält das letzte Bild (die Zählung ist zu 92–95 % deckend, das Podest ganz). Der Kontext bleibt: „Nochmal spielen“ führt in die Lobby, die das Brett ohnehin entsorgt. | Schleifen 2 → 1, Podest-Bildabstand p50 351 → 100 ms (SwiftShader) |
 | Brett: 15 Bäume aus je 3 Meshes = 45 Draw Calls | Bäume als Instanzen (`createInstance`) von 5 Vorlagen (Stamm, je Kronenform und Material); Wackeln weiter je Baum-Knoten | Draw Calls 187 → 150; Screenshot `host-brett` unverändert. **Entfallen mit CHAOS-62** (neue, je Baum verformte Bäume, siehe Abschnitt 3a) |
 | Start-Bundle des Hosts 2.750 kB statisch, inkl. Babylon und aller Szenen (CHAOS-53, Sourcemap-Analyse) | Arena, Brett, Minispiele per dynamischem Import, Vorladen nach der Arena, `minigame-sdk` nebenwirkungsfrei, Budget-Prüfung `pnpm check:bundle` (Abschnitt 3c) | Start 2.750 → 404 kB (gzip 739 → 130 kB); ganze Partie unverändert |
+| Minispiel-Bühne enthält alle Minispiele und wächst mit dem Katalog (CHAOS-86, Vite-Manifest) | Chunk je Minispiel über `@chaos-party/minigames/lazy`, Steckbriefe in einem Katalog-Chunk, Bühne erst mit geladenem Modul (keine Suspense-Drossel), Prüfung in `pnpm check:bundle` (Abschnitt 3j) | Bühne 2.737 → 2.568 kB und wächst nicht mehr; erstes Minispiel der Partie 302 → 15–34 ms von der Anfrage bis zum Aufbau |
 | Alter Endstand nach „Nochmal spielen“: Der Server zählt `eventSeq` je Partie ab 0, die Regie hielt die neue Partie für „veraltet“ und zeigte weiter den Siegerbildschirm samt Podest (zwei Szenen) | Regie (`director.ts`) erkennt eine neue Partie (eventSeq 0 nach `game-results`) und springt auf den Stand; Unit-Test und Prüfung im Revanche-Messlauf | gefunden durch den Revanche-Messlauf; funktionaler Fehler, nicht nur Performance |
 
 | Siegerpodest baut erst beim Erscheinen und übersetzt alle Shader am Stück (`whenReadyAsync`): 3 Blöcke bis 0,84–1,04 s am Übergang (SwiftShader, `minimal`), KI-25 (CHAOS-71) | Das Finale baut das Podest zu Beginn der Trophäenzählung auf einer unsichtbaren Leinwand (ohne Render-Schleife); Pausen zwischen den Aufbauschritten, Shader je Mesh in ≈ 12-ms-Abschnitten mit Bildpause (`scene/prepareGradually.ts`), erstes Bild vorab. Der Siegerbildschirm hängt die Leinwand nur ein und startet die Schleife. Während der Zählung zwei WebGL-Kontexte (Brett pausiert + Podest), wie bisher am Podest | Übergang 35–47 ms (`minimal`) bzw. 46–110 ms (`hoch`), kein Long Task; während der Zählung ein Block bis ≈ 1 s ([EXP-021](experiments.md)) |

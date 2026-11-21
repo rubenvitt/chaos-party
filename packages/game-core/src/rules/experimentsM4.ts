@@ -11,7 +11,7 @@
  * optionalem Können); ihre Dauer ist die echte Spielzeit aus dem Katalog. Näherungen, kein
  * Spaß-Beweis.
  */
-import { WACKELWALD } from '../board/wackelwald.ts';
+import { WACKELWALD_M2 } from '../board/wackelwaldM2.ts';
 import type { MinigameSpec, RuleSet } from '../types.ts';
 import { DEFAULT_RULES, withRules, type RuleOverrides } from './defaults.ts';
 import {
@@ -71,7 +71,7 @@ export const M4_RULES: RuleSet = withRules({ items: { minigameLastItems: 0 } }, 
 
 /** M4-Standardregeln mit echter Minispiel-Rotation. */
 export function m4Defaults(id = 'M4', label = 'Standard + Rotation'): Variant {
-  return { id, label, rules: M4_RULES, board: WACKELWALD, minigames: ROTATION_SPECS };
+  return { id, label, rules: M4_RULES, board: WACKELWALD_M2, minigames: ROTATION_SPECS };
 }
 
 /** Variante aus Abweichungen von `M4_RULES` (nicht `START_RULES`). */

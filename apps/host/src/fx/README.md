@@ -1,8 +1,19 @@
-# Effekte des Hosts (CHAOS-33)
+# Effekte des Hosts (CHAOS-33, CHAOS-223)
 
-Alle Klänge und Partikel sind **prozedural** erzeugt – keine Ton- oder Bilddateien, also keine
-Lizenzfragen. Klänge: WebAudio-Oszillatoren/Rauschen mit Hüllkurven (`sounds.ts`, abgespielt von
-`audio.ts`). Partikel: Babylon-`ParticleSystem` mit Texturen, die als RGBA-Pixel berechnet werden
+**Klänge sind echte Aufnahmen** (seit CHAOS-223, alle CC0): Kenney-Audio-Pakete und einzelne
+Klänge von freesound.org, ausgewählt in [`packages/assets/sounds.json`](../../../../packages/assets/sounds.json),
+importiert als normalisierte MP3 nach `packages/assets/sounds/` (Herkunft je Datei im
+Asset-Manifest, `klang-…`). `samples.ts` wählt je Klang-Name die Datei (Varianten reihum),
+Abspiel-Rate (Tonhöhe samt kleiner Streuung) und Lautstärke; `audio.ts` spielt sie per WebAudio
+(`sampleUrls.ts` liefert die URLs aus dem Vite-Build). Der Apple-Host benutzt denselben Picker und
+schickt die Wahl im `SoundCue` an Swift. Die prozeduralen **Rezepte** (`sounds.ts`: Oszillatoren/
+Rauschen mit Hüllkurven) bleiben als Rückfall, solange die Dateien laden oder wenn eine fehlt.
+
+Einen Klang tauschen: Quelle in `sounds.json` ändern, `pnpm --filter @chaos-party/assets
+import:sounds` (ffmpeg mit libmp3lame), dann Prettier und `pnpm check:assets`. Lautstärke im Mix
+(`gain`) und Streuung (`jitter`) stehen ebenfalls dort.
+
+Partikel sind **prozedural** erzeugt (keine Bilddateien). Partikel: Babylon-`ParticleSystem` mit Texturen, die als RGBA-Pixel berechnet werden
 (`particles.ts`). Kamerawackeln: `shake.ts`. Alles zusammen als `MinigameFx` für Minispiele:
 `minigameFx.ts`; Brett-Klänge je Regie-Ereignis: `boardSounds.ts`.
 
@@ -12,6 +23,8 @@ Nutzer-Geste (Klick auf „Los geht’s!“ in der Lobby oder erste Taste/erster
 Gesamtlautstärke: `?volume=0…100` (Standard 70).
 
 ## Klänge – Minispiele (`SOUND_IDS` aus `@chaos-party/minigame-sdk/babylon`)
+
+Die Beschreibung nennt das Rezept (Rückfall); welche Aufnahme spielt, steht in `sounds.json`.
 
 | ID       | Beschreibung                                         |
 | -------- | ---------------------------------------------------- |

@@ -48,6 +48,13 @@ export interface HostEnv {
    */
   tailwind?: boolean;
   /**
+   * Schnellfeuer-Auslöser (CHAOS-232), wie `SCHNELLFEUER` am PC-Server (CHAOS-90, EXP-039):
+   * `an` (Standard: Ereignis „Schnellfeuer!“, sonst im Finale), `aus`, `ereignis`, `halbzeit`
+   * oder `finale`. Fehlt der Wert oder ist er unbekannt, gilt der Standard (unbekannt mit
+   * Logzeile). Swift setzt ihn mit `--schnellfeuer=<wert>` oder der Umgebungsvariable `SCHNELLFEUER`.
+   */
+  rapidFire?: string;
+  /**
    * Nur Tests und Nachstellen (CHAOS-206): Jede Minispiel-Bühne ist frühestens so viele ms nach
    * Beginn ihres Aufbaus fertig, wie auf einem gedrosselten Gerät. Fehlt der Wert, baut sie so
    * schnell wie möglich.
@@ -164,7 +171,7 @@ export const LobbySettingsStateSchema = z.strictObject({
         id: BoardChoiceSchema,
         /** „Wackelwald“, „Zufall“. */
         name: z.string(),
-        /** Zweite Zeile: „43 Felder“, „Überraschung!“. */
+        /** Zweite Zeile: „74 Felder“, „Überraschung!“. */
         detail: z.string(),
         selected: z.boolean(),
         random: z.boolean(),
@@ -327,8 +334,14 @@ export const SoundCueSchema = z.strictObject({
   id: z.number().int(),
   /** `SoundName` aus `apps/host/src/fx/sounds.ts`. */
   name: z.string(),
-  /** Rezept mit Lautstärke und Tonhöhe schon angewandt (`shapeRecipe`). */
+  /** Rezept mit Lautstärke und Tonhöhe schon angewandt (`shapeRecipe`); Rückfall ohne Datei. */
   voices: z.array(SoundVoiceSchema),
+  /**
+   * Klang-Datei (CHAOS-223, `apps/host/src/fx/samples.ts`): Name unter `payload/sounds/`,
+   * Abspiel-Rate (Tonhöhe samt Streuung) und Lautstärke 0…2. Fehlt sie oder liegt die Datei
+   * nicht im Bündel, spielt Swift das Rezept.
+   */
+  sample: z.strictObject({ file: z.string(), rate: z.number(), gain: z.number() }).optional(),
 });
 
 export const NoticeSchema = z.strictObject({

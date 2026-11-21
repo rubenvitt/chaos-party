@@ -1,11 +1,14 @@
 import AVFoundation
 import Foundation
 
-/// Klänge der Brett-Regie (CHAOS-143). Die Rezepte kommen fertig aus dem JS-Kern (`renderState().board.sounds`,
-/// Quelle `apps/host/src/fx/sounds.ts` samt Zuordnung `boardSounds.ts`), in dem Moment, in dem die Regie das Ereignis
-/// abspielt. Hier werden sie nur synthetisiert, wie `apps/host/src/fx/audio.ts` es mit WebAudio tut: Oszillator oder
-/// Rauschen, Tonhöhe gleitet exponentiell, Hüllkurve (linear an, exponentiell aus), optional ein Biquad-Filter.
-/// Alles prozedural, keine Tondateien, also keine Lizenzfragen.
+/// Klänge der Brett-Regie (CHAOS-143), auch Pause und Finale. Die Klänge kommen fertig aus dem JS-Kern
+/// (`renderState().board.sounds`, Quelle `apps/host/src/fx/sounds.ts` samt Zuordnung `boardSounds.ts`), in dem Moment,
+/// in dem die Regie das Ereignis abspielt.
+///
+/// Seit CHAOS-223 spielt jeder Klang eine echte Aufnahme (CC0, `SoundBank`, Wahl samt Tonhöhe und Lautstärke aus dem Kern
+/// wie im Browser-Host). Das Rezept bleibt als Ersatz, solange die Dateien laden oder wenn eine fehlt; es wird synthetisiert
+/// wie `apps/host/src/fx/audio.ts` es mit WebAudio tut: Oszillator oder Rauschen, Tonhöhe gleitet exponentiell, Hüllkurve
+/// (linear an, exponentiell aus), optional ein Biquad-Filter.
 ///
 /// `--stumm` schaltet die Klänge ab (Sichtprüfung am Mac). Die Audio-Engine startet erst beim ersten Klang; ohne
 /// Ausgabegerät bleibt es still (Logzeile ohne „FEHLER“, damit `--selftest` nicht scheitert).
@@ -14,13 +17,9 @@ final class BoardSounds {
     static let sampleRate = 44_100.0
     /// Gesamtlautstärke wie `DEFAULT_VOLUME` im Browser-Host.
     static let masterVolume = 0.7
-    private static let voices = 8
 
     private let muted = CommandLine.arguments.contains("--stumm")
-    private var engine: AVAudioEngine?
-    private var players: [AVAudioPlayerNode] = []
-    private var nextPlayer = 0
-    private var failed = false
+    private let voices = SoundVoices(count: 8, limiter: false, label: "Klänge")
     /// Höchste gespielte ID; jede Partie zählt neu ab 1 (`reset()` in der Lobby).
     private var lastId = 0
     private var cache: [String: AVAudioPCMBuffer] = [:]
@@ -34,43 +33,15 @@ final class BoardSounds {
         for cue in cues.sorted(by: { $0.id < $1.id }) where cue.id > lastId {
             lastId = cue.id
             played += 1
-            guard !muted, !failed else { continue }
+            guard !muted else { continue }
+            if let sample = cue.sample, let buffer = SoundBank.shared.buffer(sample.file) {
+                voices.play(buffer, rate: sample.rate, volume: sample.gain * Self.masterVolume)
+                continue
+            }
             let key = "\(cue.name)|\(cue.voices)"
             let buffer = cache[key] ?? synthesize(cue.voices)
             cache[key] = buffer
-            guard let buffer, let player = nextFreePlayer() else { continue }
-            player.scheduleBuffer(buffer, at: nil, options: [])
-            if !player.isPlaying { player.play() }
-        }
-    }
-
-    private func nextFreePlayer() -> AVAudioPlayerNode? {
-        if engine == nil { start() }
-        guard !players.isEmpty else { return nil }
-        let player = players[nextPlayer]
-        nextPlayer = (nextPlayer + 1) % players.count
-        return player
-    }
-
-    private func start() {
-        #if os(tvOS) || os(iOS)
-        try? AVAudioSession.sharedInstance().setCategory(.ambient)
-        #endif
-        let engine = AVAudioEngine()
-        var nodes: [AVAudioPlayerNode] = []
-        for _ in 0..<Self.voices {
-            let node = AVAudioPlayerNode()
-            engine.attach(node)
-            engine.connect(node, to: engine.mainMixerNode, format: format)
-            nodes.append(node)
-        }
-        do {
-            try engine.start()
-            self.engine = engine
-            players = nodes
-        } catch {
-            failed = true
-            hostLog("Klänge aus: Audio-Engine startet nicht (\(error.localizedDescription))")
+            if let buffer { voices.play(buffer) }
         }
     }
 

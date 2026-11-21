@@ -33,7 +33,7 @@ Jede Skizze im Katalog ist auf vier Achsen eingeordnet. Die Rotation soll späte
 | Spielform | Jeder gegen jeden · 1 gegen 3 · 2 gegen 2 · Gemeinsam gegen das Spiel · Mikro | `FFA`, `1v3`, `2v2`, `Koop`, `Mikro` |
 | Familie | 20 Mechanik-Familien (Abschnitt 4) | Kapitel im Katalog |
 
-**Bedienung am geteilten iPad:** `A` und `AB` sind dort am angenehmsten (EXP-005, EXP-016). Ziel für den Katalog: mindestens 25 % der Spiele ohne Stick.
+**Bedienung am geteilten iPad:** `A` und `AB` sind dort am angenehmsten (EXP-005, EXP-016). Ziel für den Katalog: mindestens 30 % der Spiele ohne Stick (`CHAOS-93`).
 
 ## 4. Familien und Verteilung
 
@@ -60,7 +60,9 @@ Jede Skizze im Katalog ist auf vier Achsen eingeordnet. Die Rotation soll späte
 | 19 | Gemeinsam gegen das Chaos | 181–190 | `Koop` | **Spielform Koop mit Einzelwertung** |
 | 20 | Mikro-Spiele | 191–200 | `Mikro` | **Schnellfeuer-Kette** (mehrere 5–8-s-Spiele am Stück) |
 
-Verteilung der 200 Skizzen (gezählt im Katalog): Kategorie Arcade 84, Physik 40, Hybrid 76. Bedienung: nur A 28, A+B 25, nur Stick 39, Stick+A 104, Stick+A+B 4 – also 53 Spiele (26 %) ohne Stick. Stick+A überwiegt; beim Nachschub gezielt mehr A/AB- und Physik-Ideen sammeln.
+Verteilung der ersten 200 Skizzen (2026-11-16): Kategorie Arcade 84, Physik 40, Hybrid 76. Bedienung: nur A 28, A+B 25, nur Stick 39, Stick+A 104, Stick+A+B 4 – also 53 Spiele (26 %) ohne Stick.
+
+**Nach Nachschub-Runde 1 (`CHAOS-93`, 2026-11-21):** 209 aktive volle Minispiele (ohne die 10 Mikro-Spiele, ohne 7 verworfene Dubletten), Physik 59 (28 %), ohne Stick 73 (35 %). Untergrenzen ≥ 200 aktiv, ≥ 30 % ohne Stick, ≥ 25 % Physik prüft `packages/minigames/src/sketchCatalog.test.ts`; Einzelheiten am Ende des Katalogs.
 
 ## 5. Die Minispiel-Fabrik
 
@@ -122,21 +124,21 @@ Rubens Sorge beim Konzept-Gate (2026-11-16): Mit einem Baukasten könnten die Sp
 - **Rotation:** Bei 200 Spielen kommt in einer Partie (10–20 Runden) fast nie ein Spiel doppelt. Die Auswahl braucht: Ziehen ohne Wiederholung (auch über Partien hinweg), Mischen über die Achsen, Filter nach Spielerzahl und iPad-Zonen, Sperrliste/Favoriten. Umgesetzt in `CHAOS-85` (ADR-012 Nachtrag 6): Felder `family`, `minPlayers`/`maxPlayers`, `ipadZone`, `secretChoice` in `MinigameInfo`, Kernverb/Spielform/Bedienung aus dem Vielfalts-Steckbrief (ADR-021); Auswahl in `packages/game-core/src/rules/rotation.ts`; Sperrliste und Favoriten im Lobby-Dialog „Minispiele“ am PC.
 - **Anleitungen:** Bei vielen neuen Spielen ist fast jedes Spiel neu für die Runde. Kurze, klare Anleitung und eine **Probephase** (5 s üben vor dem Start) werden wichtiger als die verkürzte Anleitung bei Wiederholung (CHAOS-66).
 - **Assets:** Viele Spiele brauchen Requisiten (Toaster, Melone, Gießkanne). Weiter mit dem eigenen Blender-Skript-Generator (ADR-013) und CC0-Quellen; je Familie ein **Requisiten-Set**, keine Einzelanfertigung je Spiel. Umgesetzt in CHAOS-88: Art-Kit `packages/assets/blender/requisitkit.py`, Sets und Budget je Spiel in `packages/assets/src/props.ts`, Regeln in `docs/art-direction.md` („Requisiten der Minispiele“).
-- **Ladezeit und Bundle:** 200 Spiele dürfen den Host nicht aufblähen. Minispiel-Module werden **erst bei Bedarf geladen** (dynamischer Import je Spiel).
+- **Ladezeit und Bundle:** 200 Spiele dürfen den Host nicht aufblähen. Minispiel-Module werden **erst bei Bedarf geladen** (dynamischer Import je Spiel). Umgesetzt mit CHAOS-86: neues Spiel zusätzlich in `packages/minigames/src/lazy.ts` eintragen (ADR-004 Nachtrag 2).
 
 ## 7. Entscheidungen (Konzept-Gate `CHAOS-82`, Ruben, 2026-11-16)
 
 | # | Frage | Rubens Antwort | Folge |
 |---|---|---|---|
 | 1 | Fabrik-Ansatz | „ich habe angst, dass sie dann einem pattern folgen. aber wenn dem nicht so ist go for it“ | Freigegeben mit Auflage: Regeln gegen Gleichförmigkeit (§5.5), Prüfung bei der Zwischenabnahme |
-| 2 | Neue Spielformen 1v3, 2v2, Koop | „ja neue formen“ | `CHAOS-89` freigegeben. Münz-Regel aus dem Vorschlag ist Startwert, ein Experiment legt sie fest |
+| 2 | Neue Spielformen 1v3, 2v2, Koop | „ja neue formen“ | `CHAOS-89` freigegeben und umgesetzt (ADR-012 Nachtrag 8). Münz-Regel nach EXP-038: Sieg 7, Niederlage 2, Einzelsieg doppelt, Koop 12/9/6/3 × Stufe/3, 1 gegen 1 wie jeder gegen jeden; Testspiele Pump-Duell, Pump-Solo, Riesenballon |
 | 3 | Mikro-Spiele / Schnellfeuer | „ja bestimmt(?) aber als neue Mechanik dann?“ | Ja, als **eigene Mechanik**: Schnellfeuer ist eine eigene Rundenart, kein normales Minispiel (siehe unten) |
 | 4 | Geheime Wahl am geteilten iPad | „ja, aber da bringt das glaube ich wenig am ipad“ | Erlaubt. Die Rotation zieht diese Spiele bei iPad-Zonen deutlich seltener (`CHAOS-85`) |
 | 5 | Reihenfolge Pilot → Zwischenabnahme → Familien | „ja“ | Wie §8 |
 
 **Schnellfeuer als eigene Mechanik:** Fünf Mikro-Spiele am Stück ersetzen das normale Minispiel einer Runde. Gewertet wird über alle fünf, die Münzen folgen der normalen Platzierung. Der Auslöser wird per Experiment gewählt (`CHAOS-90`). Varianten: (a) ein neues Brett-Ereignis „Schnellfeuer!“, (b) feste Runde zur Halbzeit, (c) Finale in der letzten Runde. Vorschlag: (a), weil Brett-Ereignisse zum Kern des Spiels gehören und die Überraschung erhalten. Die Mikro-Spiele bilden einen eigenen Vorrat und zählen nicht als volle Minispiele. Das Ziel „~200“ meint volle Minispiele, die Mikro-Spiele kommen obendrauf.
 
-**Umgesetzt (CHAOS-90, 2026-11-21):** Schnellfeuer ist nach außen ein normales Minispiel-Modul (`packages/minigames/src/schnellfeuer`), nicht in der Rotation. Auslöser nach EXP-038: Brett-Ereignis „Schnellfeuer!“ (5 Lose, höchstens einmal je Partie), sonst im Finale. Mikro-Vertrag: 5–8 s, Bildwort in Großbuchstaben statt Anleitung (ADR-024). Erster Vorrat: MG-192, -193, -194, -196, -197; die übrigen fünf kommen mit `CHAOS-113`.
+**Umgesetzt (CHAOS-90, 2026-11-21):** Schnellfeuer ist nach außen ein normales Minispiel-Modul (`packages/minigames/src/schnellfeuer`), nicht in der Rotation. Auslöser nach EXP-039: Brett-Ereignis „Schnellfeuer!“ (5 Lose, höchstens einmal je Partie), sonst im Finale. Mikro-Vertrag: 5–8 s, Bildwort in Großbuchstaben statt Anleitung (ADR-024). Erster Vorrat: MG-192, -193, -194, -196, -197; die übrigen fünf kommen mit `CHAOS-113`.
 
 ## 8. Wellenplan (Vorschlag)
 

@@ -721,7 +721,7 @@ Automatisch geprüft (Linux): Protokoll-Validierung, Server-Integration (Wahl, Z
 
 | ID  | Schritt | Erwartung | Ergebnis | Nachweis |
 | --- | ------- | --------- | -------- | -------- |
-| BA1 | PC: `pnpm play`, Lobby | Neben „Runden“ steht „Brett: Wackelwald · 43 Felder“; Klick wechselt auf „🎲 Zufall“ und zurück; Startknopf zeigt „10 Runden · Wackelwald“ bzw. „· Zufallsbrett“ | | |
+| BA1 | PC: `pnpm play`, Lobby | Neben „Runden“ steht „Brett: Wackelwald · 74 Felder“ (seit CHAOS-196; vorher 43); Klick wechselt auf „🎲 Zufall“ und zurück; Startknopf zeigt „10 Runden · Wackelwald“ bzw. „· Zufallsbrett“ | | |
 | BA2 | iPhone und iPad in der Lobby | Kopfzeile zeigt das gewählte Brett und folgt jeder Änderung am Host; auf dem iPad passt die Kopfzeile in jede Zone | | Foto |
 | BA3 | Mac-App: Lobby, Taste B bzw. Klick auf den Brett-Knopf rechts neben „Chaos Party“ | Wechselt Wackelwald ↔ Zufall; Lobby wird nicht höher, nichts überlappt | | Foto |
 | BA4 | Apple TV: Fokus mit der Fernbedienung auf den Brett-Knopf (von den Einstellungen nach oben), drücken | Fokusrahmen sichtbar, Wechsel wie am Mac; danach erreicht man Runden, Schalter und Start weiterhin | | Foto |
@@ -774,7 +774,7 @@ Automatisch geprüft: Auswahl ohne Wiederholung, Familien und Kernverben nie dir
 
 ## 41. Rummelplatz: Karussell, Kulisse und Nacht (für CHAOS-199)
 
-**Stand:** 2026-11-20 · **Aufgabe:** CHAOS-199 · **Entscheidung:** ADR-022 · **Experiment:** EXP-034
+**Stand:** 2026-11-20 · **Aufgabe:** CHAOS-199 · **Entscheidung:** ADR-022 · **Experiment:** EXP-035
 
 Automatisch geprüft (Mac): Regeln und Validierung (Unit- und Integrationstests, Bot-Partien), PC-Host im Chromium mit Metal (Bilder unter `docs/screenshots/chaos199-*`), USDZ-Export und beide Prüfskripte, Mac-App und tvOS-Simulator mit je vier Bots über drei Runden bis zum Siegerbild, Zufall mit sieben Revanchen am Mac (Kulisse wechselte sechsmal in beide Richtungen ohne Neustart). **Nicht** geprüft: echte Apple TV (Ladezeit der zweiten Kulisse, im Simulator 4,2 s; Bildrate bei 81 Feldern und Lichterketten), Lesbarkeit und Spielspaß am Fernseher.
 
@@ -822,11 +822,54 @@ Automatisch geprüft (Mac): Regeln und Validierung (Unit- und Integrationstests,
 | FG6 | Apple TV: ganze Partie mit 4 Spielern | Bildrate wie auf dem Wackelwald (Gerätecheckliste §34), Log „Brett frostgipfel geladen … in … ms“ notieren | | Log |
 | FG7 | Spieltest-Frage | Ist die Lawinen-Warnung verständlich? Lohnt sich die Seilbahn gezielt? Fühlt sich das Rutschen lustig oder zufällig an? | | Notiz |
 
-## 46. Schnellfeuer: fünf Mikro-Spiele als eigene Rundenart (für CHAOS-90)
+## 44. Echte Klänge am Fernseher und am PC (für CHAOS-223)
 
-**Stand:** 2026-11-21 · **Aufgabe:** CHAOS-90, CHAOS-231 (Bildwort am Controller) · **Entscheidung:** ADR-024 (mit Nachtrag 1) · **Experiment:** EXP-038
+**Stand:** 2026-11-20 · **Aufgabe:** CHAOS-223 · **Entscheidung:** ADR-019 Nachtrag 6, EXP-035
 
-Automatisch geprüft (Mac): Mikro-Vertrag, Kette, Bots und Fairness-Vorlage (Unit-Tests), Auslöser im Regelkern samt Bot-Simulation, E2E mit 2, 3 und 4 Personen am PC-Host (SwiftShader, Testmodus) bis zum angenommenen Ergebnis, Apple-Host-Bot-Partie im Node-Kern mit Schnellfeuer in Runde 6. CHAOS-231: E2E mit echtem Server prüft, dass das iPhone je Mikro-Spiel dasselbe Bildwort wie der Host-Banner und nur dessen Bedienung zeigt; iPad-Zonen mit nachgebautem Server (Chromium-Emulation); native App nur Logik- und Fixture-Tests in der macOS-CI. **Nicht** geprüft: echtes Spieltempo mit Menschen, Lesbarkeit des Bildworts am Fernseher, Apple-Host-App am Mac und auf der Apple TV, Spielspaß.
+Automatisch geprüft (Mac): Klang-Dateien im Bündel und dekodierbar (`--selftest`), Wahl und Rückfall in Unit-Tests, Bot-Partie am Mac ohne Fehlerzeilen. **Nicht** automatisch prüfbar: wie es klingt, Lautstärke im Verhältnis, Lautsprecher der Apple TV bzw. des Fernsehers.
+
+| ID  | Schritt | Erwartung | Ergebnis | Nachweis |
+| --- | ------- | --------- | -------- | -------- |
+| KL1 | Apple TV: App starten, Partie mit iPhones | Log „Klang-Dateien: 40 geladen in … ms“; Würfel klappern, Münzen klimpern, Zugbeginn ist ein kurzer Pizzicato-Lauf | | Log |
+| KL2 | Minispiele der Rotation spielen | Trillerpfeife zum Start, Boing, Platschen, Wusch, Plopp hörbar; nichts kommt verspätet | | |
+| KL3 | Ergebnis und Finale, Kuckucks-Klatsche | Jubel und Fanfare nicht zu lang, nicht zu laut; die Finte (kurzer Saxofon-Lauf abwärts, bis zu 8× je Spiel) nervt nicht | | |
+| KL4 | Pause (Play/Pause) und Weiter | Kurzer Klang beim Anhalten und Weiterspielen | | |
+| KL5 | PC: `pnpm play`, eine Runde | Dieselben Klänge wie auf der Apple TV | | |
+| KL6 | Ruben: Urteil | Welche Klänge tauschen, welche lauter oder leiser? | | Kommentar an CHAOS-223 |
+
+## 45. Großer Wackelwald (für CHAOS-196)
+
+**Stand:** 2026-11-20 · **Aufgabe:** CHAOS-196 · **Experiment:** [EXP-037](experiments.md)
+
+Automatisch geprüft: Brett-Validierung, Bot-Simulation (Trophäen, faire Wegwahl), Unit-Tests der Kulisse, E2E am PC-Host (Linux, SwiftShader), Kulisse als USDZ (`pnpm build:apple-assets`, `check_usdz.py`, `check_realitykit.swift`), Bot-Partie im tvOS-Simulator. **Nicht** automatisch prüfbar: ob das größere Brett vom Sofa aus lesbar ist, Bildrate und Ladezeit auf der echten Apple TV, wie sich die Wegwahl anfühlt.
+
+| ID  | Schritt | Erwartung | Ergebnis | Nachweis |
+| --- | ------- | --------- | -------- | -------- |
+| GW1 | PC am Fernseher: `pnpm play`, Partie mit 4 Spielern, 12 Runden | Überblick zu Rundenbeginn zeigt das ganze Brett, Felder und Wegweiser lesbar; danach nah an der Figur | | Foto |
+| GW2 | An jeder der vier Gabeln wählen (Klippenweg/Sumpf, Bachlauf/Lichtung, Uferweg/Baumkronenweg, Pilzpfad/Wackelbrücke) | Beide Wege samt Wegweiser im Bild, Controller-Knöpfe zeigen die Namen | | Foto |
+| GW3 | Apple TV (TestFlight): GW1 | Wie am PC; Bildrate in `HOST-MESSUNG` (Phase `board`) weiter ≥ 30 fps, Ladezeit der Kulisse im Log notieren | | Log |
+| GW4 | Mac-App: GW1–GW2 | Wie auf der Apple TV | | |
+| GW5 | Ruben: Urteil | Brett groß genug? Wege abwechslungsreich? Lichtung als Abkürzung reizvoll, Baumkronenweg riskant genug? 10 oder 12 Runden? | | Kommentar an CHAOS-196 |
+
+## 46. Spielformen mit Teams und Koop (für CHAOS-89)
+
+**Stand:** 2026-11-21 · **Aufgabe:** CHAOS-89 · **Protokoll:** v4-Nachtrag CHAOS-89 (`teams`, `outcome`, Kontext `team`)
+
+Automatisch geprüft (Linux): Zuteilung, Ersatz zu zweit und zu dritt, Prüfung des Ausgangs und Münzen in game-core; Session mit Pump-Duell, Pump-Solo und Riesenballon für 2, 3 und 4 Personen; Headless-Läufe der drei Testspiele; E2E: Galerie → Pump-Duell mit vier iPhones (Chromium-Emulation) → Team-Ansage am PC, Rolle am Handy, Team-Ergebnis (Bilder `tests/e2e/__screenshots__/minispiel-spielformen.spec.ts/`). **Nicht** automatisch geprüft: Lesbarkeit am Fernseher, ob Teams Spaß machen. **Noch nicht umgesetzt:** Rolle in der nativen Controller-App (CHAOS-229), Team-Ansage am Apple-Host (CHAOS-230).
+
+| ID  | Schritt | Erwartung | Ergebnis | Nachweis |
+| --- | ------- | --------- | -------- | -------- |
+| SF1 | PC: Galerie, vier iPhones, „Üben“ bei Pump-Duell | Anleitung zeigt „2 gegen 2“, Team ☀ Sonne und Team ☾ Mond mit Namen; jedes Handy zeigt „Team Sonne“ bzw. „Team Mond“ und „Du und … gegen …“ | | Foto |
+| SF2 | Nur ein Team pumpt | PC: „☾ Team Mond gewinnt: …“; Handys: „Dein Team hat gewonnen!“ bzw. „verloren“ | | Foto |
+| SF3 | Pump-Solo mit drei Handys | „Einer gegen zwei“, Hinweis „… spielt allein und hat einen Vorteil“; Handy der Einzelperson „Allein gegen alle“ | | Foto |
+| SF4 | Riesenballon mit zwei Handys | „Alle zusammen“, Banner „Stufe … von 3“ im Spiel, Ergebnis „Gut geschafft – Stufe 2 von 3“ o. ä. | | Foto |
+| SF5 | Ruben: Urteil | Team-Sieg mit 7 Münzen lohnend? „Letzter gegen alle“ spannend oder demütigend? Koop für alle lohnend? (EXP-038) | | Kommentar an CHAOS-89 |
+
+## 47. Schnellfeuer: fünf Mikro-Spiele als eigene Rundenart (für CHAOS-90)
+
+**Stand:** 2026-11-21 · **Aufgabe:** CHAOS-90, CHAOS-231 (Bildwort am Controller) · **Entscheidung:** ADR-024 (mit Nachtrag 1) · **Experiment:** EXP-039
+
+Automatisch geprüft (Mac): Mikro-Vertrag, Kette, Bots und Fairness-Vorlage (Unit-Tests), Auslöser im Regelkern samt Bot-Simulation, E2E mit 2, 3 und 4 Personen am PC-Host (SwiftShader, Testmodus) bis zum angenommenen Ergebnis, Apple-Host-Bot-Partie im Node-Kern mit Schnellfeuer in Runde 6; Schalter `HostEnv.rapidFire` im Node-Kern mit `bots --full --schnellfeuer=aus|halbzeit|finale|ereignis` (CHAOS-232), Swift-Teil (`--schnellfeuer`) nur im macOS-CI gebaut. CHAOS-231: E2E mit echtem Server prüft, dass das iPhone je Mikro-Spiel dasselbe Bildwort wie der Host-Banner und nur dessen Bedienung zeigt; iPad-Zonen mit nachgebautem Server (Chromium-Emulation); native App nur Logik- und Fixture-Tests in der macOS-CI. **Nicht** geprüft: echtes Spieltempo mit Menschen, Lesbarkeit des Bildworts am Fernseher, Apple-Host-App am Mac und auf der Apple TV, Spielspaß.
 
 | ID  | Schritt | Erwartung | Ergebnis | Nachweis |
 | --- | ------- | --------- | -------- | -------- |
@@ -837,6 +880,7 @@ Automatisch geprüft (Mac): Mikro-Vertrag, Kette, Bots und Fairness-Vorlage (Uni
 | SF5 | Auswertung nach jedem Mikro-Spiel | Banner „… holt’s!“, Gewinner jubeln, Punkte springen; letztes Mikro-Spiel mit „×2“ | | Video |
 | SF6 | Ergebnis | Münzen nach Platz über alle fünf wie nach jedem Minispiel | | Foto |
 | SF7 | Apple TV: dieselbe Partie | Gegenstände sichtbar, Bildwort im Banner, kein Ruckeln beim Wechsel der Mikro-Spiele | | Log |
+| SF7b | Nativer Host (Mac-App oder Apple TV) mit `--schnellfeuer=halbzeit`, dann `--schnellfeuer=aus` (Mac: `open -a "Chaos Party" --args --schnellfeuer=halbzeit`, CHAOS-232) | Log zeigt „Startparameter: Schnellfeuer halbzeit“ und „JS Schnellfeuer halbzeit“; Schnellfeuer kommt genau in Runde 5 von 10. Mit `aus` kommt es nie | | Log |
 | SF8 | Spieltest-Frage (CHAOS-92) | Ist das Tempo lustig oder zu hektisch? Versteht man das Bildwort ohne Anleitung? Gewinnt immer dieselbe Person? Lieber Ereignis, Halbzeit oder Finale (`SCHNELLFEUER=ereignis|halbzeit|finale`)? | | Notiz |
 | SF9 | Bildwort am Controller (CHAOS-231): iPhone, iPad-Zone und native App während der Kette | Im Kopf steht dasselbe Bildwort wie am Fernseher („⏰ HAUEN!“, „1/5“), synchron zum Bildwort am Host; nur die Knöpfe des Mikro-Spiels (Wecker/Spaghetti/Kerze: nur A, Fliege/Kuchen: Stick + A); Finale mit „×2“ | | Video |
 | SF10 | Knöpfe wechseln während des Bildworts (CHAOS-231) | Der Stick erscheint bzw. verschwindet im Bildwort, nicht mitten im Spiel; kein Druck geht dabei verloren; nach WLAN-Wackler zeigt der Controller wieder das laufende Bildwort | | Video |

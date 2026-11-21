@@ -2,7 +2,7 @@
   "name": "@chaos-party/assets",
   "version": "0.0.0",
   "private": true,
-  "description": "Assets mit Manifest (Herkunft, Lizenz, Budget): Figuren (GLB), Porträts (WebP) und Minispiel-Requisiten (GLB) aus Blender-Skripten, Prüfskript.",
+  "description": "Assets mit Manifest (Herkunft, Lizenz, Budget): Figuren (GLB), Porträts (WebP) und Minispiel-Requisiten (GLB) aus Blender-Skripten, Klänge (MP3, CC0), Prüfskript.",
   "license": "GPL-3.0-only",
   "type": "module",
   "exports": {
@@ -10,7 +10,9 @@
     "./manifest.json": "./manifest.json",
     "./models/*": "./models/*",
     "./textures/*": "./textures/*",
-    "./props": "./src/props.ts"
+    "./props": "./src/props.ts",
+    "./sound-files": "./src/soundFiles.ts",
+    "./sounds/*": "./sounds/*"
   },
   "scripts": {
     "generate": "blender/build-all.sh && blender/portraits-all.sh && blender/props-all.sh",
@@ -18,7 +20,8 @@
     "import:polyhaven": "node src/import/polyhaven.ts",
     "check": "node src/check/cli.ts",
     "typecheck": "tsc -p tsconfig.json",
-    "generate:props": "blender/props-all.sh"
+    "generate:props": "blender/props-all.sh",
+    "import:sounds": "node src/import/sounds.ts"
   },
   "dependencies": {
     "zod": "^4.6.7"

@@ -40,6 +40,7 @@ import {
   type BoardView,
   type ControllerBoardInfo,
   type ControllerMinigameInfo,
+  type ControllerMinigameTeam,
   type MinigameControlsInfo,
   type MinigameCueInfo,
   type PromptInfo,
@@ -145,7 +146,9 @@ export function minigameSpecOf(info: MinigameInfo): MinigameSpec {
     scoring: info.scoring,
     category: info.category,
     controls,
-    form: steckbrief?.spielform.toLowerCase() ?? 'ffa',
+    // CHAOS-89: Die Spielform im Steckbrief des Minispiels geht vor (Testspiele ohne Katalog-Eintrag).
+    form: info.teamPlay?.form ?? steckbrief?.spielform.toLowerCase() ?? 'ffa',
+    ...(info.teamPlay === undefined ? {} : { teamPlay: { ...info.teamPlay } }),
     ...(steckbrief === undefined ? {} : { verb: steckbrief.kernverb }),
     ...(info.family === undefined ? {} : { family: info.family }),
     ...(info.minPlayers === undefined ? {} : { minPlayers: info.minPlayers }),
@@ -362,6 +365,15 @@ export class BoardGame {
             playMs: state.minigame.playMs,
             repeat: state.minigame.repeat,
             ...(state.minigame.ready ? { ready: [...state.minigame.ready] } : {}),
+            ...(state.minigame.teams
+              ? {
+                  teams: {
+                    ...state.minigame.teams,
+                    teams: state.minigame.teams.teams.map((team) => [...team]),
+                  },
+                }
+              : {}),
+            ...(state.minigame.outcome ? { outcome: { ...state.minigame.outcome } } : {}),
             elapsedMs:
               state.minigame.playStartedAt === null
                 ? null
@@ -435,6 +447,8 @@ export class BoardGame {
       ...(stage === 'intro' && minigame.ready ? { ready: minigame.ready.includes(slot) } : {}),
       // CHAOS-231: Bildwort und Bedienung des laufenden Abschnitts (Schnellfeuer).
       ...(cue === undefined ? {} : { cue }),
+      // CHAOS-89: eigene Rolle bei Teams bzw. Koop (im Ergebnis mit Ausgang).
+      ...(minigame.teams ? { team: controllerTeamOf(minigame, slot, stage) } : {}),
     };
   }
 
@@ -578,5 +592,37 @@ function wirePrompt(prompt: Prompt, now: number): PromptInfo {
       ...(option.slot === undefined ? {} : { slot: option.slot }),
     })),
     remainingMs: prompt.deadline === null ? null : remaining(prompt.deadline, now),
+  };
+}
+
+/**
+ * Eigene Rolle eines Slots in einem Minispiel mit Teams bzw. Koop (CHAOS-89). Im Ergebnis
+ * zusätzlich der Ausgang aus eigener Sicht (`result` bzw. Koop-Stufe `tier`).
+ */
+export function controllerTeamOf(
+  minigame: NonNullable<GameState['minigame']>,
+  slot: Slot,
+  stage: ControllerMinigameInfo['stage'],
+): ControllerMinigameTeam {
+  const teams = minigame.teams;
+  if (!teams) throw new Error('Minispiel ohne Teams');
+  const index = teams.teams.findIndex((team) => team.includes(slot));
+  const own = teams.teams[index] ?? [];
+  const mates = own.filter((other) => other !== slot);
+  const opponents = teams.teams.filter((_, i) => i !== index).flat();
+  const koop = teams.layout === 'koop';
+  const solo = !koop && own.length === 1;
+  const outcome = stage === 'results' ? minigame.outcome : undefined;
+  return {
+    layout: teams.layout,
+    role: koop ? 'koop' : solo ? 'solo' : 'team',
+    index: index === 1 ? 1 : 0,
+    mates: [...mates],
+    opponents: [...opponents],
+    advantage: solo && teams.soloAdvantage,
+    ...(outcome?.kind === 'teams'
+      ? { result: outcome.winner === null ? 'draw' : outcome.winner === index ? 'won' : 'lost' }
+      : {}),
+    ...(outcome?.kind === 'koop' ? { tier: outcome.tier } : {}),
   };
 }

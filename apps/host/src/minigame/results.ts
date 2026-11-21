@@ -12,6 +12,7 @@ import {
 import { playerName } from '../board/texts.ts';
 import type { MinigameResultPayload } from '../net/hostConnection.ts';
 import { characterName } from './plan.ts';
+import { teamHeadline } from './teams.ts';
 
 export interface ResultRow {
   readonly slot: SlotNumber;
@@ -100,6 +101,9 @@ export function resultsDisplay(
   else if (winners.length === 1) headline = `${winners[0] ?? ''} gewinnt!`;
   else if (winners.length === rows.length) headline = `Gleichstand: alle auf Platz 1!`;
   else headline = `Gleichstand: ${joinNames(winners)}!`;
+  // CHAOS-89: bei Teams bzw. Koop zählt der Ausgang, nicht der beste Einzelplatz.
+  const team = aborted ? null : teamHeadline(view);
+  if (team !== null) headline = team;
   return {
     aborted,
     headline,
@@ -121,6 +125,8 @@ export function resultPayload(result: MinigameResult, round: number): MinigameRe
       score: entry.score,
     })),
     ...(highlights.length > 0 ? { highlights } : {}),
+    // CHAOS-89: Siegerteam bzw. Koop-Stufe; ohne sie lehnt der Server ein Team-Ergebnis ab.
+    ...(result.outcome ? { outcome: { ...result.outcome } } : {}),
   };
 }
 

@@ -17,6 +17,7 @@ beforeAll(async () => {
   await writeFile(join(staticDir, 'index.html'), '<!doctype html><title>Controller</title>');
   await writeFile(join(staticDir, 'assets', 'app.js'), 'console.log(1);');
   await writeFile(join(staticDir, 'assets', 'robot-abc.webp'), new Uint8Array([82, 73, 70, 70]));
+  await writeFile(join(staticDir, 'assets', 'coin-1-abc.mp3'), new Uint8Array([73, 68, 51]));
   await writeFile(join(workDir, 'secret.txt'), 'geheim');
   const hostDir = join(workDir, 'host-dist');
   await mkdir(join(hostDir, 'assets'), { recursive: true });
@@ -96,6 +97,12 @@ describe('Chaos-Party-Server', () => {
     const res = await fetch(`${baseUrl}/assets/robot-abc.webp`);
     expect(res.status).toBe(200);
     expect(res.headers.get('content-type')).toBe('image/webp');
+  });
+
+  it('liefert Klang-Dateien als audio/mpeg (CHAOS-223)', async () => {
+    const res = await fetch(`${baseUrl}/assets/coin-1-abc.mp3`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toBe('audio/mpeg');
   });
 
   it('fällt bei App-Routen auf index.html zurück', async () => {

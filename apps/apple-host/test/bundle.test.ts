@@ -22,7 +22,7 @@ beforeAll(async () => {
 
 /** Brett-Knöpfe der Lobby (CHAOS-197), Rummelplatz seit CHAOS-199, Frostgipfel seit CHAOS-198. */
 const BOARD_CHOICES = [
-  { id: 'wackelwald', name: 'Wackelwald', detail: '43 Felder', selected: true, random: false },
+  { id: 'wackelwald', name: 'Wackelwald', detail: '74 Felder', selected: true, random: false },
   { id: 'rummelplatz', name: 'Rummelplatz', detail: '81 Felder', selected: false, random: false },
   { id: 'frostgipfel', name: 'Frostgipfel', detail: '75 Felder', selected: false, random: false },
   { id: 'zufall', name: 'Zufall', detail: 'Überraschung!', selected: false, random: true },
@@ -97,6 +97,36 @@ describe('Bündel', () => {
     expect(on).toContain('Regel Rückenwind an');
     expect(off).not.toContain('Regel Rückenwind an');
     expect(missing).not.toContain('Regel Rückenwind an');
+  });
+
+  it('stellt Schnellfeuer mit HostEnv.rapidFire um und meldet Unbekanntes (CHAOS-232)', async () => {
+    const { api } = loadBundle(code);
+    const logsOf = (rapidFire: string | undefined) => {
+      const logs: string[] = [];
+      api.create({
+        send: () => undefined,
+        close: () => undefined,
+        log: (line) => logs.push(line),
+        randomBytes: seededBytes(5),
+        havokWasm: wasm,
+        joinUrl: 'http://10.0.0.5:8787/?code=WXYZ',
+        joinCode: 'WXYZ',
+        ...(rapidFire === undefined ? {} : { rapidFire }),
+      });
+      return logs;
+    };
+    const off = logsOf('aus');
+    const halftime = logsOf(' Halbzeit ');
+    const unknown = logsOf('manchmal');
+    const missing = logsOf(undefined);
+    await settle();
+    expect(off).toContain('Schnellfeuer aus');
+    expect(halftime).toContain('Schnellfeuer halbzeit');
+    expect(unknown).toContain(
+      'Schnellfeuer=manchmal ignoriert (erlaubt: an, aus, ereignis, halbzeit, finale), Standard an',
+    );
+    expect(unknown).toContain('Schnellfeuer an');
+    expect(missing.some((line) => line.startsWith('Schnellfeuer'))).toBe(false);
   });
 
   it('übernimmt configure in der Lobby und meldet Ungültiges (CHAOS-166)', async () => {

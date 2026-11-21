@@ -42,7 +42,7 @@ describe('Brett-Auswahl in der Lobby (CHAOS-197)', () => {
       name: 'Wackelwald',
       tagline: BOARD_REGISTRY[0]?.tagline,
       spaces: DEFAULT_BOARD.spaces.length,
-      recommendedRounds: 10,
+      recommendedRounds: BOARD_REGISTRY[0]?.recommendedRounds,
     });
     expect(h.session.snapshot().board).toBe('wackelwald');
   });

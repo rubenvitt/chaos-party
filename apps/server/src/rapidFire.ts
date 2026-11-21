@@ -2,7 +2,7 @@ import { RAPID_FIRE_RULE, type RapidFireRules } from '@chaos-party/game-core';
 
 /**
  * Schnellfeuer-Schalter des Servers (CHAOS-90), z. B. aus `SCHNELLFEUER`:
- * - leer oder `an`: Standard aus EXP-038 (Ereignis „Schnellfeuer!“, sonst im Finale)
+ * - leer oder `an`: Standard aus EXP-039 (Ereignis „Schnellfeuer!“, sonst im Finale)
  * - `aus`: kein Schnellfeuer
  * - `ereignis` | `halbzeit` | `finale`: nur dieser Auslöser (Playtest-Vergleich)
  * Unbekannte Werte liefern `undefined` (Aufrufer warnt und nimmt den Standard).

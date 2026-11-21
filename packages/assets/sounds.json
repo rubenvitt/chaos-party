@@ -1,0 +1,181 @@
+{
+  "$comment": "CHAOS-223: Auswahl der Klänge (nur CC0). Quellen: Kenney-Audio-Pakete (https://kenney.nl, alle CC0) und einzelne freesound.org-Klänge, deren CC0-Lizenz das Importskript auf der Seite jedes Klangs prüft. Import mit `pnpm --filter @chaos-party/assets import:sounds` (braucht ffmpeg mit libmp3lame): lädt nach .cache/sounds/, schneidet Stille ab, normalisiert, schreibt sounds/<name>-<n>.mp3, src/soundFiles.ts und die Manifest-Einträge (klang-…). Einen Klang tauschen = hier die Quelle ändern und neu importieren. `gain` ist die Lautstärke im Mix (1 = Standard), `jitter` die zufällige Tonhöhen-Streuung je Abspielen (0,05 = ±5 %), `pitch` verschiebt die Tonhöhe beim Import. `mix` legt mehrere Quellen zu einer Datei übereinander (`delay` in s).",
+  "license": "CC0-1.0",
+  "kenneyPacks": {
+    "casino-audio": "Casino Audio",
+    "interface-sounds": "Interface Sounds",
+    "impact-sounds": "Impact Sounds",
+    "rpg-audio": "RPG Audio",
+    "music-jingles": "Music Jingles"
+  },
+  "sounds": {
+    "tick": {
+      "use": "Countdown 3-2-1 (Holzklötzchen)",
+      "gain": 0.8,
+      "jitter": 0,
+      "files": ["kenney:impact-sounds/impactWood_light_001"]
+    },
+    "go": {
+      "use": "Minispiel startet („Los!“): Trillerpfeife",
+      "gain": 0.7,
+      "jitter": 0.02,
+      "files": ["freesound:538422"]
+    },
+    "hit": {
+      "use": "Treffer",
+      "gain": 0.9,
+      "jitter": 0.06,
+      "files": [
+        "kenney:impact-sounds/impactPunch_medium_000",
+        "kenney:impact-sounds/impactPunch_medium_001",
+        "kenney:impact-sounds/impactPunch_medium_003"
+      ]
+    },
+    "bump": {
+      "use": "Gummi-Boing beim Zusammenstoßen",
+      "gain": 0.75,
+      "jitter": 0.08,
+      "files": ["freesound:88451", "freesound:571119", "freesound:614749"]
+    },
+    "coin": {
+      "use": "Münze eingesammelt",
+      "gain": 0.7,
+      "jitter": 0.05,
+      "files": ["freesound:163451", "freesound:146723"]
+    },
+    "score": {
+      "use": "Punkt erzielt",
+      "gain": 0.8,
+      "jitter": 0.03,
+      "files": [
+        "kenney:interface-sounds/confirmation_001",
+        "kenney:interface-sounds/confirmation_003"
+      ]
+    },
+    "fall": {
+      "use": "Jemand fällt runter: Lotusflöte abwärts",
+      "gain": 0.75,
+      "jitter": 0.04,
+      "files": ["freesound:497093"]
+    },
+    "splash": {
+      "use": "Platschen ins Wasser",
+      "gain": 0.85,
+      "jitter": 0.05,
+      "files": ["freesound:404829", "freesound:186748"]
+    },
+    "whoosh": {
+      "use": "Luftzug (Werfen, Ausweichen, Items)",
+      "gain": 0.6,
+      "jitter": 0.08,
+      "files": ["freesound:60013", "freesound:59988", "freesound:389590"]
+    },
+    "pop": {
+      "use": "Plopp (Pumpen, Einsammeln, Item gefunden)",
+      "gain": 0.7,
+      "jitter": 0.1,
+      "files": ["freesound:447910", "freesound:221091"]
+    },
+    "buzz": {
+      "use": "Fehler, zu langsam",
+      "gain": 0.6,
+      "jitter": 0,
+      "files": ["kenney:interface-sounds/error_006"]
+    },
+    "cheer": {
+      "use": "Jubel im Minispiel-Ergebnis",
+      "gain": 0.7,
+      "jitter": 0,
+      "files": ["freesound:393402"]
+    },
+    "win": {
+      "use": "Sieg: kleine Fanfare",
+      "gain": 0.75,
+      "jitter": 0,
+      "files": ["freesound:397355", "freesound:397353", "freesound:397354"]
+    },
+    "lose": {
+      "use": "Missgeschick (Finte in Kuckucks-Klatsche, bis zu 8× je Spiel): kurzer Saxofon-Lauf abwärts",
+      "gain": 0.65,
+      "jitter": 0.03,
+      "files": ["kenney:music-jingles/jingles_SAX01"]
+    },
+    "dice": {
+      "use": "Würfeln am Brett",
+      "gain": 0.9,
+      "jitter": 0.04,
+      "files": [
+        "kenney:casino-audio/dice-throw-1",
+        "kenney:casino-audio/dice-throw-2",
+        "kenney:casino-audio/dice-throw-3"
+      ]
+    },
+    "coin-gain": {
+      "use": "Münzen bekommen (Brett)",
+      "gain": 0.8,
+      "jitter": 0.04,
+      "files": ["kenney:rpg-audio/handleCoins", "kenney:rpg-audio/handleCoins2"]
+    },
+    "coin-loss": {
+      "use": "Münzen verlieren (Brett): Pizzicato abwärts",
+      "gain": 0.7,
+      "jitter": 0,
+      "files": ["kenney:music-jingles/jingles_PIZZI05"]
+    },
+    "steal": {
+      "use": "Münzklau: Wusch und klimpernder Beutel",
+      "gain": 0.8,
+      "jitter": 0.03,
+      "files": [
+        {
+          "mix": [
+            { "src": "freesound:59988" },
+            { "src": "kenney:rpg-audio/handleCoins2", "delay": 0.12, "gain": 0.8 }
+          ]
+        }
+      ]
+    },
+    "trap": {
+      "use": "Falle schnappt zu",
+      "gain": 0.85,
+      "jitter": 0.03,
+      "files": ["freesound:278151"]
+    },
+    "shield": {
+      "use": "Schild: schimmernder Glasklang",
+      "gain": 0.7,
+      "jitter": 0.02,
+      "files": ["kenney:interface-sounds/glass_004"]
+    },
+    "trophy": {
+      "use": "Trophäe gekauft: Fanfare",
+      "gain": 0.8,
+      "jitter": 0,
+      "files": ["freesound:580310"]
+    },
+    "turn": {
+      "use": "Zugbeginn: kurzes Pizzicato aufwärts",
+      "gain": 0.55,
+      "jitter": 0,
+      "files": ["kenney:music-jingles/jingles_PIZZI04"]
+    },
+    "minigame-start": {
+      "use": "Minispiel-Zeit (Anleitung erscheint): Pizzicato-Lauf aufwärts",
+      "gain": 0.7,
+      "jitter": 0,
+      "files": ["kenney:music-jingles/jingles_PIZZI02"]
+    },
+    "pause": {
+      "use": "Pause",
+      "gain": 0.6,
+      "jitter": 0,
+      "files": ["kenney:interface-sounds/minimize_004"]
+    },
+    "resume": {
+      "use": "Weiter",
+      "gain": 0.6,
+      "jitter": 0,
+      "files": ["kenney:interface-sounds/maximize_004"]
+    }
+  }
+}

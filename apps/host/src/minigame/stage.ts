@@ -32,6 +32,7 @@ import type {
   MinigameCue,
   MinigameInput,
   MinigamePlacement,
+  MinigameTeams,
   Slot,
 } from '@chaos-party/minigame-sdk';
 import {
@@ -65,6 +66,8 @@ export interface MinigameStageOptions {
   readonly module: MinigameModule;
   readonly players: readonly MinigamePlayer[];
   readonly seed: number;
+  /** Aufstellung bei Teams bzw. Koop vom Server (CHAOS-89); fehlt/`null` = jeder gegen jeden. */
+  readonly teams?: MinigameTeams | null;
   /** Spielzeit (ms); nach Host-Neuladen die Restzeit. */
   readonly timeLimitMs: number;
   /**
@@ -205,6 +208,7 @@ export function createMinigameStage(options: MinigameStageOptions): MinigameStag
       scene,
       players: options.players,
       seed: options.seed,
+      ...(options.teams ? { teams: options.teams } : {}),
       timeLimitMs: options.timeLimitMs,
       fx,
       characters: tracked.factory,

@@ -46,6 +46,7 @@ import type {
   Slot,
 } from '../info.ts';
 import type { MinigameRng } from '../rng.ts';
+import type { MinigameTeams } from '../teams.ts';
 
 /** Fester Logik- und Physikschritt (60 Hz). */
 export const FIXED_STEP_SECONDS = 1 / 60;
@@ -185,6 +186,12 @@ export interface MinigameContext {
   readonly testMode: boolean;
   /** Look der Laufzeit (Host); fehlt in Tests und Vorschauen ohne Look. */
   readonly look?: MinigameLook;
+  /**
+   * Aufstellung bei Teams bzw. Koop (CHAOS-89), fertig vom Server: nicht selbst neu einteilen.
+   * Fehlt = jeder gegen jeden (auch, wenn ein Team-Spiel ohne Teams läuft, etwa in einer
+   * Vorschau). Dann `outcome` weglassen.
+   */
+  readonly teams?: MinigameTeams;
   /**
    * Gibt das Bild ab, sobald das Zeitbudget für den Aufbau verbraucht ist (CHAOS-141): in
    * `prepare` zwischen Bauschritten `await ctx.pace()`, damit der Aufbau über mehrere Bilder

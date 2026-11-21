@@ -3,6 +3,7 @@
 //   pnpm --filter @chaos-party/apple-host bots --full                # ganze Partie, alle Minispiele der Rotation
 //   pnpm --filter @chaos-party/apple-host bots --full --matches 3    # drei Partien mit Revanche, Speicher je Partie (CHAOS-141)
 //   pnpm --filter @chaos-party/apple-host bots --full --rueckenwind  # mit Regel Rückenwind (CHAOS-188)
+//   pnpm --filter @chaos-party/apple-host bots --full --schnellfeuer=halbzeit  # Auslöser an|aus|ereignis|halbzeit|finale (CHAOS-232)
 // Mit `--full` prüft die erste Partie außerdem Pause (Brett, Minispiel), Wiederverbindung (sauber
 // und nach Funkstille) und das Finale bis zum Siegerbildschirm, jede weitere „Überspringen“
 // (CHAOS-145, `exercise`); `--ohne-extras` lässt das weg.
@@ -23,6 +24,9 @@ const args = process.argv.slice(2);
 const full = args.includes('--full');
 const verbose = args.includes('--verbose');
 const tailwind = args.includes('--rueckenwind');
+const rapidFire = args
+  .find((arg) => arg.startsWith('--schnellfeuer='))
+  ?.slice('--schnellfeuer='.length);
 const matchesArg = args.indexOf('--matches');
 const matches = matchesArg >= 0 ? Number(args[matchesArg + 1]) : 1;
 const exercise = full && !args.includes('--ohne-extras');
@@ -41,6 +45,7 @@ const result = await runBotMatch({
   full,
   matches,
   tailwind,
+  ...(rapidFire === undefined ? {} : { rapidFire }),
   exercise,
   validateEvery: 30,
   log: verbose ? (line) => console.log(line) : undefined,

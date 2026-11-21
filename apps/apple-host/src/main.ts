@@ -14,8 +14,8 @@ import HavokPhysics from '@babylonjs/havok';
 import {
   DEFAULT_BOARD,
   DEFAULT_RULES,
+  RAPID_FIRE_RULE,
   getBoard,
-  withRapidFire,
   withTailwind,
 } from '@chaos-party/game-core';
 import { getMinigameModule } from '@chaos-party/minigames';
@@ -33,6 +33,7 @@ import {
   type ConnectionId,
   type Outgoing,
 } from '../../server/src/session.ts';
+import { RAPID_FIRE_CHOICES, parseRapidFire } from '../../server/src/rapidFire.ts';
 import { eventText, playerName } from '../../host/src/board/texts.ts';
 import {
   connectHost,
@@ -187,6 +188,21 @@ function create(env: HostEnv): ChaosHostInstance {
     },
   );
 
+  // Schnellfeuer wie `SCHNELLFEUER` am PC (CHAOS-232, CHAOS-90): unbekannt = Standard mit Hinweis.
+  const rapidFireParsed = parseRapidFire(env.rapidFire);
+  if (rapidFireParsed === undefined) {
+    log(
+      `Schnellfeuer=${env.rapidFire ?? ''} ignoriert (erlaubt: ${RAPID_FIRE_CHOICES.join(', ')}), Standard an`,
+    );
+  }
+  const rapidFire = rapidFireParsed === undefined ? RAPID_FIRE_RULE : rapidFireParsed;
+  const rapidFireValue = env.rapidFire?.trim().toLowerCase();
+  const rapidFireChoice =
+    rapidFireParsed === undefined || rapidFireValue === undefined || rapidFireValue === ''
+      ? 'an'
+      : rapidFireValue;
+  const baseRules = env.tailwind === true ? withTailwind() : DEFAULT_RULES;
+
   // `joinUrl` bewusst nicht an die Session: zods URL-Prüfung braucht `URL`, das JSC fehlt. Der
   // QR-Code kommt ohnehin von Swift (`renderState().lobby.joinUrl`).
   const session = new Session({
@@ -194,17 +210,16 @@ function create(env: HostEnv): ChaosHostInstance {
     now,
     createToken: () => randomBytes(24).toString('base64url'),
     randomSeed: () => randomInt(0, 2 ** 31),
-    // Rückenwind wie `RUECKENWIND=1` am PC (CHAOS-188); Schnellfeuer wie `SCHNELLFEUER=an` am PC
-    // (CHAOS-90, Standard: Ereignis „Schnellfeuer!“, sonst im Finale).
-    game: {
-      rules: withRapidFire(undefined, env.tailwind === true ? withTailwind() : DEFAULT_RULES),
-    },
+    // Rückenwind wie `RUECKENWIND=1` am PC (CHAOS-188); Schnellfeuer wie `SCHNELLFEUER` am PC
+    // (CHAOS-90/232, Standard: Ereignis „Schnellfeuer!“, sonst im Finale; `aus` = ohne Regel).
+    game: { rules: rapidFire ? { ...baseRules, rapidFire: { ...rapidFire } } : baseRules },
     logError: (error) => {
       log(`Session-Fehler: ${describe(error)}`);
     },
   });
 
   if (env.tailwind === true) log('Regel Rückenwind an');
+  if (env.rapidFire !== undefined) log(`Schnellfeuer ${rapidFireChoice}`);
 
   // --- Verbindungen ---------------------------------------------------------------------------
   /** Host-Sockets im Prozess; negative IDs kollidieren nie mit denen von Swift. */

@@ -24,7 +24,7 @@ import { lightOf, moodLight } from './lightMood.ts';
 
 /** Brett-Knöpfe der Lobby (CHAOS-197): Wackelwald (gewählt) und Zufall. */
 const BOARD_CHOICES: LobbySettingsState['boards'] = [
-  { id: 'wackelwald', name: 'Wackelwald', detail: '43 Felder', selected: true, random: false },
+  { id: 'wackelwald', name: 'Wackelwald', detail: '74 Felder', selected: true, random: false },
   { id: 'zufall', name: 'Zufall', detail: 'Überraschung!', selected: false, random: true },
 ];
 
@@ -606,6 +606,8 @@ const FINALE_WINNER: FinaleState = {
       id: 9,
       name: 'win',
       voices: [{ wave: 'triangle', freq: 523, delay: 0, attack: 0.01, duration: 0.18, gain: 0.3 }],
+      // Klang-Datei (CHAOS-223); Swift spielt sie, das Rezept ist der Rückfall.
+      sample: { file: 'win-2.mp3', rate: 1, gain: 0.75 },
     },
   ],
 };
