@@ -31,12 +31,16 @@
  * 8. Figurenkarten der Lobby (v4, CHAOS-36, `pick:<figur>`) wählen wie Wahlknöpfe beim
  *    Abheben auf der Karte. Vergebene und die eigene Figur sind `inert`; wird eine Karte
  *    vergeben, während ein Finger darauf liegt, wird er stillgelegt.
+ * 9. Daumen nach dem Minispiel (CHAOS-218, `vote:up`/`vote:down`) stimmen wie Wahlknöpfe
+ *    beim Abheben auf dem Knopf ab. Beide bleiben aktiv, erneutes Tippen ändert die Stimme;
+ *    endet die Ergebnisanzeige, während ein Finger darauf liegt, wird er stillgelegt.
  */
 import {
   isCharacterId,
   type Button,
   type CharacterId,
   type SlotNumber,
+  type Vote,
 } from '@chaos-party/protocol';
 import { knobOffset, stickFromOffset, ZERO_STICK, type Stick } from '../input/joystick.ts';
 import {
@@ -44,6 +48,7 @@ import {
   deltaToLocal,
   parseChoiceControl,
   parsePickControl,
+  parseVoteControl,
   rectContains,
   sameFrame,
   toLocal,
@@ -65,7 +70,8 @@ export type ZoneEffect =
       readonly promptId: number;
       readonly option: string;
     }
-  | { readonly type: 'pick'; readonly slot: SlotNumber; readonly character: CharacterId };
+  | { readonly type: 'pick'; readonly slot: SlotNumber; readonly character: CharacterId }
+  | { readonly type: 'vote'; readonly slot: SlotNumber; readonly vote: Vote };
 
 /** Wem eine Berührung gehört. `control: null` = Zone ohne Wirkung (oder stillgelegt). */
 export interface TouchOwner {
@@ -84,6 +90,8 @@ export interface ZoneView {
   readonly choicesHeld: readonly ControlKind[];
   /** Figurenkarten (Kennung `pick:…`), auf denen gerade ein Finger liegt. */
   readonly picksHeld: readonly ControlKind[];
+  /** Daumen-Knöpfe (Kennung `vote:…`), auf denen gerade ein Finger liegt. */
+  readonly votesHeld: readonly ControlKind[];
 }
 
 interface Binding {
@@ -161,6 +169,8 @@ export function createZoneTracker(initialZones: readonly ZoneGeometry[] = []): Z
     if (character !== null && isCharacterId(character) && completed && stillOn(binding)) {
       return [{ type: 'pick', slot, character }];
     }
+    const vote = parseVoteControl(control);
+    if (vote !== null && completed && stillOn(binding)) return [{ type: 'vote', slot, vote }];
     return [];
   }
 
@@ -273,6 +283,7 @@ export function createZoneTracker(initialZones: readonly ZoneGeometry[] = []): Z
       let readyHeld = false;
       const choicesHeld: ControlKind[] = [];
       const picksHeld: ControlKind[] = [];
+      const votesHeld: ControlKind[] = [];
       for (const b of bindings.values()) {
         if (b.slot !== slot) continue;
         const button = buttonOf(b.control);
@@ -281,6 +292,7 @@ export function createZoneTracker(initialZones: readonly ZoneGeometry[] = []): Z
         if (parseChoiceControl(b.control) !== null && b.control !== null)
           choicesHeld.push(b.control);
         if (parsePickControl(b.control) !== null && b.control !== null) picksHeld.push(b.control);
+        if (parseVoteControl(b.control) !== null && b.control !== null) votesHeld.push(b.control);
         if (b.control === 'stick' && zone) {
           const d = deltaToLocal(zone.rotation, b.last.x - b.origin.x, b.last.y - b.origin.y);
           stick = {
@@ -290,7 +302,7 @@ export function createZoneTracker(initialZones: readonly ZoneGeometry[] = []): Z
         }
       }
       pressed.sort();
-      return { stick, pressed, readyHeld, choicesHeld, picksHeld };
+      return { stick, pressed, readyHeld, choicesHeld, picksHeld, votesHeld };
     },
   };
 }
