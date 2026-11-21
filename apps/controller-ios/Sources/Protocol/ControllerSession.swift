@@ -544,6 +544,43 @@ extension ControllerState {
                 board: board(.minigameResults, activeSlot: nil), minigame: minigame))
     }()
 
+    /// CHAOS-229: 2 gegen 2 – role card in the intro (team ☾ Mond with Grün against Orange and Rosa).
+    static let minigameTeamIntroSample: ControllerState = {
+        var minigame = sampleMinigame
+        minigame.team = ControllerMinigameTeam(
+            layout: .twoVsTwo, role: .team, index: 1, mates: [3], opponents: [2, 4], advantage: false)
+        return online(
+            SlotContext(
+                phase: .board, layout: .board, actions: [], board: board(.minigameIntro, activeSlot: nil),
+                minigame: minigame))
+    }()
+
+    /// CHAOS-229: 1 gegen 2 with advantage – solo role card.
+    static let minigameSoloIntroSample: ControllerState = {
+        var minigame = sampleMinigame
+        minigame.team = ControllerMinigameTeam(
+            layout: .oneVsTwo, role: .solo, index: 0, mates: [], opponents: [2, 3], advantage: true)
+        return online(
+            SlotContext(
+                phase: .board, layout: .board, actions: [], board: board(.minigameIntro, activeSlot: nil),
+                minigame: minigame))
+    }()
+
+    /// CHAOS-229: koop result with the reached tier.
+    static let minigameKoopResultsSample: ControllerState = {
+        var minigame = sampleMinigame
+        minigame.stage = .results
+        minigame.place = 2
+        minigame.score = 30
+        minigame.reward = 3
+        minigame.team = ControllerMinigameTeam(
+            layout: .koop, role: .koop, index: 0, mates: [2, 3], opponents: [], advantage: false, tier: 2)
+        return online(
+            SlotContext(
+                phase: .board, layout: .board, actions: [],
+                board: board(.minigameResults, activeSlot: nil), minigame: minigame))
+    }()
+
     static let minigameAbortedSample: ControllerState = {
         var minigame = sampleMinigame
         minigame.stage = .results
