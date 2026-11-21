@@ -3,7 +3,8 @@
 // (`node scripts/build-apple-assets.mjs` ruft das auf einem Mac selbst auf.)
 // Bricht mit Exit-Code 1 ab, wenn ein Grundmesh oder Feld-Anker fehlt, eine Figur keine
 // Animation hat, die Zeitleiste nicht zur Clip-Tabelle passt, die Achsen nicht stimmen oder ein
-// aufgesetztes Teil (Socken-Bündchen, Kaktus-Blüte) über seinem Träger schwebt (CHAOS-161).
+// aufgesetztes Teil (Socken-Bündchen, Kaktus-Blüte) über seinem Träger schwebt (CHAOS-161) oder
+// ein Requisit nicht auf dem Boden steht, ein Teil fehlt oder Glas undurchsichtig lädt (CHAOS-221).
 // Ohne Mac prüft `packages/assets/usd/check_usdz.py` dasselbe mit usd-core, aber nicht RealityKit.
 // Diese Prüfung läuft in keiner CI (Linux-Job; die Mac-Workflows setzen RK_CHECK=0), nur lokal.
 import Foundation
@@ -173,6 +174,42 @@ for c in ["robot", "cactus", "raccoon", "sock"] {
         guard let gap = contactGap(part: part, host: host) else { fail("\(c): \(pair.part)/\(pair.host) ohne Geometrie"); continue }
         print("  \(c): \(pair.part) auf \(pair.host): Lücke \(String(format: "%.1f", gap * 100)) cm")
         if gap > auflageLuecke { fail("\(c): \(pair.part) schwebt über \(pair.host) (\(String(format: "%.1f", gap * 100)) cm, erlaubt \(Int(auflageLuecke * 100)) cm)") }
+    }
+}
+
+// Requisiten (CHAOS-221): `requisiten/<id>.usdz`, Wurzel `<id>` (Bindestrich → `_`), darunter je
+// Material ein Teil `<id>_<material>`; Boden bei y = 0, Grundfläche mittig; `glas` durchscheinend.
+// Der Host färbt `<id>_akzent` (Slot-Farbe) und `<id>_zustand` (Spielzustand) zur Laufzeit.
+let propMaterials = ["lack", "matt", "glas", "metall", "akzent", "zustand"]
+let propFiles = ((try? FileManager.default.contentsOfDirectory(at: dir.appendingPathComponent("requisiten"), includingPropertiesForKeys: nil)) ?? [])
+    .filter { $0.pathExtension == "usdz" }
+    .sorted { $0.lastPathComponent < $1.lastPathComponent }
+if propFiles.isEmpty { fail("keine Requisiten unter requisiten/<id>.usdz") }
+for file in propFiles {
+    let id = file.deletingPathExtension().lastPathComponent
+    let name = id.replacingOccurrences(of: "-", with: "_")
+    let prop = try await Entity(contentsOf: file)
+    let pb = prop.visualBounds(relativeTo: nil)
+    guard let root = prop.findEntity(named: name) else { fail("requisiten/\(id): Wurzelknoten \(name) fehlt"); continue }
+    let parts = propMaterials.filter { root.findEntity(named: "\(name)_\($0)") != nil }
+    print("requisiten/\(id).usdz: Höhe \(String(format: "%.3f", pb.extents.y)), Bounds min \(fmt(pb.min)) max \(fmt(pb.max)), Teile \(parts)")
+    if parts.isEmpty { fail("requisiten/\(id): keine Teile <id>_<material>") }
+    if abs(pb.min.y) > 0.01 { fail("requisiten/\(id): Boden bei y = \(pb.min.y) statt 0") }
+    if abs(pb.center.x) > 0.01 || abs(pb.center.z) > 0.01 { fail("requisiten/\(id): Grundfläche nicht mittig (\(fmt(pb.center)))") }
+    for part in parts {
+        guard let entity = root.findEntity(named: "\(name)_\(part)"), let model = firstModel(entity),
+              let component = model.components[ModelComponent.self] else {
+            fail("requisiten/\(id): Teil \(name)_\(part) ohne Geometrie"); continue
+        }
+        guard part == "glas" else { continue }
+        // UsdPreviewSurface mit opacity < 1 lädt RealityKit als durchscheinendes PBR-Material.
+        for material in component.materials {
+            if let pbr = material as? PhysicallyBasedMaterial {
+                if case .opaque = pbr.blending { fail("requisiten/\(id): glas ist undurchsichtig") }
+            } else {
+                print("  \(id): glas als \(type(of: material)) geladen (Deckkraft nicht prüfbar)")
+            }
+        }
     }
 }
 
