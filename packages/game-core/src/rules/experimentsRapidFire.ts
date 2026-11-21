@@ -1,5 +1,5 @@
 /**
- * Auslöser für Schnellfeuer (CHAOS-90, `docs/experiments.md` EXP-038). Basis ist der M4-Stand
+ * Auslöser für Schnellfeuer (CHAOS-90, `docs/experiments.md` EXP-039). Basis ist der M4-Stand
  * mit echter Minispiel-Rotation (`m4Defaults`). Verglichen werden (a) Brett-Ereignis
  * „Schnellfeuer!“ (beliebig oft bzw. höchstens einmal je Partie), (b) feste Runde zur Halbzeit
  * und (c) Finale in der letzten Runde.
@@ -170,7 +170,7 @@ export function rapidFireExperiment(
     }
   }
   return {
-    title: `EXP-038: Auslöser für Schnellfeuer (${String(setup.rounds)} Runden, ${seedText(setup)})`,
+    title: `EXP-039: Auslöser für Schnellfeuer (${String(setup.rounds)} Runden, ${seedText(setup)})`,
     headers: [
       'Variante',
       'Sp.',

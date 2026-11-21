@@ -107,3 +107,17 @@ Das Host-Bundle war bis M4 ein einziger Einstieg mit Babylon, Arena, Brett, Fina
 - **Budget:** `pnpm check:bundle` (CI) begrenzt den Start auf 520 kB und verbietet die Babylon-Engine darin.
 
 Messwerte: [`performance.md` §3c](../performance.md#3c-host-bundle-aufgeteilt-chaos-53). Risiko: Ein neuer statischer Import einer Szene in `App.tsx` holt Babylon zurück in den Start – das fängt `pnpm check:bundle`.
+
+## Nachtrag 2 (2026-11-20, CHAOS-86): ein Chunk je Minispiel
+
+Mit dem Minispiel-Ausbau (CHAOS-80, ~200 Spiele) würde die Minispiel-Bühne aus Nachtrag 1 mit jedem Spiel wachsen (je Spiel ≈ 30–90 kB), und die App lädt sie schon in der Lobby vor. Jetzt gilt:
+
+- **Lade-Register `@chaos-party/minigames/lazy`:** je Spiel eine Lade-Funktion (`() => import('./<spiel>/index.ts')`), ein Versprechen je Kennung (Fehlschlag wird vergessen, der nächste Versuch lädt neu), `loadedMinigameModule` liefert ein geladenes Modul synchron. Die Steckbriefe bleiben synchron (`./catalog`).
+- **Host im Browser** holt Module nur darüber. Der Bühnen-Chunk (`MinigameScreenById`) enthält kein Minispiel mehr. `App.tsx` lädt das Spiel der Runde, sobald der Stand es nennt (ab der Anleitung), und hängt die Bühne erst ein, wenn Bühnen-Chunk und Spiel-Modul geladen sind (`useMinigameStage`, `useMinigameModuleStatus`).
+- **Kein Suspense beim Szenenwechsel:** Hat React einmal einen Fallback gezeigt, deckt es den Inhalt frühestens nach 300 ms auf. Mit `use()` bzw. `React.lazy` kostete das gemessen 300 ms je Minispiel bzw. beim ersten Minispiel jeder Partie. Suspense (`useMinigameModule`) bleibt nur für Entwickler-Ansichten und als Rückfall nach einem fehlgeschlagenen Import.
+- **Synchrones Register `@chaos-party/minigames` bleibt** für den Apple-Host (JavaScriptCore-Bündel ohne Nachladen, ADR-019), Tests und Werkzeuge in Node. Im Host im Browser verbietet ESLint (`no-restricted-imports`) diesen Import.
+- **Steckbriefe in einem Chunk:** `info.ts` nutzen Start (Katalog) und Spiel-Chunk gemeinsam; ohne Vorgabe legt Rolldown je Steckbrief eine Mini-Datei in den Start. Die Gruppe `minispiel-katalog` (`build.rolldownOptions.output.codeSplitting` in `apps/host/vite.config.ts`) hält sie zusammen.
+- **Prüfung:** `pnpm check:bundle` liest das Vite-Manifest (`build.manifest`) und bricht ab, wenn ein Minispiel-Ordner keinen eigenen Chunk hat, ein Spiel im Start oder in der statischen Kette der Bühne liegt oder der Start mehr als 10 Dateien hat.
+- **Assets je Spiel:** Die Minispiele bauen ihre Geometrie im Code; Figuren und Natur-Look teilen sie mit der Bühne. Damit ist der Spiel-Chunk das ganze Asset. Die Requisiten-GLBs aus dem Art-Kit (CHAOS-88) lädt das jeweilige Spiel bei Bedarf in `prepare`, nicht die Bühne vorab (Umsetzung mit der Pilotwelle CHAOS-91).
+
+Messwerte: [`performance.md` §3j](../performance.md#3j-ein-chunk-je-minispiel-chaos-86). Kehrseite: Ein neues Spiel braucht eine Zeile in `lazy.ts` zusätzlich zu `index.ts`; `lazy.test.ts` prüft, dass beide zum Katalog passen.

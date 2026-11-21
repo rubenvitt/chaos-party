@@ -13,6 +13,13 @@ import {
   type MinigameResult,
   type Slot,
 } from './info.ts';
+import {
+  KOOP_MAX_TIER,
+  TEAM_ASSIGNMENTS,
+  TEAM_FORMS,
+  teamPlayMinPlayers,
+  type MinigameTeams,
+} from './teams.ts';
 
 /** Größter zulässiger Betrag einer Punktzahl (Schutz vor Unsinn aus dem Netz). */
 export const MAX_SCORE = 1_000_000;
@@ -60,6 +67,8 @@ export function checkResult(
     readonly minigameId: string;
     readonly slots: readonly Slot[];
     readonly scoring?: MinigameInfo['scoring'];
+    /** Aufstellung der Runde (CHAOS-89); fehlt = jeder gegen jeden. */
+    readonly teams?: MinigameTeams | null;
   },
 ): ResultCheck {
   if (!MINIGAME_ID_PATTERN.test(result.minigameId)) return fail('Ungültige Minispiel-ID');
@@ -85,6 +94,30 @@ export function checkResult(
     const better = placements.filter((other) => other.place < entry.place).length;
     if (entry.place !== better + 1) return fail('Plätze bilden keine gültige Wertung');
   }
+  const teams = expected.teams ?? null;
+  const outcome = result.outcome;
+  if (teams === null) {
+    if (outcome !== undefined) return fail('Ausgang ohne Teams');
+  } else if (teams.layout === 'koop') {
+    if (outcome?.kind !== 'koop') return fail('Koop-Ausgang fehlt');
+    if (!Number.isInteger(outcome.tier) || outcome.tier < 0 || outcome.tier > KOOP_MAX_TIER) {
+      return fail('Koop-Stufe ungültig');
+    }
+  } else {
+    // Teams: Die Plätze folgen allein dem Ausgang, die Punkte sind Einzelleistung (Anzeige).
+    if (outcome?.kind !== 'teams') return fail('Team-Ausgang fehlt');
+    const { winner } = outcome;
+    if (winner !== null && (!Number.isInteger(winner) || teams.teams[winner] === undefined)) {
+      return fail('Siegerteam ungültig');
+    }
+    const winners = winner === null ? null : (teams.teams[winner] ?? []);
+    const behind = (winners?.length ?? 0) + 1;
+    for (const entry of placements) {
+      const place = winners === null || winners.includes(entry.slot) ? 1 : behind;
+      if (entry.place !== place) return fail('Plätze passen nicht zum Team-Ausgang');
+    }
+    return checkHighlights(result);
+  }
   if (expected.scoring) {
     const sign = expected.scoring === 'higher' ? 1 : -1;
     for (const a of placements) {
@@ -98,6 +131,10 @@ export function checkResult(
       }
     }
   }
+  return checkHighlights(result);
+}
+
+function checkHighlights(result: MinigameResult): ResultCheck {
   const highlights = result.highlights ?? [];
   if (highlights.length > MINIGAME_TEXT_LIMITS.highlights) return fail('Zu viele Höhepunkte');
   if (
@@ -133,6 +170,17 @@ export function checkInfo(info: MinigameInfo): ResultCheck {
     return fail('Spielzeit 5–90 s');
   }
   if (info.scoreUnit.length === 0 || info.scoreUnit.length > 16) return fail('Punkte-Einheit');
+  const teamPlay = info.teamPlay;
+  if (teamPlay) {
+    if (!TEAM_FORMS.includes(teamPlay.form)) return fail('Spielform unbekannt');
+    if (teamPlay.assignment !== undefined && !TEAM_ASSIGNMENTS.includes(teamPlay.assignment)) {
+      return fail('Team-Zuteilung unbekannt');
+    }
+    if (teamPlay.withTwo && !teamPlay.withThree) return fail('Zu zweit, aber nicht zu dritt');
+    if ((info.minPlayers ?? 1) < teamPlayMinPlayers(teamPlay)) {
+      return fail('minPlayers kleiner als die Spielform erlaubt');
+    }
+  }
   return { ok: true };
 }
 

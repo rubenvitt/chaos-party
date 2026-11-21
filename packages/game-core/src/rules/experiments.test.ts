@@ -7,7 +7,7 @@
  * ```
  */
 import { describe, expect, it } from 'vitest';
-import { WACKELWALD } from '../board/wackelwald.ts';
+import { WACKELWALD_M2 } from '../board/wackelwaldM2.ts';
 import type { BoardDefinition } from '../types.ts';
 import { DEFAULT_RULES } from './defaults.ts';
 import {
@@ -68,7 +68,7 @@ describe('Experimente: Grundlagen', () => {
       // CHAOS-65 (EXP-022): Aufholhilfe, kein Teil der Experimente EXP-001 … EXP-004.
       trophy: { ...CHOICE_RULES.trophy, placement: 'nearest-to-last' },
     }).toEqual(DEFAULT_RULES);
-    expect(kinds(CHOICE_BOARD)).toEqual(kinds(WACKELWALD));
+    expect(kinds(CHOICE_BOARD)).toEqual(kinds(WACKELWALD_M2));
   });
 
   it('Startbrett hat die Verteilung vor CHAOS-24 (4 Trophäen, 4 Item-Felder)', () => {
@@ -79,11 +79,11 @@ describe('Experimente: Grundlagen', () => {
   });
 
   it('withSpaceKinds ändert nur Feldtypen und meldet unbekannte Felder', () => {
-    const board = withSpaceKinds(WACKELWALD, { s02: 'item' }, 'x');
+    const board = withSpaceKinds(WACKELWALD_M2, { s02: 'item' }, 'x');
     expect(board.id).toBe('x');
     expect(board.spaces.find((s) => s.id === 's02')?.kind).toBe('item');
-    expect(board.spaces.map((s) => s.next)).toEqual(WACKELWALD.spaces.map((s) => s.next));
-    expect(() => withSpaceKinds(WACKELWALD, { zz: 'item' })).toThrow(RangeError);
+    expect(board.spaces.map((s) => s.next)).toEqual(WACKELWALD_M2.spaces.map((s) => s.next));
+    expect(() => withSpaceKinds(WACKELWALD_M2, { zz: 'item' })).toThrow(RangeError);
   });
 
   it('quantile und seedRange', () => {

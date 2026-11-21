@@ -40,7 +40,7 @@ if [[ "${SKIP_PREPARE:-0}" != 1 ]]; then
 fi
 
 missing=0
-for f in chaos-host.js HavokPhysics.wasm LICENSE.txt THIRD-PARTY-NOTICES.txt controller/index.html; do
+for f in chaos-host.js HavokPhysics.wasm LICENSE.txt THIRD-PARTY-NOTICES.txt controller/index.html sounds/tick-1.mp3; do
   [[ -s "payload/$f" ]] || { echo "Nutzlast unvollständig: payload/$f fehlt" >&2; missing=1; }
 done
 if [[ "$missing" == 1 ]]; then
@@ -86,7 +86,7 @@ xcodebuild -project ChaosHost.xcodeproj -scheme "$SCHEME" -configuration Release
   CURRENT_PROJECT_VERSION="$BUILD_NUMBER" archive
 
 APP="$ARCHIVE/Products/Applications/$APP_NAME.app"
-for f in payload/chaos-host.js payload/HavokPhysics.wasm payload/controller/index.html; do
+for f in payload/chaos-host.js payload/HavokPhysics.wasm payload/controller/index.html payload/sounds/tick-1.mp3; do
   [[ -s "$APP/Contents/Resources/$f" ]] || { echo "Archiv ohne $f: $APP" >&2; exit 1; }
 done
 [[ ! -e "$APP/Contents/Frameworks/Sparkle.framework" ]] || { echo "Sparkle im App-Store-Build: $APP" >&2; exit 1; }

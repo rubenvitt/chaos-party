@@ -6,7 +6,7 @@
  * Die Simulation ersetzt keinen menschlichen Spaßtest; sie liefert objektive Kennzahlen
  * (Dauer, Abstände, Sabotage-Häufigkeit) für den Vergleich von Regelvarianten.
  */
-import { rankByScore } from '@chaos-party/minigame-sdk';
+import { KOOP_MAX_TIER, rankByScore, teamPlacements } from '@chaos-party/minigame-sdk';
 import { avalancheAt, isCableEdge, isIce } from '../board/hazards.ts';
 import { activeNext } from '../board/rotation.ts';
 import { createRng, pickOne, type Rng } from '../rng.ts';
@@ -16,6 +16,7 @@ import type {
   GameEvent,
   GameState,
   ItemKind,
+  MinigameOutcome,
   MinigameSpec,
   PlayerState,
   Prompt,
@@ -82,6 +83,12 @@ export interface BotPolicy {
    */
   readonly avoidTrapChance: number;
   /**
+   * Feste Wegwahl je Slot (CHAOS-196, EXP-037: Ist die Wegwahl fair?): `short` nimmt an jeder
+   * Gabel den Weg mit der kürzesten Strecke zurück zum Start, `long` den längsten. Geht vor
+   * Fallen und Trophäe und zieht keine Zufallszahl; Slots ohne Eintrag wählen wie bisher.
+   */
+  readonly routes: Readonly<Partial<Record<Slot, 'short' | 'long'>>>;
+  /**
    * Echte Minispiele (M3/M4): So lange nach Ende der Spielzeit meldet der „Host“ das Ergebnis
    * (Abschlussbild, Netz). Nur mit `SimulationOptions.minigames`.
    */
@@ -93,6 +100,11 @@ export interface BotPolicy {
   readonly minigameScoreSpread: number;
   /** Zusatzpunkte je Slot im Minispiel (Können; fehlt = 0). */
   readonly minigameSkill: Readonly<Partial<Record<Slot, number>>>;
+  /**
+   * Teams (CHAOS-89): So oft gewinnt die Einzelperson bei 1 gegen 3 bzw. 1 gegen 2. Fehlt =
+   * 0,45 (das Spiel gleicht die Teamgröße aus, die Einzelperson trägt allein mehr Druck).
+   */
+  readonly soloWinChance?: number;
 }
 
 export const DEFAULT_BOT_POLICY: BotPolicy = {
@@ -104,6 +116,7 @@ export const DEFAULT_BOT_POLICY: BotPolicy = {
   decisionMs: [800, 2500],
   trophyPathChance: 0,
   avoidTrapChance: 0,
+  routes: {},
   minigameResultDelayMs: 500,
   // Gleichstand auf Platz 1 bei 4 Spielern ≈ 4 %, wie die echten Minispiele (EXP-005 … 007).
   minigameScoreSpread: 40,
@@ -184,6 +197,10 @@ export interface SimulationResult {
   readonly finalPlayers: readonly PlayerState[];
   /** Minispiele mit geteiltem 1. Platz. */
   readonly minigameSharedWins: number;
+  /** Münzen aus Minispielen (Grund `minigame`, alle Spieler zusammen; CHAOS-89). */
+  readonly minigameCoins: number;
+  /** Minispiele mit Teams bzw. Koop (CHAOS-89). */
+  readonly teamMinigames: number;
   /** Trophäen Platz 1 minus Platz 2 (`null` bei einem Spieler). */
   readonly trophyGap: number | null;
   readonly trophiesBought: number;
@@ -288,6 +305,12 @@ function choosePath(
   policy: BotPolicy,
   rng: Rng,
 ): string {
+  const route = state.prompt ? policy.routes[state.prompt.slot] : undefined;
+  if (route) {
+    const lengths = candidates.map((id) => distanceTo(board, id, [board.start], state.round));
+    const pick = route === 'short' ? Math.min(...lengths) : Math.max(...lengths);
+    return candidates[lengths.indexOf(pick)] ?? pickOne(rng, candidates);
+  }
   let ids = candidates;
   if (policy.avoidTrapChance > 0 && rng.next() < policy.avoidTrapChance) {
     const slot = state.prompt?.slot;
@@ -384,6 +407,8 @@ export function simulateGame(options: SimulationOptions): SimulationResult {
   };
   let coinSteals = 0;
   let coinsStolen = 0;
+  let minigameCoins = 0;
+  let teamMinigames = 0;
   let trapsPlaced = 0;
   let trapsTriggered = 0;
   let trapsBlocked = 0;
@@ -471,6 +496,7 @@ export function simulateGame(options: SimulationOptions): SimulationResult {
       case 'coins-changed':
         if (inAvalanche && event.delta < 0) avalancheHits += 1;
         coins.set(event.slot, event.balance);
+        if (event.reason === 'minigame') minigameCoins += event.delta;
         break;
       case 'coins-stolen':
         coinsStolen += event.amount;
@@ -545,23 +571,57 @@ export function simulateGame(options: SimulationOptions): SimulationResult {
     }
   };
 
-  /** Ergebnis eines echten Minispiels: Punkte je Slot, Plätze wie im SDK („1224“). */
+  /**
+   * Ergebnis eines echten Minispiels: Punkte je Slot, Plätze wie im SDK („1224“). Bei Teams
+   * (CHAOS-89) gewinnt die Einzelperson mit `soloWinChance`, sonst das Team mit mehr Punkten im
+   * Schnitt; Koop-Stufe = mittlere Punkte relativ zur Spannweite. Ohne Teams bleibt der
+   * Zufallsverbrauch wie vorher.
+   */
   const minigameResult = (minigame: NonNullable<GameState['minigame']>, at: number): void => {
     const spec = [
       ...(options.minigames ?? []),
       ...(options.rapidFire ? [options.rapidFire] : []),
     ].find((m) => m.id === minigame.id);
+    const spread = Math.max(0, Math.round(policy.minigameScoreSpread));
     const scores = state.players.map((p) => {
-      const base = bot.int(0, Math.max(0, Math.round(policy.minigameScoreSpread)));
+      const base = bot.int(0, spread);
       const skill = policy.minigameSkill[p.slot] ?? 0;
       return { slot: p.slot, score: spec?.scoring === 'lower' ? base - skill : base + skill };
     });
+    const scoring = spec?.scoring ?? 'higher';
+    const teams = minigame.teams;
+    let placements = rankByScore(scores, scoring);
+    let outcome: MinigameOutcome | undefined;
+    if (teams) {
+      teamMinigames += 1;
+      if (teams.layout === 'koop') {
+        const average = scores.reduce((sum, e) => sum + e.score, 0) / Math.max(1, scores.length);
+        const tier = Math.round((average / Math.max(1, spread)) * KOOP_MAX_TIER);
+        outcome = { kind: 'koop', tier: Math.max(0, Math.min(KOOP_MAX_TIER, tier)) };
+      } else {
+        const soloLayout = (teams.teams[0]?.length ?? 0) === 1 && (teams.teams[1]?.length ?? 0) > 1;
+        let winner: number | null;
+        if (soloLayout) {
+          winner = bot.next() < (policy.soloWinChance ?? 0.45) ? 0 : 1;
+        } else {
+          const sign = scoring === 'higher' ? 1 : -1;
+          const meanOf = (team: readonly Slot[]) =>
+            team.reduce((sum, slot) => sum + (scores.find((e) => e.slot === slot)?.score ?? 0), 0) /
+            team.length;
+          const [a = 0, b = 0] = teams.teams.map(meanOf);
+          winner = a === b ? null : sign * (a - b) > 0 ? 0 : 1;
+        }
+        placements = teamPlacements(teams, winner, scores, scoring);
+        outcome = { kind: 'teams', winner };
+      }
+    }
     apply(
       step(state, {
         type: 'minigame-result',
         minigameId: minigame.id,
         round: minigame.round,
-        placements: rankByScore(scores, spec?.scoring ?? 'higher'),
+        placements,
+        ...(outcome ? { outcome } : {}),
         at,
       }),
       at,
@@ -661,6 +721,8 @@ export function simulateGame(options: SimulationOptions): SimulationResult {
     minigameLog,
     finalPlayers: state.players,
     minigameSharedWins,
+    minigameCoins,
+    teamMinigames,
     trophyGap: first && second ? first.trophies - second.trophies : null,
     trophiesBought,
     trophySpacesBought,

@@ -112,8 +112,9 @@ describe('Kamera-Einstellungen je Phase (CHAOS-194)', () => {
     expect(dist(ahead.focus, pawn)).toBeLessThanOrEqual(WALK_LOOKAHEAD + 1e-9);
     expect(dist(ahead.focus, pawn)).toBeGreaterThan(WALK_LOOKAHEAD * 0.9);
     expect(dist(ahead.focus, pos('s09'))).toBeLessThan(dist(pawn, pos('s09')));
-    // Im dritten Sprung reicht der Weg nicht mehr: Blick aufs Zielfeld.
-    expect(walkShot(pos('s09'), path, 959, 960).focus).toEqual(pos('s10'));
+    // Mitten im dritten Sprung reicht der Weg nicht mehr: Blick aufs Zielfeld.
+    const third = { x: (pos('s09').x + pos('s10').x) / 2, z: (pos('s09').z + pos('s10').z) / 2 };
+    expect(walkShot(third, path, 959, 960).focus).toEqual(pos('s10'));
   });
 
   it('Gabel: zieht auf, bis beide Wege samt Folgefeld lesbar sind', () => {
@@ -209,9 +210,10 @@ describe('Kamera-Einstellungen je Phase (CHAOS-194)', () => {
     expect(shot.kind).toBe('overview');
     for (const space of WACKELWALD.spaces)
       expect(inFrame(poseOf(shot), space.position), space.id).toBe(true);
-    // Etwa die bisherige Vollansicht.
-    expect(shot.distance / BASE_DISTANCE).toBeGreaterThan(0.9);
-    expect(shot.distance / BASE_DISTANCE).toBeLessThan(1.15);
+    // Der große Wackelwald (CHAOS-196, ≈ 41 × 26 statt 32 × 18) braucht etwa das 1,5-Fache
+    // der früheren Vollansicht.
+    expect(shot.distance / BASE_DISTANCE).toBeGreaterThan(1.3);
+    expect(shot.distance / BASE_DISTANCE).toBeLessThan(1.7);
     expect(cameraShot({ ...input, cues: [cue(started, OVERVIEW_HOLD_MS, 0)] }).kind).toBe('follow');
   });
 
@@ -241,13 +243,15 @@ describe('Kamera-Einstellungen je Phase (CHAOS-194)', () => {
 });
 
 describe('größere Bretter (keine festen Grenzen)', () => {
-  const big = scaled(WACKELWALD, 2.5);
+  // Gestreckt bis knapp unter den größten Abstand (`SHOT_DISTANCE.max`).
+  const big = scaled(WACKELWALD, 1.7);
   const view: BoardView = { ...DEMO_VIEW, gamePhase: 'turn-start', prompt: null };
 
   it('Überblick wächst mit dem Brett, alle Felder bleiben im Bild', () => {
     const small = cameraShot({ board: WACKELWALD, view: null, cues: [], pawns: [] });
     const large = cameraShot({ board: big, view: null, cues: [], pawns: [] });
-    expect(large.distance).toBeGreaterThan(small.distance * 2);
+    expect(large.distance).toBeGreaterThan(small.distance * 1.5);
+    expect(large.distance).toBeLessThan(SHOT_DISTANCE.max);
     for (const space of big.spaces)
       expect(inFrame(poseOf(large), space.position), space.id).toBe(true);
   });
@@ -374,7 +378,8 @@ describe('Kamera-Feder', () => {
     // Zum Schluss: Orange (s21) am Zug, die Kamera ist nah bei ihr.
     const end = a.rig.current();
     expect(a.director.getFrame().view?.activeSlot).toBe(2);
-    expect(dist(end?.focus ?? { x: 0, z: 0 }, pos('s21'))).toBeLessThan(4);
+    // s21 ist ein Randfeld: Der Blickpunkt rückt etwas nach innen.
+    expect(dist(end?.focus ?? { x: 0, z: 0 }, pos('s21'))).toBeLessThan(5);
     expect(end?.distance).toBeLessThan(BASE_DISTANCE * 0.7);
     if (end) expect(inFrame(end.pose, pos('s21'))).toBe(true);
   });

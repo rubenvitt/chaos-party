@@ -1743,6 +1743,48 @@ button {
   line-height: 1.2;
 }
 
+/* Eigene Rolle bei Teams/Koop (CHAOS-89): Symbol + Name, Farbe nur zusätzlich. */
+.minigame-team-role {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 360px;
+  padding: 8px 14px 8px 8px;
+  border: 3px solid var(--team-color, #999);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--team-color, #999) 30%, rgb(10 14 30 / 70%));
+  text-align: left;
+}
+
+.minigame-team-role-mark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--team-color, #999);
+  color: white;
+  font-size: 24px;
+}
+
+.minigame-team-role-text {
+  display: grid;
+  gap: 2px;
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.minigame-team-role-text b {
+  font-size: 20px;
+}
+
+.result-team {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+}
+
 .minigame-steps {
   width: 100%;
   margin: 0;

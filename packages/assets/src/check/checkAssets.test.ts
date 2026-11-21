@@ -26,6 +26,8 @@ async function sandbox(): Promise<string> {
   await cp(join(packageDir, 'textures'), join(dir, 'packages/assets/textures'), {
     recursive: true,
   });
+  // Klang-Dateien (CHAOS-223), CC0 aus `import:sounds`.
+  await cp(join(packageDir, 'sounds'), join(dir, 'packages/assets/sounds'), { recursive: true });
   // Figuren (CHAOS-58) und Porträts (CHAOS-61) entstehen in Blender.
   await mkdir(join(dir, 'packages/assets/blender'), { recursive: true });
   await writeFile(join(dir, 'packages/assets/blender/build-all.sh'), '# Generator\n');

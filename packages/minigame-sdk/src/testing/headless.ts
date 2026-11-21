@@ -27,6 +27,7 @@ import type {
   SoundId,
   VfxId,
 } from '../babylon/contract.ts';
+import type { MinigameTeams } from '../teams.ts';
 import { FIXED_STEP_SECONDS } from '../babylon/contract.ts';
 import {
   createMinigameRunner,
@@ -224,6 +225,8 @@ export interface HeadlessRunOptions {
   readonly players?: number | readonly MinigamePlayer[];
   readonly seed?: number;
   readonly timeLimitMs?: number;
+  /** Aufstellung bei Teams bzw. Koop (CHAOS-89). */
+  readonly teams?: MinigameTeams;
   readonly script?: InputScript;
   /** Abbruch, falls kein Ergebnis kommt (Standard: Zeitlimit + 5 s). */
   readonly maxMs?: number;
@@ -264,6 +267,7 @@ export async function runMinigameHeadless(
     characters,
     havok,
     testMode: true,
+    ...(options.teams ? { teams: options.teams } : {}),
   });
   await runner.prepare();
   runner.start();

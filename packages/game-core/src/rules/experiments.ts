@@ -12,7 +12,7 @@
  * reagieren mit angenommenen Reaktionszeiten). Ob sich das gut anfühlt, entscheidet erst
  * der Playtest bei der Abnahme.
  */
-import { WACKELWALD } from '../board/wackelwald.ts';
+import { WACKELWALD_M2 } from '../board/wackelwaldM2.ts';
 import type { BoardDefinition, MinigameSpec, RuleSet, SpaceKind } from '../types.ts';
 import { DEFAULT_RULES, withRules, type RuleOverrides } from './defaults.ts';
 import {
@@ -108,9 +108,9 @@ export function variant(
   return { id, label, rules: withRules(overrides, START_RULES), ...extra };
 }
 
-/** Die aktuellen Standardwerte (Regeln und Brett) als Vergleichszeile. */
+/** Die aktuellen Standardregeln auf dem Brett der Experimente (Wackelwald M2) als Vergleichszeile. */
 export function currentDefaults(id = 'Z', label = 'neue Standardwerte'): Variant {
-  return { id, label, rules: DEFAULT_RULES, board: WACKELWALD };
+  return { id, label, rules: DEFAULT_RULES, board: WACKELWALD_M2 };
 }
 
 /** Alle Partien einer Variante für eine Spielerzahl. */
@@ -155,7 +155,7 @@ export function withSpaceKinds(
 
 /** Wackelwald vor CHAOS-24: 4 Trophäen-Kandidaten (s12, s24, s36, s42), 4 Item-Felder. */
 export const START_BOARD: BoardDefinition = withSpaceKinds(
-  WACKELWALD,
+  WACKELWALD_M2,
   { s16: 'coins-plus', s19: 'coins-plus', s21: 'coins-plus', s39: 'coins-plus' },
   'wackelwald-start',
 );

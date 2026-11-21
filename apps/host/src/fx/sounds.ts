@@ -1,10 +1,13 @@
 /**
- * Prozedurale Klänge (CHAOS-33): jedes Geräusch ist ein Rezept aus wenigen „Stimmen“
- * (Oszillator oder Rauschen, Tonhöhen-Gleiten, Hüllkurve, optional Filter). Reine Daten,
+ * Klang-Namen und prozedurale Rezepte (CHAOS-33): jedes Geräusch ist ein Rezept aus wenigen
+ * „Stimmen“ (Oszillator oder Rauschen, Tonhöhen-Gleiten, Hüllkurve, optional Filter). Reine Daten,
  * ohne WebAudio – `audio.ts` spielt sie ab, Unit-Tests prüfen Länge, Lautstärke und Tonlage.
  *
+ * Seit CHAOS-223 spielen beide Hosts echte Aufnahmen (CC0, `samples.ts`); die Rezepte sind nur noch
+ * der Rückfall, solange die Dateien laden oder wenn eine fehlt.
+ *
  * Richtlinie: kurz (≤ 1,2 s), cartoonig, nicht schrill (Grundtöne ≤ 2,1 kHz, Rechteck/Sägezahn
- * nur leise und gefiltert). Keine Bild- oder Tondateien.
+ * nur leise und gefiltert).
  */
 import { SOUND_IDS, type SoundId } from '@chaos-party/minigame-sdk/babylon';
 

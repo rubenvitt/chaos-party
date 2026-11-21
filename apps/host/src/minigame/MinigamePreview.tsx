@@ -14,7 +14,6 @@ import {
   type MinigameHud,
   type MinigameRunner,
 } from '@chaos-party/minigame-sdk/babylon';
-import { getMinigameModule } from '@chaos-party/minigames';
 import { PLAYER_SLOTS } from '@chaos-party/protocol';
 import { useEffect, useRef, useState } from 'react';
 import { loadCharacters } from '../characters/index.ts';
@@ -28,6 +27,7 @@ import { createMinigameLook, SOFTWARE_MAX_STEPS } from './natureLook.ts';
 import { MinigameKeyboard } from './keyboard.ts';
 import { previewPlayers } from './players.ts';
 import type { ChaosMinigameTestHook } from './testHook.ts';
+import { useMinigameModule } from './useMinigameModule.ts';
 
 interface PreviewProps {
   readonly id: string;
@@ -40,7 +40,7 @@ export function MinigamePreview({ id, players, seed, test }: PreviewProps) {
   const stageRef = useRef<HTMLDivElement>(null);
   const [hud, setHud] = useState<MinigameHud | null>(null);
   const [status, setStatus] = useState<'loading' | 'running' | 'finished' | 'unknown'>('loading');
-  const module = getMinigameModule(id);
+  const module = useMinigameModule(id);
 
   useEffect(() => {
     const stage = stageRef.current;

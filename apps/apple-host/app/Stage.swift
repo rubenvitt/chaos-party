@@ -55,6 +55,8 @@ final class Stage {
         renderer.entities.append(primitives.root)
         renderer.activeCamera = primitives.camera
         renderer.cameraSettings.colorBackground = .color(CGColor(red: 0.08, green: 0.1, blue: 0.16, alpha: 1))
+        // Klang-Dateien (CHAOS-223) gleich im Hintergrund dekodieren, nicht beim ersten Klang.
+        SoundBank.shared.preload()
     }
 
     /// Lädt Figuren und Kulisse. Ohne Assets bleibt es bei Grundkörpern (Entwicklung, CI ohne `build:apple-assets`).

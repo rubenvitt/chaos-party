@@ -1,5 +1,9 @@
 /**
- * Klang-Ausgabe des Hosts (CHAOS-33): spielt die Rezepte aus `sounds.ts` per WebAudio ab.
+ * Klang-Ausgabe des Hosts (CHAOS-33, CHAOS-223): spielt echte Klang-Dateien (CC0, `samples.ts`)
+ * per WebAudio ab, bis sie geladen sind (oder wenn eine fehlt) die Rezepte aus `sounds.ts`.
+ *
+ * - Die Dateien lädt `unlock()` (Abruf und `decodeAudioData`, einmal je Datei); jede Wahl kommt
+ *   aus dem gemeinsamen Picker (Varianten reihum, Tonhöhen-Streuung), wie im Apple-Host.
  *
  * - Der `AudioContext` entsteht erst mit `unlock()` – das muss in einer Nutzer-Geste passieren
  *   (Browser-Autoplay-Regeln). Der „Los geht’s!“-Klick in der Lobby ruft es auf, zusätzlich
@@ -9,6 +13,8 @@
  * - Gesamtlautstärke über einen Master-Pegel mit Kompressor (verhindert Übersteuern, wenn
  *   viele Klänge gleichzeitig kommen); höchstens `MAX_VOICES` Stimmen gleichzeitig.
  */
+import { SAMPLE_URLS } from './sampleUrls.ts';
+import { createSamplePicker, type SampleChoice } from './samples.ts';
 import { SOUNDS, shapeRecipe, type PlayOptions, type SoundName, type Voice } from './sounds.ts';
 
 /** Gleichzeitige Stimmen; darüber hinaus werden neue Klänge verworfen. */
@@ -23,6 +29,8 @@ export interface SoundEngine {
   /** Abgespielte (bzw. stumm gezählte) Klänge – für Tests und Debug. */
   readonly played: number;
   readonly lastPlayed: SoundName | null;
+  /** Geladene Klang-Dateien (nach `unlock()`); bis dahin spielen die Rezepte. */
+  readonly samplesLoaded: number;
   /** In einer Nutzer-Geste aufrufen; legt den `AudioContext` an bzw. weckt ihn. */
   unlock(): void;
   play(name: SoundName, options?: PlayOptions): void;
@@ -35,6 +43,10 @@ export interface SoundEngineOptions {
   readonly volume?: number;
   /** Fabrik für den Kontext (Tests); Standard: `new AudioContext()`. */
   readonly createContext?: () => AudioContext;
+  /** Dateiname → URL der Klang-Dateien; Standard: alle aus `packages/assets/sounds/`. */
+  readonly sampleUrls?: Readonly<Record<string, string>>;
+  /** Abruf der Dateien (Tests); Standard: `fetch`. */
+  readonly fetchSample?: (url: string) => Promise<ArrayBuffer>;
 }
 
 export function createSoundEngine(options: SoundEngineOptions): SoundEngine {
@@ -45,6 +57,16 @@ export function createSoundEngine(options: SoundEngineOptions): SoundEngine {
   let noise: AudioBuffer | null = null;
   let voices = 0;
   let played = 0;
+  const samples = new Map<string, AudioBuffer>();
+  const pickSample = createSamplePicker();
+  const sampleUrls = options.sampleUrls ?? SAMPLE_URLS;
+  const fetchSample =
+    options.fetchSample ??
+    (async (url: string) => {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`${url}: HTTP ${String(res.status)}`);
+      return res.arrayBuffer();
+    });
   let lastPlayed: SoundName | null = null;
 
   const createContext =
@@ -67,6 +89,41 @@ export function createSoundEngine(options: SoundEngineOptions): SoundEngine {
     noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
     const data = noise.getChannelData(0);
     for (let index = 0; index < data.length; index++) data[index] = Math.random() * 2 - 1;
+    loadSamples(ctx);
+  }
+
+  /** Alle Klang-Dateien laden; was fehlt oder nicht dekodiert, spielt weiter als Rezept. */
+  function loadSamples(ctx: AudioContext) {
+    for (const [file, url] of Object.entries(sampleUrls)) {
+      fetchSample(url)
+        .then((bytes) => ctx.decodeAudioData(bytes))
+        .then((buffer) => samples.set(file, buffer))
+        .catch((error: unknown) => {
+          console.warn(`Klang ${file} nicht geladen, Rezept als Ersatz`, error);
+        });
+    }
+  }
+
+  function playSample(
+    ctx: AudioContext,
+    output: GainNode,
+    buffer: AudioBuffer,
+    choice: SampleChoice,
+  ) {
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.playbackRate.value = choice.rate;
+    const level = ctx.createGain();
+    level.gain.value = choice.gain;
+    source.connect(level);
+    level.connect(output);
+    voices++;
+    source.onended = () => {
+      voices--;
+      source.disconnect();
+      level.disconnect();
+    };
+    source.start();
   }
 
   function playVoice(ctx: AudioContext, output: GainNode, voice: Voice) {
@@ -128,6 +185,9 @@ export function createSoundEngine(options: SoundEngineOptions): SoundEngine {
     get lastPlayed() {
       return lastPlayed;
     },
+    get samplesLoaded() {
+      return samples.size;
+    },
     unlock() {
       if (muted) return;
       try {
@@ -144,6 +204,13 @@ export function createSoundEngine(options: SoundEngineOptions): SoundEngine {
       played++;
       lastPlayed = name;
       if (muted || !context || !master || context.state !== 'running') return;
+      const choice = pickSample(name, playOptions);
+      const buffer = choice ? samples.get(choice.file) : undefined;
+      if (choice && buffer) {
+        if (voices + 1 > MAX_VOICES) return;
+        playSample(context, master, buffer, choice);
+        return;
+      }
       const recipe = shapeRecipe(SOUNDS[name].recipe, playOptions);
       if (voices + recipe.length > MAX_VOICES) return;
       for (const voice of recipe) playVoice(context, master, voice);

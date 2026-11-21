@@ -5,6 +5,8 @@
 export { createGame, step } from './machine.ts';
 export {
   DEFAULT_RULES,
+  DEFAULT_TEAM_REWARDS,
+  START_TEAM_REWARDS,
   RAPID_FIRE_RULE,
   TAILWIND_RULE,
   ZERO_PACING,
@@ -36,6 +38,7 @@ export {
   slotOption,
 } from './prompts.ts';
 export {
+  copyTeams,
   toPublicView,
   viewClock,
   type PublicGameView,

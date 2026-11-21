@@ -2,12 +2,13 @@
   "name": "@chaos-party/minigames",
   "version": "0.0.0",
   "private": true,
-  "description": "Die Minispiele (je Ordner ein Minispiel). `./catalog` ist rein (Steckbriefe für Server/Controller), `.` liefert die Babylon-Module für den Host.",
+  "description": "Die Minispiele (je Ordner ein Minispiel). `./catalog` ist rein (Steckbriefe für Server/Controller), `./lazy` lädt die Babylon-Module je Spiel bei Bedarf (Host im Browser), `.` liefert alle Module synchron (Apple-Host, Tests, Werkzeuge).",
   "license": "GPL-3.0-only",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
     "./catalog": "./src/catalog.ts",
+    "./lazy": "./src/lazy.ts",
     "./gallery": "./src/gallery.ts"
   },
   "scripts": {

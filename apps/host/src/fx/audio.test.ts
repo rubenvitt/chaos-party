@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createSoundEngine, MAX_VOICES, unlockOnFirstGesture } from './audio.ts';
+import { SAMPLE_FILE_NAMES } from './samples.ts';
 import { SOUNDS } from './sounds.ts';
+
+/** Rezept-Tests ohne Klang-Dateien (die lädt der eigene Block unten). */
+const NO_SAMPLES = { sampleUrls: {} } as const;
 
 /** Minimaler WebAudio-Nachbau: zählt Quellen und merkt sich Lautstärken. */
 class FakeParam {
@@ -34,6 +38,7 @@ class FakeSource extends FakeNode {
   onended: (() => void) | null = null;
   started = false;
   readonly frequency = new FakeParam();
+  readonly playbackRate = new FakeParam();
   type = 'sine';
   buffer: unknown = null;
   loop = false;
@@ -75,6 +80,9 @@ function fakeContext() {
       sources.push(source);
       return source;
     },
+    decodeAudioData: vi.fn((bytes: ArrayBuffer) =>
+      Promise.resolve({ duration: 0.2, bytes } as unknown as AudioBuffer),
+    ),
     createBiquadFilter: () =>
       Object.assign(new FakeNode(), {
         type: 'lowpass',
@@ -99,7 +107,11 @@ describe('createSoundEngine', () => {
 
   it('spielt erst nach unlock (Nutzer-Geste), dann je Stimme eine Quelle', () => {
     const fake = fakeContext();
-    const engine = createSoundEngine({ muted: false, createContext: () => fake.context });
+    const engine = createSoundEngine({
+      muted: false,
+      createContext: () => fake.context,
+      ...NO_SAMPLES,
+    });
     engine.play('coin');
     expect(fake.sources).toHaveLength(0);
     engine.unlock();
@@ -115,7 +127,11 @@ describe('createSoundEngine', () => {
   it('weckt einen angehaltenen Kontext und spielt nichts, solange er nicht läuft', () => {
     const fake = fakeContext();
     fake.raw.state = 'suspended';
-    const engine = createSoundEngine({ muted: false, createContext: () => fake.context });
+    const engine = createSoundEngine({
+      muted: false,
+      createContext: () => fake.context,
+      ...NO_SAMPLES,
+    });
     engine.unlock();
     expect(fake.raw.resume).toHaveBeenCalled();
     engine.play('pop');
@@ -124,7 +140,11 @@ describe('createSoundEngine', () => {
 
   it('begrenzt gleichzeitige Stimmen und gibt sie nach dem Ende frei', () => {
     const fake = fakeContext();
-    const engine = createSoundEngine({ muted: false, createContext: () => fake.context });
+    const engine = createSoundEngine({
+      muted: false,
+      createContext: () => fake.context,
+      ...NO_SAMPLES,
+    });
     engine.unlock();
     for (let index = 0; index < MAX_VOICES * 2; index++) engine.play('pop');
     expect(fake.sources).toHaveLength(MAX_VOICES);
@@ -139,6 +159,7 @@ describe('createSoundEngine', () => {
       muted: false,
       volume: 0.4,
       createContext: () => fake.context,
+      ...NO_SAMPLES,
     });
     engine.unlock();
     const master = fake.gains[0];
@@ -162,6 +183,56 @@ describe('createSoundEngine', () => {
     }).not.toThrow();
     expect(engine.unlocked).toBe(false);
     expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+});
+
+describe('Klang-Dateien (CHAOS-223)', () => {
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  it('lädt nach unlock jede Datei einmal und spielt dann die Datei statt des Rezepts', async () => {
+    const fake = fakeContext();
+    const fetchSample = vi.fn(() => Promise.resolve(new ArrayBuffer(8)));
+    const sampleUrls = Object.fromEntries(SAMPLE_FILE_NAMES.map((f) => [f, `/klang/${f}`]));
+    const engine = createSoundEngine({
+      muted: false,
+      createContext: () => fake.context,
+      sampleUrls,
+      fetchSample,
+    });
+    engine.unlock();
+    // Noch nicht dekodiert: Rezept als Rückfall.
+    engine.play('coin');
+    expect(fake.sources).toHaveLength(SOUNDS.coin.recipe.length);
+    await flush();
+    expect(fetchSample).toHaveBeenCalledTimes(SAMPLE_FILE_NAMES.length);
+    expect(engine.samplesLoaded).toBe(SAMPLE_FILE_NAMES.length);
+    const before = fake.sources.length;
+    engine.play('hit', { pitch: 2 });
+    expect(fake.sources).toHaveLength(before + 1);
+    const source = fake.sources.at(-1);
+    expect(source?.buffer).not.toBeNull();
+    expect(source?.playbackRate.value).toBeGreaterThan(1.8);
+    expect(source?.started).toBe(true);
+    engine.unlock();
+    expect(fetchSample).toHaveBeenCalledTimes(SAMPLE_FILE_NAMES.length);
+  });
+
+  it('fehlende oder kaputte Datei: Warnung, der Klang bleibt als Rezept', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const fake = fakeContext();
+    const engine = createSoundEngine({
+      muted: false,
+      createContext: () => fake.context,
+      sampleUrls: { 'tick-1.mp3': '/klang/tick-1.mp3' },
+      fetchSample: () => Promise.reject(new Error('404')),
+    });
+    engine.unlock();
+    await flush();
+    expect(engine.samplesLoaded).toBe(0);
+    expect(warn).toHaveBeenCalled();
+    engine.play('tick');
+    expect(fake.sources).toHaveLength(SOUNDS.tick.recipe.length);
     warn.mockRestore();
   });
 });

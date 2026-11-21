@@ -20,7 +20,12 @@ import type { BoardScene } from './board/types.ts';
 import { finaleSpeedOf, serverWebSocketUrl, type HostConfig } from './config.ts';
 import { DebugOverlay } from './debug/DebugOverlay.tsx';
 import { attachPerf, installPerfMonitor } from './debug/perf.ts';
-import { resetSceneLog, sceneLogTransitions, startSceneLog } from './debug/sceneMarks.ts';
+import {
+  markScene,
+  resetSceneLog,
+  sceneLogTransitions,
+  startSceneLog,
+} from './debug/sceneMarks.ts';
 import { createPerfMonitor, type PerfMonitor } from './debug/perfMonitor.ts';
 import { environmentSample } from './debug/renderProbe.ts';
 import { scenePerfReport } from './debug/summary.ts';
@@ -28,17 +33,14 @@ import { soundEngine } from './fx/audio.ts';
 import { Hud, type PhysicsStatus } from './Hud.tsx';
 import { createKeyboardInputSource } from './input/keyboardInputSource.ts';
 import { createWebSocketInputSource } from './input/webSocketInputSource.ts';
-import {
-  loadArenaScene,
-  loadBoardStage,
-  loadMinigameScreen,
-  prefetchGameScenes,
-} from './lazyScenes.ts';
+import { loadArenaScene, loadBoardStage, prefetchGameScenes } from './lazyScenes.ts';
 import type { MinigamePrefs } from './lobby/lobbyState.ts';
 import { LobbyPanel } from './lobby/LobbyPanel.tsx';
 import { loadMinigamePrefs, saveMinigamePrefs } from './lobby/minigamePrefs.ts';
 import { PlayerToasts } from './lobby/PlayerToasts.tsx';
 import { stageKeyOf } from './minigame/plan.ts';
+import { useMinigameModuleStatus } from './minigame/useMinigameModule.ts';
+import { useMinigameStage } from './minigame/useMinigameStage.ts';
 import { useHostSession } from './net/useHostSession.ts';
 import { PauseControls } from './pause/PauseControls.tsx';
 import { createLocalPlayers, playersFromLobby, type HostPlayer } from './players.ts';
@@ -75,9 +77,6 @@ const isKnownMinigame = (id: string) => getMinigameInfo(id) !== undefined;
 
 // Brett und Minispiel-Bühne als eigene Chunks (CHAOS-53, `lazyScenes.ts`).
 const BoardStage = lazy(() => loadBoardStage().then((m) => ({ default: m.BoardStage })));
-const MinigameScreenById = lazy(() =>
-  loadMinigameScreen().then((m) => ({ default: m.MinigameScreenById })),
-);
 
 export function App({ config }: AppProps) {
   const { seed, test, local, debug } = config;
@@ -103,6 +102,20 @@ export function App({ config }: AppProps) {
       ? getMinigameInfo(latest.view.minigame.id)
       : undefined;
   const [minigameReady, setMinigameReady] = useState(false);
+  // Modul des Minispiels der Runde (eigener Chunk, CHAOS-86) laden, sobald der Stand es nennt;
+  // die Bühne hängt erst ein, wenn es da ist (kein Suspense, keine 300-ms-Drossel).
+  const minigameModule = useMinigameModuleStatus(minigameInfo?.id);
+  // Bühnen-Chunk ohne `React.lazy` (keine Suspense-Drossel beim ersten Minispiel, CHAOS-86).
+  const MinigameScreenById = useMinigameStage(!local && boardMode);
+  // Messung (nur `?debug=1`): Brett → Minispiel zählt ab Empfang des Stands, der das Minispiel
+  // nennt – so steckt auch das Laden des Spiel-Chunks in der Wartezeit (CHAOS-86).
+  const requestedKey = useRef<string | null>(null);
+  const receivedAt = latest.receivedAt;
+  useEffect(() => {
+    if (minigameKey === null || requestedKey.current === minigameKey) return;
+    requestedKey.current = minigameKey;
+    markScene('minispiel', 'angefragt', receivedAt);
+  }, [minigameKey, receivedAt]);
   const minigameShown = boardMode && minigameInfo !== undefined && latest.view !== null;
 
   const [physics, setPhysics] = useState<PhysicsStatus>('loading');
@@ -476,9 +489,12 @@ export function App({ config }: AppProps) {
           </>
         )}
       </Suspense>
-      {/* Eigene Grenze: Lädt der Minispiel-Chunk, bleibt das Brett unberührt. */}
+      {/* Eigene Grenze: Wartet die Bühne doch einmal (z. B. nach einem fehlgeschlagenen Import des
+          Spiel-Chunks), bleibt das Brett unberührt. */}
       <Suspense fallback={null}>
-        {minigameShown && (
+        {minigameShown && minigameModule !== 'loading' && MinigameScreenById && (
+          // Stabile Identität: Export des geladenen Chunks, einmal im State (`useMinigameStage`).
+          // eslint-disable-next-line react-hooks/static-components
           <MinigameScreenById
             key={minigameKey}
             minigameId={minigameInfo.id}
