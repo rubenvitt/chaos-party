@@ -1,20 +1,35 @@
 """
-Baut die Requisiten der Minispiele als GLB (CHAOS-88) und rendert einen Kontaktbogen.
+Baut die Requisiten der Minispiele als GLB (CHAOS-88) oder USDZ (CHAOS-221) und rendert einen
+Kontaktbogen.
 
     .venv-blender/bin/python packages/assets/blender/props.py <id|all> <zielordner>
+    .venv-blender/bin/python packages/assets/blender/props.py --usdz <id|all> <zielordner>
     .venv-blender/bin/python packages/assets/blender/props.py --vorschau <bild.jpg|bild.png>
     .venv-blender/bin/python packages/assets/blender/props.py --kulissen <bild.jpg|bild.png>
 
 GLB: je Requisit `<zielordner>/<id>.glb`, statisch (kein Skelett, keine Animation), ein Mesh je
-Material, Wurzelknoten mit dem Namen des Requisits. Kontaktbogen: alle Requisiten in einer
-Reihe nach Sets mit Figur-Maßstab (1,5-m-Stab), Cycles, Natur-Licht. Kulissen-Bogen (CHAOS-222):
-die Kulissen-Sets aller sieben Orte, je Ort auf einer Scheibe in der Bodenfarbe der Arena-Vorlage.
+Material, Wurzelknoten mit dem Namen des Requisits.
+
+USDZ (nativer Apple-Host, ADR-019): je Requisit `<zielordner>/<id>.usdz` aus demselben Modell.
+RealityKit ignoriert Vertexfarben im Material (EXP-017), deshalb backt der Export sie wie bei den
+Figuren in eine Farbtextur (`figurkit.bake_vertex_colors`, `PROP_ATLAS_SIZE`²). Die
+Laufzeit-Materialien `akzent` und `zustand` bleiben weiß und ohne Textur, damit der Host sie
+färben kann. Prims: `/root/<id>/<id>_<material>` (Bindestriche werden in USD zu `_`). Die
+Deckkraft durchscheinender Materialien (`glas`) setzt danach `packages/assets/usd/set_opacity.py`
+mit usd-core, weil Blenders USD-Export das Alpha nicht überträgt.
+
+Kontaktbogen: alle Requisiten in einer Reihe nach Sets mit Figur-Maßstab (1,5-m-Stab), Cycles,
+Natur-Licht. Kulissen-Bogen (CHAOS-222): die Kulissen-Sets aller sieben Orte, je Ort auf einer
+Scheibe in der Bodenfarbe der Arena-Vorlage.
 """
 
 from __future__ import annotations
 
+import json
 import math
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -51,6 +66,73 @@ def export(prop_id: str, target: Path) -> None:
     )
     tris = sum(len(p.vertices) - 2 for o in bpy.context.scene.objects if o.type == "MESH" for p in o.data.polygons)
     print(f"Requisit {prop_id} → {target} ({tris} Dreiecke)")
+
+
+PROP_ATLAS_SIZE = 256
+"""Kantenlänge der Farbtextur je Requisit. Vertexfarben sind flächig (wenige Farbwechsel je
+Teil), 256² reicht dafür (CHAOS-221)."""
+PROP_ISLAND_MARGIN = 0.02
+"""Abstand der UV-Inseln (≈ 5 px bei 256²)."""
+PROP_BAKE_MARGIN = 2
+"""Bake-Rand in Pixeln, kleiner als der Inselabstand (siehe `figurkit.bake_vertex_colors`)."""
+
+
+def export_usdz(prop_id: str, target: Path) -> dict[str, float]:
+    """Requisit als USDZ: Vertexfarben als Farbtextur, `UsdPreviewSurface` je Material.
+
+    Gibt das Alpha der durchscheinenden Materialien zurück (für `set_opacity.py`).
+    """
+    meshes = build(prop_id)
+    alphas: dict[str, float] = {}
+    for obj in meshes:
+        for mat in obj.data.materials:
+            alpha = mat.node_tree.nodes["Principled BSDF"].inputs["Alpha"].default_value
+            if alpha < 1.0:
+                alphas[mat.name] = round(float(alpha), 4)
+    with tempfile.TemporaryDirectory() as tmp:
+        image = k.bake_vertex_colors(
+            f"{prop_id}_farbe",
+            size=PROP_ATLAS_SIZE,
+            pack_shape="AABB",
+            island_margin=PROP_ISLAND_MARGIN,
+            bake_margin=PROP_BAKE_MARGIN,
+        )
+        # Die Vertexfarbe steckt jetzt in der Textur; als Primvar `Farbe` wäre sie nur Ballast
+        # (`export_mesh_colors=False` lässt sie im USD-Export von Blender 5.3 nicht weg).
+        for obj in meshes:
+            for attribute in list(obj.data.color_attributes):
+                obj.data.color_attributes.remove(attribute)
+        if image is not None:
+            image.filepath_raw = f"{tmp}/{prop_id}_farbe.png"
+            image.file_format = "PNG"
+            image.save()
+        bpy.ops.object.select_all(action="DESELECT")
+        bpy.ops.wm.usd_export(
+            filepath=str(target),
+            export_animation=False,
+            export_armatures=False,
+            export_materials=True,
+            generate_preview_surface=True,
+            export_textures_mode="NEW",
+            convert_orientation=True,
+            export_global_forward_selection="NEGATIVE_Z",
+            export_global_up_selection="Y",
+            export_lights=False,
+            export_cameras=False,
+            export_custom_properties=False,
+            root_prim_path="/root",
+        )
+    tris = sum(len(p.vertices) - 2 for o in meshes for p in o.data.polygons)
+    print(f"Requisit {prop_id} → {target} ({tris} Dreiecke, {target.stat().st_size / 1024:.0f} KiB)")
+    return alphas
+
+
+def set_opacity(alphas: dict[str, dict[str, float]]) -> None:
+    """Deckkraft in den fertigen USDZ nachtragen (eigener Prozess mit usd-core)."""
+    if not alphas:
+        return
+    script = Path(__file__).parents[1] / "usd" / "set_opacity.py"
+    subprocess.run([sys.executable, "-I", str(script), json.dumps(alphas)], check=True)
 
 
 # ---------------------------------------------------------------------------------------------
@@ -200,14 +282,28 @@ def main() -> None:
     if len(args) == 2 and args[0] == "--kulissen":
         kulissen_sheet(Path(args[1]).resolve())
         return
+    usdz = bool(args) and args[0] == "--usdz"
+    if usdz:
+        args = args[1:]
     if len(args) != 2 or (args[0] != "all" and args[0] not in requisiten.PROPS):
-        print(f"Aufruf: props.py <all|{'|'.join(requisiten.PROPS)}> <zielordner>  oder  props.py --vorschau|--kulissen <bild.jpg|bild.png>")
+        print(
+            f"Aufruf: props.py [--usdz] <all|{'|'.join(requisiten.PROPS)}> <zielordner>"
+            "  oder  props.py --vorschau|--kulissen <bild.jpg|bild.png>"
+        )
         raise SystemExit(1)
     out = Path(args[1]).resolve()
     out.mkdir(parents=True, exist_ok=True)
     ids = list(requisiten.PROPS) if args[0] == "all" else [args[0]]
+    alphas: dict[str, dict[str, float]] = {}
     for prop_id in ids:
-        export(prop_id, out / f"{prop_id}.glb")
+        if usdz:
+            target = out / f"{prop_id}.usdz"
+            transparent = export_usdz(prop_id, target)
+            if transparent:
+                alphas[str(target)] = transparent
+        else:
+            export(prop_id, out / f"{prop_id}.glb")
+    set_opacity(alphas)
 
 
 if __name__ == "__main__":
