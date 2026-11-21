@@ -792,7 +792,7 @@ Automatisch geprüft (Mac): Regeln und Validierung (Unit- und Integrationstests,
 
 **Stand:** 2026-11-20 · **Aufgabe:** CHAOS-87 · **Protokoll:** v4-Nachtrag CHAOS-87 (`start.practice`, `rate`, `ratings`)
 
-Automatisch geprüft (Linux): Übungsrunde in game-core (ohne Münzen, Siege, Items; Ende nach dem Ergebnis), Session (Übungsstart, Daumen nur in der Ergebnisanzeige, Umentscheiden ersetzt, Rückweg zum Brett bzw. in die Lobby genauso schnell mit und ohne Stimmen), Stimmen-Datei und Export `/ratings.json`, E2E: Galerie öffnen → Pump-Parade üben → Ergebnis → Daumen am iPhone (Chromium-Emulation) → Galerie zeigt die Stimme. **Nicht** automatisch geprüft: Tippen auf echtem iOS, Lesbarkeit am Fernseher, Datei nach Server-Neustart auf Rubens PC. **Noch nicht umgesetzt:** Daumen in den iPad-Zonen und in der nativen Controller-App, Galerie am Apple-Host (eigene Folgeaufgaben); dort fehlen die Knöpfe, alles andere läuft wie bisher.
+Automatisch geprüft (Linux): Übungsrunde in game-core (ohne Münzen, Siege, Items; Ende nach dem Ergebnis), Session (Übungsstart, Daumen nur in der Ergebnisanzeige, Umentscheiden ersetzt, Rückweg zum Brett bzw. in die Lobby genauso schnell mit und ohne Stimmen), Stimmen-Datei und Export `/ratings.json`, E2E: Galerie öffnen → Pump-Parade üben → Ergebnis → Daumen am iPhone (Chromium-Emulation) → Galerie zeigt die Stimme. **Nicht** automatisch geprüft: Tippen auf echtem iOS, Lesbarkeit am Fernseher, Datei nach Server-Neustart auf Rubens PC. Daumen in den iPad-Zonen (CHAOS-218, Stand 2026-11-21): Geometrie und Zonen-Tracker per Unit-Test, E2E mit iPad-Emulation (zwei Zonen tippen gleichzeitig 👍 bzw. 👎, der echte Server zählt beide; Umentscheiden, gedrehte Zone im Hochformat). **Nicht** automatisch geprüft: Tippen mit zwei Fingern auf echtem iPadOS-Safari, Erreichbarkeit vom Platz gegenüber. **Noch nicht umgesetzt:** Daumen in der nativen Controller-App, Galerie am Apple-Host (eigene Folgeaufgaben); dort fehlen die Knöpfe, alles andere läuft wie bisher.
 
 | ID  | Schritt | Erwartung | Ergebnis | Nachweis |
 | --- | ------- | --------- | -------- | -------- |
@@ -804,7 +804,11 @@ Automatisch geprüft (Linux): Übungsrunde in game-core (ohne Münzen, Siege, It
 | GA6 | Echte Partie, nach einem Minispiel 👍 am Handy | Stimme zählt in der Galerie dazu; das Brett geht nach dem Ergebnis genauso schnell weiter wie ohne Stimme | | |
 | GA7 | „Stimmen exportieren“ | Browser lädt `minispiel-stimmen-<Datum>.json` mit allen Spielen und Einzelstimmen | | Datei |
 | GA8 | Server beenden und neu starten (`pnpm play`), Galerie öffnen | Stimmen sind noch da (Datei `~/.chaos-party/minispiel-stimmen.json`, Pfad steht beim Start im Terminal) | | |
-| GA9 | Ruben: Urteil | Sind die Daumen am Handy schnell genug erreichbar? Schwelle für den Rauswurf-Vorschlag (6 Stimmen, ≥ 60 % runter) sinnvoll? | | Kommentar an CHAOS-87 |
+| GA10 | Geteiltes iPad mit zwei Zonen (Querformat), Minispiel üben bis zum Ergebnis | Jede Zone zeigt unter dem Ergebnis „Hat’s Spaß gemacht?“ mit 👍/👎; nichts ragt über die Zone hinaus | | Foto |
+| GA11 | Beide gleichzeitig tippen: links 👍, rechts 👎 | Jeder gewählte Daumen leuchtet sofort in der Farbe seiner Zone, der andere wird blass; Tipp in einer Zone wirkt nicht in der anderen | | |
+| GA12 | Links umentscheiden (👎), dann Galerie öffnen | Galerie zählt 👍 0 · 👎 2 („2 Stimmen“) | | |
+| GA13 | iPad im Hochformat (obere Zone gedreht) | Daumen der oberen Zone zeigen zur Person gegenüber und reagieren dort; Finger, der vom Daumen wegrutscht, stimmt nicht ab | | |
+| GA9 | Ruben: Urteil | Sind die Daumen am Handy und in den iPad-Zonen schnell genug erreichbar? Schwelle für den Rauswurf-Vorschlag (6 Stimmen, ≥ 60 % runter) sinnvoll? | | Kommentar an CHAOS-87 bzw. CHAOS-218 |
 
 ## 43. Frostgipfel: Eis, Seilbahn, Lawinen und Winterkulisse (für CHAOS-198)
 
