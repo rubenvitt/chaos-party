@@ -94,7 +94,11 @@ test.describe('Minispiel-Galerie (CHAOS-87, CHAOS-228)', () => {
     await expect(host.getByTestId(`gallery-blocked-${PLAYABLE_ID}`)).toHaveCount(0);
     await expect(host.getByTestId(`gallery-votes-${ID}`)).toContainText('Noch keine Stimmen');
     await expect(host.getByTestId(`gallery-practice-${ID}`)).toBeDisabled();
-    await expect(gallery).toHaveScreenshot('galerie-leer.png');
+    // ★ und ⦸ kommen aus einer Ersatzschrift, die je Rechner anders ausfällt (ADR-004):
+    // Knopf-Beschriftungen und Einleitung maskiert, Knöpfe und Zustände bleiben im Bild.
+    await expect(gallery).toHaveScreenshot('galerie-leer.png', {
+      mask: [host.locator('.gallery-pick-label, .gallery-lead')],
+    });
     await host.keyboard.press('Escape');
     await expect(gallery).toHaveCount(0);
 
