@@ -12,11 +12,14 @@ import { introReadiness, readyProgress, waitsForReady } from '../../host/src/min
 
 export { readyProgress };
 import { resultsDisplay } from '../../host/src/minigame/results.ts';
+import { teamLineup } from '../../host/src/minigame/teams.ts';
+import { playerName } from '../../host/src/board/texts.ts';
 import type {
   MinigameInfoView,
   MinigameReadiness,
   MinigameResults,
   MinigameScoreboard,
+  MinigameTeamsView,
 } from './contract.ts';
 
 export function infoView(info: MinigameInfo): MinigameInfoView {
@@ -59,6 +62,32 @@ export function readinessView(view: BoardView): MinigameReadiness | null {
       connected: player.connected,
       state: player.state,
       text: player.text,
+    })),
+  };
+}
+
+/**
+ * Team-Ansage (CHAOS-230, `teamLineup` wie die Anleitung im Browser-Host): je Gruppe Name, Symbol
+ * (☀/☾/♥), Farbe und Mitglieder. `null` = jeder gegen jeden.
+ */
+export function teamsView(view: BoardView): MinigameTeamsView | null {
+  const lineup = teamLineup(view);
+  if (!lineup) return null;
+  return {
+    layout: lineup.layout,
+    headline: lineup.headline,
+    note: lineup.note,
+    groups: lineup.groups.map((group) => ({
+      label: group.label,
+      symbol: group.symbol,
+      color: group.color,
+      members: group.slots.map((slot) => ({
+        slot,
+        name: playerName(view, slot),
+        character: characterName(view, slot),
+        color: PLAYER_SLOTS[slot].color,
+        symbol: PLAYER_SLOTS[slot].symbol,
+      })),
     })),
   };
 }

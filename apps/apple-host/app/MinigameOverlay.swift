@@ -14,6 +14,8 @@ struct MinigameScreen: Equatable {
     var countdown: Int?
     /// CHAOS-214: Anleitung wartet auf „Bereit“; nil = fester Countdown.
     var readiness: RenderState.Readiness?
+    /// CHAOS-230: Team-Aufstellung bei Teams bzw. Koop; nil = jeder gegen jeden.
+    var teams: RenderState.Teams?
     var scoreboard: RenderState.Scoreboard?
     var results: RenderState.Results?
 
@@ -26,6 +28,7 @@ struct MinigameScreen: Equatable {
         isRepeat = m.repeat ?? false
         countdown = m.countdown
         readiness = m.readiness
+        teams = m.teams
         scoreboard = m.scoreboard
         results = m.results
     }
@@ -73,6 +76,9 @@ struct MinigameOverlayView: View {
                 }
             }
             Text(screen.info.title).font(.system(size: 76, weight: .black, design: .rounded))
+            if let teams = screen.teams {
+                teamLineup(teams)
+            }
             if !screen.isRepeat {
                 if let tagline = screen.info.tagline, !tagline.isEmpty {
                     Text(tagline).font(.system(size: 32, weight: .semibold, design: .rounded)).foregroundStyle(Self.ink.opacity(0.8))
@@ -109,6 +115,63 @@ struct MinigameOverlayView: View {
                 }
                 .padding(.horizontal, 16).padding(.vertical, 8)
                 .background(Color(platformColor(player.color ?? "#cccccc")).opacity(0.18), in: .rect(cornerRadius: 18))
+            }
+        }
+    }
+
+    /// Team-Ansage (CHAOS-230) wie `TeamLineupRow` im Browser-Host: Überschrift („2 gegen 2“), je Gruppe Symbol
+    /// (☀/☾/♥), Name und Mitglieder mit Slot-Abzeichen, darunter der Hinweis (Vorteil der Einzelperson zu dritt).
+    private func teamLineup(_ teams: RenderState.Teams) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(teams.headline ?? "Teams").font(.system(size: 34, weight: .black, design: .rounded))
+            HStack(alignment: .top, spacing: 18) {
+                ForEach(Array((teams.groups ?? []).enumerated()), id: \.offset) { _, group in
+                    teamGroup(group)
+                }
+            }
+            if let note = teams.note, !note.isEmpty {
+                Text(note).font(.system(size: 24, weight: .semibold, design: .rounded)).foregroundStyle(Self.ink.opacity(0.8))
+            }
+        }
+    }
+
+    private func teamGroup(_ group: RenderState.TeamGroup) -> some View {
+        let color = Color(platformColor(group.color ?? "#888888"))
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 12) {
+                Text(group.symbol ?? "").font(.system(size: 32, weight: .black)).foregroundStyle(.white)
+                    .frame(width: 52, height: 52)
+                    .background(color, in: .circle)
+                    .overlay(Circle().stroke(Self.ink, lineWidth: 3))
+                Text(group.label ?? "").font(.system(size: 30, weight: .black, design: .rounded)).lineLimit(1)
+            }
+            HStack(spacing: 10) {
+                ForEach(group.members ?? [], id: \.slot) { member in
+                    HStack(spacing: 8) {
+                        badge(slot: member.slot, color: member.color, symbol: member.symbol, size: 38)
+                        Text(member.name ?? "Spieler \(member.slot)").font(.system(size: 24, weight: .heavy, design: .rounded))
+                            .lineLimit(1)
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 16).padding(.vertical, 12)
+        .background(color.opacity(0.16), in: .rect(cornerRadius: 20))
+        .overlay(RoundedRectangle(cornerRadius: 20).stroke(color, lineWidth: 4))
+    }
+
+    /// Kurze Aufstellung unter der Team-Überschrift im Ergebnis (CHAOS-230): „☀ Team Sonne: Anna, Cleo“.
+    private func teamSummary(_ teams: RenderState.Teams) -> some View {
+        HStack(spacing: 26) {
+            ForEach(Array((teams.groups ?? []).enumerated()), id: \.offset) { _, group in
+                HStack(spacing: 10) {
+                    Text(group.symbol ?? "").font(.system(size: 24, weight: .black)).foregroundStyle(.white)
+                        .frame(width: 40, height: 40)
+                        .background(Color(platformColor(group.color ?? "#888888")), in: .circle)
+                        .overlay(Circle().stroke(Self.ink, lineWidth: 3))
+                    Text("\(group.label ?? ""): \((group.members ?? []).compactMap(\.name).joined(separator: ", "))")
+                        .font(.system(size: 24, weight: .bold, design: .rounded)).lineLimit(1)
+                }
             }
         }
     }
@@ -245,6 +308,9 @@ struct MinigameOverlayView: View {
             Text("Ergebnis · \(screen.info.title)").font(.system(size: 28, weight: .bold, design: .rounded))
                 .foregroundStyle(Self.ink.opacity(0.7))
             Text(results?.headline ?? "Auswertung …").font(.system(size: 66, weight: .black, design: .rounded))
+            if let teams = screen.teams, results?.aborted != true {
+                teamSummary(teams)
+            }
             if results?.aborted == true {
                 Text("Das Ergebnis kam nicht rechtzeitig an.").font(.system(size: 30, weight: .semibold, design: .rounded))
             } else {
@@ -311,9 +377,9 @@ struct MinigameOverlayView: View {
     }
 
     /// Slot-Symbol in Slot-Farbe (Farbe + Symbol, nie nur Farbe).
-    private func badge(slot: Int, color: String?, symbol: String? = nil) -> some View {
-        Text(symbol ?? Self.symbols[(slot - 1) & 3]).font(.system(size: 28, weight: .black)).foregroundStyle(.white)
-            .frame(width: 54, height: 54)
+    private func badge(slot: Int, color: String?, symbol: String? = nil, size: CGFloat = 54) -> some View {
+        Text(symbol ?? Self.symbols[(slot - 1) & 3]).font(.system(size: size * 0.52, weight: .black)).foregroundStyle(.white)
+            .frame(width: size, height: size)
             .background(Color(platformColor(color ?? "#888888")), in: .circle)
             .overlay(Circle().stroke(Self.ink, lineWidth: 3))
     }
