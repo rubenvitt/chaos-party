@@ -28,9 +28,18 @@ const BOARD_CHOICES: LobbySettingsState['boards'] = [
   { id: 'zufall', name: 'Zufall', detail: 'Überraschung!', selected: false, random: true },
 ];
 
+/** Minispiele der Rotation (CHAOS-216), Katalog-Reihenfolge, nichts gesperrt, keine Favoriten. */
+const MINIGAMES: LobbySettingsState['minigames'] = [
+  { id: 'sockenregen', title: 'Sockenregen', blocked: false, favorite: false },
+  { id: 'pudding-gerangel', title: 'Pudding-Gerangel', blocked: false, favorite: false },
+  { id: 'wackelturm', title: 'Wackelturm', blocked: false, favorite: false },
+  { id: 'kuckucks-klatsche', title: 'Kuckucks-Klatsche', blocked: false, favorite: false },
+  { id: 'kruemel-kehraus', title: 'Krümel-Kehraus', blocked: false, favorite: false },
+];
+
 /**
  * Server-Standard: 10 Runden, Vorschläge 10/16/20, „Mehr Zeit zum Reagieren“ aus (CHAOS-166),
- * Brett Wackelwald (CHAOS-197).
+ * Brett Wackelwald (CHAOS-197), alle Minispiele im Topf (CHAOS-216).
  */
 const SETTINGS: LobbySettingsState = {
   rounds: 10,
@@ -38,6 +47,8 @@ const SETTINGS: LobbySettingsState = {
   moreReactionTime: false,
   board: 'wackelwald',
   boards: BOARD_CHOICES,
+  minigames: MINIGAMES,
+  minigameSummary: { short: '5 im Topf', long: '5 im Topf' },
 };
 
 const JOIN = {
@@ -678,7 +689,7 @@ const EXAMPLES: Readonly<Record<string, ExampleBase>> = {
     minigame: null,
   },
   // CHAOS-166: 12 ist kein Vorschlag (die Lobby zeigt sie zusätzlich), der Schalter ist an.
-  // CHAOS-197: Brett „Zufall“ gewählt.
+  // CHAOS-197: Brett „Zufall“ gewählt. CHAOS-216: ein Minispiel gesperrt, zwei Favoriten.
   'lobby-settings': {
     phase: 'lobby',
     lobby: {
@@ -690,6 +701,16 @@ const EXAMPLES: Readonly<Record<string, ExampleBase>> = {
         moreReactionTime: true,
         board: 'zufall',
         boards: BOARD_CHOICES.map((choice) => ({ ...choice, selected: choice.random })),
+        // CHAOS-216: Wackelturm gesperrt, Sockenregen und Krümel-Kehraus Favoriten.
+        minigames: MINIGAMES.map((game) => ({
+          ...game,
+          blocked: game.id === 'wackelturm',
+          favorite: game.id === 'sockenregen' || game.id === 'kruemel-kehraus',
+        })),
+        minigameSummary: {
+          short: '4 im Topf · 2 ★ · 1 ⦸',
+          long: '4 im Topf, 2 Favoriten, 1 gesperrt',
+        },
       },
     },
     board: null,
@@ -859,6 +880,138 @@ const EXAMPLES: Readonly<Record<string, ExampleBase>> = {
       effects: [],
       geometry: [],
       sounds: [],
+    },
+  },
+  // CHAOS-230: Team-Ansage in der Anleitung (2 gegen 2), Symbol ☀/☾ und Name je Team.
+  'minigame-teams': {
+    phase: 'minigame',
+    lobby: { ...JOIN, players: PLAYERS_FINALE },
+    board: { ...BOARD, activeSlot: null },
+    minigame: {
+      ...MINIGAME_PLAY,
+      id: 'pump-duell',
+      stage: 'intro',
+      elapsedMs: 0,
+      hud: '',
+      countdown: 7,
+      teams: {
+        layout: '2v2',
+        headline: '2 gegen 2',
+        note: null,
+        groups: [
+          {
+            label: 'Team Sonne',
+            symbol: '☀',
+            color: '#f2a33a',
+            members: [
+              { slot: 1, name: 'Anna', character: 'Wusel', color: '#0072B2', symbol: '●' },
+              { slot: 3, name: 'Cleo', character: 'Schraubi', color: '#009E73', symbol: '■' },
+            ],
+          },
+          {
+            label: 'Team Mond',
+            symbol: '☾',
+            color: '#5b7bd5',
+            members: [
+              { slot: 2, name: 'Ben', character: 'Socke Sigi', color: '#E69F00', symbol: '▲' },
+              { slot: 4, name: 'Dana', character: 'Kalle Kaktus', color: '#CC79A7', symbol: '★' },
+            ],
+          },
+        ],
+      },
+      scoreboard: null,
+      effects: [],
+      geometry: [],
+      sounds: [],
+    },
+  },
+  // CHAOS-230: Ergebnis 1 gegen 2 zu dritt; die Team-Überschrift steht in `results.headline`.
+  'minigame-teams-results': {
+    phase: 'minigame',
+    lobby: { ...JOIN, players: PLAYERS_FINALE.slice(0, 3) },
+    board: { ...BOARD, activeSlot: null },
+    minigame: {
+      ...MINIGAME_PLAY,
+      id: 'pump-solo',
+      stage: 'results',
+      elapsedMs: 30_000,
+      hud: '',
+      teams: {
+        layout: '1v2',
+        headline: 'Einer gegen zwei',
+        note: 'Ben spielt allein und hat einen Vorteil.',
+        groups: [
+          {
+            label: 'Allein',
+            symbol: '☀',
+            color: '#f2a33a',
+            members: [
+              { slot: 2, name: 'Ben', character: 'Socke Sigi', color: '#E69F00', symbol: '▲' },
+            ],
+          },
+          {
+            label: 'Die anderen',
+            symbol: '☾',
+            color: '#5b7bd5',
+            members: [
+              { slot: 1, name: 'Anna', character: 'Wusel', color: '#0072B2', symbol: '●' },
+              { slot: 3, name: 'Cleo', character: 'Schraubi', color: '#009E73', symbol: '■' },
+            ],
+          },
+        ],
+      },
+      scoreboard: null,
+      geometry: [],
+      effects: [],
+      sounds: [],
+      figures: MINIGAME_PLAY.figures.map((figure) => ({
+        ...figure,
+        anim: figure.slot === 2 ? 'sad' : 'cheer',
+        animSeq: figure.animSeq + 1,
+      })),
+      results: {
+        aborted: false,
+        headline: 'Anna und Cleo gewinnen gemeinsam!',
+        highlights: [],
+        rows: [
+          {
+            slot: 1,
+            name: 'Anna',
+            character: 'Wusel',
+            color: '#0072B2',
+            symbol: '●',
+            place: 1,
+            tied: true,
+            scoreText: '14 Pumpstöße',
+            coins: 7,
+            prizes: [],
+          },
+          {
+            slot: 3,
+            name: 'Cleo',
+            character: 'Schraubi',
+            color: '#009E73',
+            symbol: '■',
+            place: 1,
+            tied: true,
+            scoreText: '11 Pumpstöße',
+            coins: 7,
+            prizes: [],
+          },
+          {
+            slot: 2,
+            name: 'Ben',
+            character: 'Socke Sigi',
+            color: '#E69F00',
+            symbol: '▲',
+            place: 3,
+            tied: false,
+            scoreText: '18 Pumpstöße',
+            coins: 2,
+            prizes: [],
+          },
+        ],
+      },
     },
   },
   'minigame-play': {

@@ -134,12 +134,17 @@ final class HostRuntime: ObservableObject {
         env.setValue(unsafeBitCast(close, to: AnyObject.self), forProperty: "close")
         env.setValue(unsafeBitCast(log, to: AnyObject.self), forProperty: "log")
         env.setValue(unsafeBitCast(randomBytes, to: AnyObject.self), forProperty: "randomBytes")
+        env.setValue(hostStorage(in: context), forProperty: "storage")
         env.setValue(joinUrl, forProperty: "joinUrl")
         env.setValue(code, forProperty: "joinCode")
         env.setValue(deferScene, forProperty: "deferSceneReady")
         let tailwind = launchTailwind(CommandLine.arguments, environment: ProcessInfo.processInfo.environment)
         env.setValue(tailwind, forProperty: "tailwind")
         if tailwind { hostLog("Startparameter: Regel Rückenwind an") }
+        if let minigames = launchMinigames(CommandLine.arguments) {
+            env.setValue(minigames, forProperty: "debugMinigames")
+            hostLog("Startparameter: nur Minispiele \(minigames.joined(separator: ", "))")
+        }
         let ref = context.jsGlobalContextRef
         let typed = JSObjectMakeTypedArray(ref, kJSTypedArrayTypeUint8Array, wasm.count, nil)
         wasm.copyBytes(to: JSObjectGetTypedArrayBytesPtr(ref, typed, nil).assumingMemoryBound(to: UInt8.self), count: wasm.count)
@@ -290,4 +295,16 @@ final class HostRuntime: ObservableObject {
 
 func percentile(_ sorted: [Double], _ p: Double) -> Double {
     sorted.isEmpty ? 0 : sorted[min(sorted.count - 1, Int(Double(sorted.count) * p))]
+}
+
+/// `env.storage` für den JS-Kern (CHAOS-216): `getItem`/`setItem` auf `UserDefaults`, damit Sperrliste und Favoriten
+/// der Minispiel-Rotation einen Neustart überdauern (am PC `localStorage`). Schlüssel mit Präfix `js.`, damit sie nicht
+/// mit Einstellungen der App kollidieren. `nil` kommt in JS als `undefined` an; der Kern behandelt das wie „nichts da“.
+func hostStorage(in context: JSContext, defaults: UserDefaults = .standard) -> JSValue {
+    let storage = JSValue(newObjectIn: context)!
+    let getItem: @convention(block) (String) -> String? = { key in defaults.string(forKey: "js.\(key)") }
+    let setItem: @convention(block) (String, String) -> Void = { key, value in defaults.set(value, forKey: "js.\(key)") }
+    storage.setValue(unsafeBitCast(getItem, to: AnyObject.self), forProperty: "getItem")
+    storage.setValue(unsafeBitCast(setItem, to: AnyObject.self), forProperty: "setItem")
+    return storage
 }

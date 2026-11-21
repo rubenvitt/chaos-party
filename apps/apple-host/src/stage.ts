@@ -23,7 +23,7 @@ import { CreateCapsule } from '@babylonjs/core/Meshes/Builders/capsuleBuilder.js
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
 import { Logger } from '@babylonjs/core/Misc/logger.js';
 import { Scene } from '@babylonjs/core/scene.js';
-import type { MinigamePlacement, Slot } from '@chaos-party/minigame-sdk';
+import type { MinigamePlacement, MinigameTeams, Slot } from '@chaos-party/minigame-sdk';
 import {
   createMinigameRunner,
   PrepareAborted,
@@ -69,6 +69,8 @@ export interface HeadlessStageOptions {
   readonly module: MinigameModule;
   readonly players: readonly MinigamePlayer[];
   readonly seed: number;
+  /** Aufstellung bei Teams bzw. Koop vom Server (CHAOS-89/230); fehlt/`null` = jeder gegen jeden. */
+  readonly teams?: MinigameTeams | null;
   readonly timeLimitMs: number;
   /** Geladenes Havok (Pflicht für `info.physics`). */
   readonly havok: HavokInstance | null;
@@ -331,6 +333,7 @@ export function createHeadlessStage(options: HeadlessStageOptions): HeadlessStag
     scene,
     players: options.players,
     seed: options.seed,
+    ...(options.teams ? { teams: options.teams } : {}),
     timeLimitMs: options.timeLimitMs,
     fx,
     characters: capsuleCharacters(figures),

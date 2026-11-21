@@ -761,7 +761,7 @@ Automatisch geprüft (Linux-CI): Regeln, Server und Bots (Unit- und Integrations
 
 ## 40. Minispiel-Rotation: Sperrliste, Favoriten, iPad-Zonen (für CHAOS-85)
 
-**Stand:** 2026-11-20 · **Aufgabe:** CHAOS-85
+**Stand:** 2026-11-21 · **Aufgabe:** CHAOS-85, Apple-Host CHAOS-216
 
 Automatisch geprüft: Auswahl ohne Wiederholung, Familien und Kernverben nie direkt hintereinander, Filter für Spielerzahl und iPad-Zonen, Gewichte, letzte Partie (`packages/game-core/src/rules/rotation.test.ts`, 200 Dummy-Steckbriefe); Sperrliste/Favoriten über die Session und die Revanche (`apps/server/src/minigameRotation.integration.test.ts`); Dialog „Minispiele“ am PC per Maus und Escape, lokale Speicherung und erneutes Senden an eine frische Session (`tests/e2e/host-minispiel-rotation.spec.ts`; seit CHAOS-228 in derselben Ansicht wie die Galerie, §42). **Nicht** automatisch prüfbar: ob die Mischung sich am Abend abwechslungsreich anfühlt (bei fünf Spielen kaum sichtbar, erst mit der Pilotwelle CHAOS-91) und die Erkennung eines echten geteilten iPads.
 
@@ -771,6 +771,17 @@ Automatisch geprüft: Auswahl ohne Wiederholung, Familien und Kernverben nie dir
 | RO2 | Partie mit 10 Runden spielen | Das gesperrte Minispiel kommt nicht vor | | |
 | RO3 | Browser schließen, Server neu starten, Host wieder öffnen | Sperre und Favorit sind wieder gesetzt | | |
 | RO4 | Partie mit geteiltem iPad (zwei Zonen) und einem iPhone | Startet normal; alle Minispiele bleiben an den Zonen bedienbar (heute sind alle als iPad-tauglich markiert) | | |
+
+**Apple-Host (CHAOS-216).** Automatisch geprüft: Parser für `minigame:favorite|blocked=<id>` und `configure:minigame…` (`apps/apple-host/test/hostCommand.test.ts`), Umschalten, Speichern in `env.storage` und Wiederherstellen nach „Neustart“ mit frischer Session, ohne und mit kaputtem Speicher (`apps/apple-host/test/bundle.test.ts`), dieselbe Brücke `getItem`/`setItem` aus Swift-Blöcken in JavaScriptCore (`harness/main.swift`, CI-Job „Native Apps“). **Nicht** automatisch geprüft (kein Swift-Build in der Linux-Umgebung, keine UI-Automation): die Liste „Minispiele“ selbst, Fokus mit der Siri Remote und `UserDefaults` über einen echten App-Neustart.
+
+| ID  | Schritt | Erwartung | Ergebnis | Nachweis |
+| --- | ------- | --------- | -------- | -------- |
+| RO5 | Mac-App: in der Lobby S drücken (oder „Minispiele“ klicken), mit ↓/→ ein Spiel wählen, X; ein anderes wählen, F; Esc | Liste öffnet sich über der Lobby, Rand markiert das gewählte Spiel; Knopf zeigt danach „4 im Topf · 1 ★ · 1 ⦸“; Return/←/→/M/B wirken nicht, solange die Liste offen ist | | Foto |
+| RO6 | Mac-App: dasselbe per Maus, dann bei einem Favoriten „⦸ Sperren“ klicken | Klick schaltet um; Sperren nimmt den Favoriten weg (und umgekehrt); gesperrte Titel durchgestrichen | | |
+| RO7 | Mac-App beenden und neu starten (Log: `Minispiel-Rotation aus dem Speicher: gesperrt …, Favoriten …`) | Knopf und Liste zeigen denselben Stand; eine Partie mit 10 Runden enthält das gesperrte Spiel nicht | | Log |
+| RO8 | Apple TV, Siri Remote: Fokus auf „Minispiele“ (rechts vom Startknopf), drücken; ein Spiel sperren, eines als Favorit markieren; Menü-Taste | Fokus springt in die Liste aufs erste Spiel und bleibt darin (die Lobby dahinter ist nicht erreichbar); Menü schließt nur die Liste, die App bleibt offen; Knopf zeigt den neuen Stand | | Foto |
+| RO9 | Apple TV: App ganz beenden (App-Umschalter) und neu öffnen | Sperre und Favorit sind wieder gesetzt | | |
+| RO10 | Apple TV mit 4K: Liste lesen | Schrift aus 3 m lesbar, alle Spiele per Fokus erreichbar (Liste scrollt mit) | | |
 
 ## 41. Rummelplatz: Karussell, Kulisse und Nacht (für CHAOS-199)
 
@@ -871,7 +882,7 @@ Automatisch geprüft: Brett-Validierung, Bot-Simulation (Trophäen, faire Wegwah
 
 **Stand:** 2026-11-21 · **Aufgabe:** CHAOS-89 · **Protokoll:** v4-Nachtrag CHAOS-89 (`teams`, `outcome`, Kontext `team`)
 
-Automatisch geprüft (Linux): Zuteilung, Ersatz zu zweit und zu dritt, Prüfung des Ausgangs und Münzen in game-core; Session mit Pump-Duell, Pump-Solo und Riesenballon für 2, 3 und 4 Personen; Headless-Läufe der drei Testspiele; E2E: Galerie → Pump-Duell mit vier iPhones (Chromium-Emulation) → Team-Ansage am PC, Rolle am Handy, Team-Ergebnis (Bilder `tests/e2e/__screenshots__/minispiel-spielformen.spec.ts/`). **Nicht** automatisch geprüft: Lesbarkeit am Fernseher, ob Teams Spaß machen. Native Controller-App (CHAOS-229): Dekodierung der Rolle (Fixtures 2 gegen 2, 1 gegen 2 mit Vorteil, Koop), Texte wie im Web-Controller und Beispielzustände `minigameTeamIntro`, `minigameSoloIntro`, `minigameKoopResults` als Simulator-Screenshots in der CI (Artefakt `controller-ios-screenshots`). **Noch nicht umgesetzt:** Team-Ansage am Apple-Host (CHAOS-230).
+Automatisch geprüft (Linux): Zuteilung, Ersatz zu zweit und zu dritt, Prüfung des Ausgangs und Münzen in game-core; Session mit Pump-Duell, Pump-Solo und Riesenballon für 2, 3 und 4 Personen; Headless-Läufe der drei Testspiele; E2E: Galerie → Pump-Duell mit vier iPhones (Chromium-Emulation) → Team-Ansage am PC, Rolle am Handy, Team-Ergebnis (Bilder `tests/e2e/__screenshots__/minispiel-spielformen.spec.ts/`). **Nicht** automatisch geprüft: Lesbarkeit am Fernseher, ob Teams Spaß machen. Native Controller-App (CHAOS-229): Dekodierung der Rolle (Fixtures 2 gegen 2, 1 gegen 2 mit Vorteil, Koop), Texte wie im Web-Controller und Beispielzustände `minigameTeamIntro`, `minigameSoloIntro`, `minigameKoopResults` als Simulator-Screenshots in der CI (Artefakt `controller-ios-screenshots`). **Apple-Host (CHAOS-230):** Bot-Partien mit den drei Testspielen zu zweit, dritt und viert in Node (`bots --full --teams --spieler N`), Fixtures `minigame-teams*.json` im Swift-Harness (JavaScriptCore), App-Build für macOS und tvOS in der CI; Bilder am Mac und im tvOS-Simulator stehen aus (SF8, SF9).
 
 | ID  | Schritt | Erwartung | Ergebnis | Nachweis |
 | --- | ------- | --------- | -------- | -------- |
@@ -881,6 +892,8 @@ Automatisch geprüft (Linux): Zuteilung, Ersatz zu zweit und zu dritt, Prüfung 
 | SF4 | Riesenballon mit zwei Handys | „Alle zusammen“, Banner „Stufe … von 3“ im Spiel, Ergebnis „Gut geschafft – Stufe 2 von 3“ o. ä. | | Foto |
 | SF6 | Native App (TestFlight) auf zwei iPhones, zwei Browser-Handys: SF1 | Die App zeigt in der Anleitung die Rollenkarte mit ☀ bzw. ☾, „Team Sonne“/„Team Mond“ und „Du und … gegen …“; lesbar ohne Scrollen | | Foto |
 | SF7 | Native App: SF2–SF4 | Ergebnis zeigt „Dein Team hat gewonnen!“/„verloren“, bei Pump-Solo „Allein gegen alle“ mit Vorteil-Hinweis, bei Riesenballon „Gemeinsam geschafft: Stufe … von 3“ | | Foto |
+| SF8 | Mac-App mit `--autostart --minispiele=pump-duell,pump-solo,pump-riese --bild=/tmp/sf`, vier Bots (`node apps/apple-host/scripts/live-bots.mjs '<join-url>' --spieler 4`) | Anleitung: „2 gegen 2“ unter dem Titel, Gruppen ☀ Team Sonne/☾ Team Mond mit Abzeichen und Namen; Ergebnis: Team-Überschrift, darunter je Gruppe eine Zeile; Log ohne „abgelehnt“ | | `/tmp/sf-mg-*-intro.png`, `…-results.png` |
+| SF9 | Wie SF8 im tvOS-Simulator (Bots über `http://[::1]:<port>/?code=…`), dazu einmal mit drei Bots | wie SF8, Schrift auf dem Fernseher lesbar; zu dritt „Einer gegen zwei“ mit Vorteilshinweis | | Bilder |
 | SF5 | Ruben: Urteil | Team-Sieg mit 7 Münzen lohnend? „Letzter gegen alle“ spannend oder demütigend? Koop für alle lohnend? (EXP-038) | | Kommentar an CHAOS-89 |
 
 ## 47. Requisiten der Minispiele als USDZ in RealityKit (für CHAOS-221)

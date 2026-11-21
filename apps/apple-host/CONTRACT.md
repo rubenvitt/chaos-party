@@ -21,6 +21,8 @@ interface HostEnv {
   joinCode: string;
   deferSceneReady?: boolean;                         // true: host-ready erst nach sceneReady() (CHAOS-142)
   tailwind?: boolean;                                // true: Regel Rückenwind an (CHAOS-188, wie RUECKENWIND=1 am PC)
+  storage?: { getItem(key: string): string | null;   // überdauert Neustarts (CHAOS-216); Swift: UserDefaults,
+              setItem(key: string, value: string): void }; // Schlüssel mit Präfix „js.“
 }
 interface ChaosHostApi {
   create(env: HostEnv): ChaosHostInstance;
@@ -33,11 +35,14 @@ interface ChaosHostInstance {
   // Zeitgeber, Session-Fristen und 1/60-Schritte der Minispiele
   renderState(): string; // JSON, siehe unten; je Bild nach tick
   hostCommand(cmd: string): void; // 'start' | 'pause' | 'resume' | 'end-game' | 'rematch' | 'configure:…' | 'skip-finale'
+  //                                 | 'minigame:favorite=<id>' | 'minigame:blocked=<id>' (CHAOS-216)
   sceneReady(): void; // Brett und Figuren geladen → host-ready (CHAOS-68/142)
 }
 ```
 
-`configure` (CHAOS-166): `configure:rounds=12`, `configure:moreReactionTime=1` (`0`/`1`/`true`/`false`), `configure:board=wackelwald` (Brett-ID oder `zufall`, CHAOS-197) oder mehreres mit Komma, `configure:rounds=12,moreReactionTime=1`. Runden 1–20; ein unbekanntes Brett lehnt der Server ab (Log „Server-Fehler an Host: bad-message …“). Wirkt nur in der Lobby; außerhalb loggt der Kern „ignoriert: nur in der Lobby“, Ungültiges „Ungültiger Host-Befehl“, gesendet wird dann nichts. Der neue Stand steht im nächsten `renderState().lobby.settings`.
+`configure` (CHAOS-166): `configure:rounds=12`, `configure:moreReactionTime=1` (`0`/`1`/`true`/`false`), `configure:board=wackelwald` (Brett-ID oder `zufall`, CHAOS-197), `configure:minigameBlocklist=wackelturm+sockenregen,minigameFavorites=` (ganze Listen der Minispiel-Rotation, `+` trennt, leer = keine, CHAOS-216) oder mehreres mit Komma, `configure:rounds=12,moreReactionTime=1`. Runden 1–20; ein unbekanntes Brett lehnt der Server ab (Log „Server-Fehler an Host: bad-message …“). Wirkt nur in der Lobby; außerhalb loggt der Kern „ignoriert: nur in der Lobby“, Ungültiges „Ungültiger Host-Befehl“, gesendet wird dann nichts. Der neue Stand steht im nächsten `renderState().lobby.settings`.
+
+Minispiel-Rotation (CHAOS-216, wie der Dialog „Minispiele“ am PC, CHAOS-85): `minigame:favorite=<id>` bzw. `minigame:blocked=<id>` schaltet ein Spiel der Rotation um. Der Kern rechnet den neuen Stand aus dem Server-Stand (`toggleMinigame`: Favorit und Sperre schließen sich aus), speichert ihn in `env.storage` (Schlüssel `chaos-party:minigame-rotation`, JSON `{ blocklist, favorites }`, wie `localStorage` am PC) und schickt ihn als `configure`. Auch ganze Listen per `configure:minigame…` werden gespeichert. Beim ersten Lobby-Stand mit Rotation schickt der Kern den gespeicherten Stand an die frische Session (Log „Minispiel-Rotation aus dem Speicher: …“). Nur in der Lobby; ein Spiel außerhalb der Rotation loggt „ignoriert: Minispiel nicht in der Rotation“. Ohne `env.storage` oder bei kaputtem Inhalt gilt der Stand nur bis zum Beenden.
 
 `pause`, `resume`, `end-game` und `rematch` (CHAOS-145) gehen nur an den Server, wenn sie passen: `pause` nur bei `renderState().pause.canPause` (Brett und Minispiel, nicht vor dem Start und nicht im Finale), `resume` nur in der Pause, `end-game` nur in der laufenden Partie, `rematch` nur im Finale. Sonst loggt der Kern „Host-Befehl … ignoriert: passt gerade nicht“ (kein Server-Fehler; die Fernbedienung drückt man auch in der Lobby). `skip-finale` wirkt nur im Kern: Die Trophäenzählung springt zum Siegerbildschirm.
 
@@ -57,7 +62,12 @@ interface ChaosHostInstance {
                                   "boards": [ { "id": "wackelwald", "name": "Wackelwald", "detail": "43 Felder",
                                                 "selected": true, "random": false },
                                               { "id": "zufall", "name": "Zufall", "detail": "Überraschung!",
-                                                "selected": false, "random": true } ] } },
+                                                "selected": false, "random": true } ],
+                                  // Rotation in Katalog-Reihenfolge, leer ohne Rotation (CHAOS-216)
+                                  "minigames": [ { "id": "wackelturm", "title": "Wackelturm",
+                                                   "blocked": true, "favorite": false } ],
+                                  "minigameSummary": null | { "short": "4 im Topf · 2 ★ · 1 ⦸",
+                                                              "long": "4 im Topf, 2 Favoriten, 1 gesperrt" } } },
   "board": null | {
     "round": 1, "rounds": 10, "activeSlot": 1 | null,
     "spaces": [{ "id": "s01", "x": 0, "z": 0, "kind": "start" | "coins-plus" | "coins-minus" | "event" | "item" | "trophy" }],
@@ -102,6 +112,10 @@ interface ChaosHostInstance {
                           "players": [{ "slot": 1, "name": "Anna", "character": "Wusel", "color": "#0072B2", "symbol": "●",
                                         "ready": true, "connected": true, "state": "ready" | "waiting" | "disconnected",
                                         "text": "Bereit" | "Drückt Bereit …" | "getrennt" }] },
+    // CHAOS-230, optional: Aufstellung bei Teams bzw. Koop (Anleitung, Spiel, Ergebnis); null = jeder gegen jeden
+    "teams": null | { "layout": "2v2" | "1v3" | "1v2" | "1v1" | "koop", "headline": "2 gegen 2", "note": null | "Ben spielt allein …",
+                      "groups": [{ "label": "Team Sonne", "symbol": "☀", "color": "#f2a33a",
+                                   "members": [{ "slot": 1, "name": "Anna", "character": "Wusel", "color": "#0072B2", "symbol": "●" }] }] },
     "info": { "title": "…", "tagline": "…", "instructions": ["…"], "controls": { "joystick": "Laufen", "a": "Schubsen", "b": null }, "scoreUnit": "Punkte" },
     "camera": null | { "pos": [0, 11.5, -13.5], "target": [0, -1.3, 0.8], "fov": 0.8, "fovAxis": "vertical" | "horizontal" },
     "backdrop": null | { "halfX": 7.2, "halfZ": 7.2, "groundY": -3.3, "surface": "wiese" | "decke" },
@@ -169,6 +183,7 @@ interface ChaosHostInstance {
   Klänge der Minispiele über `ctx.fx.sound` (Stand CHAOS-190; Lautstärke/Tonhöhe in Klammern): Sockenregen `go`, `whoosh` (0,6; Bügeleisen 0,35/0,7), `bump`, `score`, `coin` (Tonhöhe steigt), `hit`, `pop`, `buzz`, `win` · Pudding-Gerangel `go`, `coin` (0,35, je Slot), `hit` (0,5), `whoosh` (0,6 bzw. 0,4/1,3), `bump` (zufällige Tonhöhe), `splash`, `pop`, `win` · Wackelturm `go`, `pop` (Tonhöhe nach Höhe), `coin`, `whoosh` (auch 1,2), `cheer`/`score` (Bonus), `hit`/`fall`, `bump`, `buzz` (0,5), `win` · Kuckucks-Klatsche `go`, `tick` (0,25/1,3), `pop`, `buzz` (0,45/1,5 und 1), `hit` (0,7), `coin`, `whoosh` (0,7 und 0,3/0,7), `score` (0,8), `lose` (0,6), `bump` (0,4/0,8), `win` · Krümel-Kehraus `go`, `pop` (1,4 und 0,35/1,1), `whoosh` (0,8/0,8 und 0,4/1,3), `bump` (0,5/0,7 und zufällig), `coin`/`score`, `win`. Der Kern ruft dieselben Module auf, also sind es dieselben Aufrufe; `test/minigameSounds.test.ts` prüft je Minispiel der Rotation `go`, `win` und `cheer`, `harness/run.sh full` zählt sie in JavaScriptCore.
 - **Bildschirme:** `info`, `countdown` (Intro), `scoreboard` (Spiel), `results` (Ergebnis mit Münzen und Trostpreis) kommen aus denselben Funktionen wie im Browser-Host (`plan.ts`, `results.ts`, `texts.ts`); `repeat` = kurze Anleitung (CHAOS-66).
 - **Bereitschaft (CHAOS-214):** Wartet die Anleitung darauf, dass alle verbundenen Spieler auf dem Handy „Bereit!“ drücken (`BoardView.minigame.ready`), kommt `readiness` (`introReadiness` aus `apps/host/src/minigame/readiness.ts`) und `countdown` ist `null`: `remainingMs` ist dann nur Mindestzeit (3 s) bzw. Sicherheitsfrist (60 s), kein Countdown. Swift zeigt statt „Los in“ die Überschrift und je Spieler einen Chip (Häkchen + „Bereit“, „Drückt Bereit …“ oder „getrennt“; getrennte zählen beim Server als bereit). Fehlt `readiness` oder ist `null`, gilt der feste Countdown wie bisher. Die Bühne gilt in dieser Anleitung von Anfang an als knapp (`stageUrgentFor`, ADR-012 Nachtrag 3), weil sie schon nach 3 s enden kann.
+- **Spielformen (CHAOS-230):** Bei Teams bzw. Koop (CHAOS-89, ADR-012 Nachtrag 8) kommt `teams` (`teamLineup` aus `apps/host/src/minigame/teams.ts`) in allen drei Stufen. Swift zeigt in der Anleitung unter dem Titel die Überschrift („2 gegen 2“, „Einer gegen alle“, „Alle zusammen“), je Gruppe Symbol (☀ Sonne, ☾ Mond, ♥ alle zusammen), Name und Mitglieder sowie den Hinweis (`note`, Vorteil der Einzelperson zu dritt); im Ergebnis eine Zeile je Gruppe unter der Überschrift. Die Team-Überschrift („☾ Team Mond gewinnt: …“, „Gut geschafft – Stufe 2 von 3“) steht schon in `results.headline`. Der Kern gibt die Aufstellung an die Minispiel-Laufzeit und schickt den Ausgang (`outcome`) mit dem Ergebnis; ohne ihn lehnte der Server Team-Ergebnisse ab. Gruppen sind nie nur an der Farbe erkennbar. Fehlt `teams` oder ist `null`, bleibt alles wie bisher.
 
 ### Finale und Pause (CHAOS-145)
 
