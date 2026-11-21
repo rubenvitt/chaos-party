@@ -900,6 +900,186 @@
       "height": 0.066
     },
     {
+      "id": "requisit-badewanne",
+      "kind": "prop",
+      "source": "generated",
+      "path": "packages/assets/models/props/badewanne.glb",
+      "description": "Requisit „badewanne“ (Set kulisse-bad, CHAOS-222): Ovale Klauenfuß-Wanne (1,6 m) mit Wasser, Chromfüßen und Wasserhahn am Kopfende (+X).",
+      "generator": "packages/assets/blender/props-all.sh",
+      "license": "GPL-3.0-only",
+      "attribution": "Chaos Party – eigener Entwurf, mit Blender aus Skript erzeugt (CHAOS-222)",
+      "budgetBytes": 53248,
+      "height": 0.937
+    },
+    {
+      "id": "requisit-quietscheente",
+      "kind": "prop",
+      "source": "generated",
+      "path": "packages/assets/models/props/quietscheente.glb",
+      "description": "Requisit „quietscheente“ (Set kulisse-bad, CHAOS-222): Quietscheente (≈ 0,5 m, Spielzeug-groß): Bauch, Kopf, Schnabel vorn (−Y), Schwanzspitze.",
+      "generator": "packages/assets/blender/props-all.sh",
+      "license": "GPL-3.0-only",
+      "attribution": "Chaos Party – eigener Entwurf, mit Blender aus Skript erzeugt (CHAOS-222)",
+      "budgetBytes": 49152,
+      "height": 0.505
+    },
+    {
+      "id": "requisit-seifenstueck",
+      "kind": "prop",
+      "source": "generated",
+      "path": "packages/assets/models/props/seifenstueck.glb",
+      "description": "Requisit „seifenstueck“ (Set kulisse-bad, CHAOS-222): Seifenstück mit Schaumblasen auf einer flachen Seifenschale.",
+      "generator": "packages/assets/blender/props-all.sh",
+      "license": "GPL-3.0-only",
+      "attribution": "Chaos Party – eigener Entwurf, mit Blender aus Skript erzeugt (CHAOS-222)",
+      "budgetBytes": 32768,
+      "height": 0.22
+    },
+    {
+      "id": "requisit-seerose",
+      "kind": "prop",
+      "source": "generated",
+      "path": "packages/assets/models/props/seerose.glb",
+      "description": "Requisit „seerose“ (Set kulisse-teich, CHAOS-222): Seerosenblatt mit Kerbe und weiß-rosa Blüte (schwimmt: Boden = Wasserlinie).",
+      "generator": "packages/assets/blender/props-all.sh",
+      "license": "GPL-3.0-only",
+      "attribution": "Chaos Party – eigener Entwurf, mit Blender aus Skript erzeugt (CHAOS-222)",
+      "budgetBytes": 57344,
+      "height": 0.23
+    },
+    {
+      "id": "requisit-schilf",
+      "kind": "prop",
+      "source": "generated",
+      "path": "packages/assets/models/props/schilf.glb",
+      "description": "Requisit „schilf“ (Set kulisse-teich, CHAOS-222): Schilfbüschel mit Rohrkolben (≈ 1,4 m) auf einem Matschhügel.",
+      "generator": "packages/assets/blender/props-all.sh",
+      "license": "GPL-3.0-only",
+      "attribution": "Chaos Party – eigener Entwurf, mit Blender aus Skript erzeugt (CHAOS-222)",
+      "budgetBytes": 57344,
+      "height": 1.448
+    },
+    {
+      "id": "requisit-steg",
+      "kind": "prop",
+      "source": "generated",
+      "path": "packages/assets/models/props/steg.glb",
+      "description": "Requisit „steg“ (Set kulisse-teich, CHAOS-222): Stück Holzsteg (1,2 × 0,8 m): Planken quer, zwei Längsbalken, vier Pfähle bis zum Boden.",
+      "generator": "packages/assets/blender/props-all.sh",
+      "license": "GPL-3.0-only",
+      "attribution": "Chaos Party – eigener Entwurf, mit Blender aus Skript erzeugt (CHAOS-222)",
+      "budgetBytes": 57344,
+      "height": 0.692
+    },
+    {
+      "id": "requisit-bauklotz",
+      "kind": "prop",
+      "source": "generated",
+      "path": "packages/assets/models/props/bauklotz.glb",
+      "description": "Requisit „bauklotz“ (Set kulisse-spielzimmer, CHAOS-222): Bauklotz-Turm: roter Würfel, Holzwürfel, gelbe Säule, hellblaues Dach (Spielzimmer).",
+      "generator": "packages/assets/blender/props-all.sh",
+      "license": "GPL-3.0-only",
+      "attribution": "Chaos Party – eigener Entwurf, mit Blender aus Skript erzeugt (CHAOS-222)",
+      "budgetBytes": 24576,
+      "height": 1.071
+    },
+    {
+      "id": "requisit-spielball",
+      "kind": "prop",
+      "source": "generated",
+      "path": "packages/assets/models/props/spielball.glb",
+      "description": "Requisit „spielball“ (Set kulisse-spielzimmer, CHAOS-222): Wasserball mit sechs Bahnen (rot, gelb, hellblau im Wechsel mit Weiß), weiße Pole.",
+      "generator": "packages/assets/blender/props-all.sh",
+      "license": "GPL-3.0-only",
+      "attribution": "Chaos Party – eigener Entwurf, mit Blender aus Skript erzeugt (CHAOS-222)",
+      "budgetBytes": 24576,
+      "height": 0.63
+    },
+    {
+      "id": "requisit-spielkiste",
+      "kind": "prop",
+      "source": "generated",
+      "path": "packages/assets/models/props/spielkiste.glb",
+      "description": "Requisit „spielkiste“ (Set kulisse-spielzimmer, CHAOS-222): Spielzeugkiste aus Holz mit offenem Deckel, lila Zierband und bunten Kugeln drin.",
+      "generator": "packages/assets/blender/props-all.sh",
+      "license": "GPL-3.0-only",
+      "attribution": "Chaos Party – eigener Entwurf, mit Blender aus Skript erzeugt (CHAOS-222)",
+      "budgetBytes": 53248,
+      "height": 0.57
+    },
+    {
+      "id": "requisit-baumstumpf",
+      "kind": "prop",
+      "source": "generated",
+      "path": "packages/assets/models/props/baumstumpf.glb",
+      "description": "Requisit „baumstumpf“ (Set kulisse-wald, CHAOS-222): Baumstumpf mit Jahresringen, Rindenfurchen, drei Wurzeln und Moospolster.",
+      "generator": "packages/assets/blender/props-all.sh",
+      "license": "GPL-3.0-only",
+      "attribution": "Chaos Party – eigener Entwurf, mit Blender aus Skript erzeugt (CHAOS-222)",
+      "budgetBytes": 36864,
+      "height": 0.618
+    },
+    {
+      "id": "requisit-fliegenpilz",
+      "kind": "prop",
+      "source": "generated",
+      "path": "packages/assets/models/props/fliegenpilz.glb",
+      "description": "Requisit „fliegenpilz“ (Set kulisse-wald, CHAOS-222): Großer Fliegenpilz (≈ 0,7 m) mit weißen Tupfen, Lamellen, Manschette; kleiner Pilz daneben.",
+      "generator": "packages/assets/blender/props-all.sh",
+      "license": "GPL-3.0-only",
+      "attribution": "Chaos Party – eigener Entwurf, mit Blender aus Skript erzeugt (CHAOS-222)",
+      "budgetBytes": 45056,
+      "height": 0.615
+    },
+    {
+      "id": "requisit-ast",
+      "kind": "prop",
+      "source": "generated",
+      "path": "packages/assets/models/props/ast.glb",
+      "description": "Requisit „ast“ (Set kulisse-wald, CHAOS-222): Abgebrochener Ast (1,2 m) am Boden mit zwei Zweigen und ein paar Blättern.",
+      "generator": "packages/assets/blender/props-all.sh",
+      "license": "GPL-3.0-only",
+      "attribution": "Chaos Party – eigener Entwurf, mit Blender aus Skript erzeugt (CHAOS-222)",
+      "budgetBytes": 45056,
+      "height": 0.276
+    },
+    {
+      "id": "requisit-truhe",
+      "kind": "prop",
+      "source": "generated",
+      "path": "packages/assets/models/props/truhe.glb",
+      "description": "Requisit „truhe“ (Set kulisse-dachboden, CHAOS-222): Holztruhe mit gewölbtem Deckel, Eisenbändern und Messingschloss vorn (−Y).",
+      "generator": "packages/assets/blender/props-all.sh",
+      "license": "GPL-3.0-only",
+      "attribution": "Chaos Party – eigener Entwurf, mit Blender aus Skript erzeugt (CHAOS-222)",
+      "budgetBytes": 32768,
+      "height": 0.573
+    },
+    {
+      "id": "requisit-koffer",
+      "kind": "prop",
+      "source": "generated",
+      "path": "packages/assets/models/props/koffer.glb",
+      "description": "Requisit „koffer“ (Set kulisse-dachboden, CHAOS-222): Alter Lederkoffer, aufrecht: zwei Riemen, Griff oben, Metallecken, Reiseaufkleber vorn.",
+      "generator": "packages/assets/blender/props-all.sh",
+      "license": "GPL-3.0-only",
+      "attribution": "Chaos Party – eigener Entwurf, mit Blender aus Skript erzeugt (CHAOS-222)",
+      "budgetBytes": 61440,
+      "height": 0.666
+    },
+    {
+      "id": "requisit-lampe",
+      "kind": "prop",
+      "source": "generated",
+      "path": "packages/assets/models/props/lampe.glb",
+      "description": "Requisit „lampe“ (Set kulisse-dachboden, CHAOS-222): Petroleumlampe: Messingfuß, Glastank, Glaszylinder mit Bauch, leuchtende Flamme, Henkel.",
+      "generator": "packages/assets/blender/props-all.sh",
+      "license": "GPL-3.0-only",
+      "attribution": "Chaos Party – eigener Entwurf, mit Blender aus Skript erzeugt (CHAOS-222)",
+      "budgetBytes": 45056,
+      "height": 0.623
+    },
+    {
       "id": "klang-tick-1",
       "kind": "sound",
       "source": "imported",
@@ -1687,6 +1867,126 @@
           "description": "Requisit „holzloeffel“ (Set kulisse-kueche) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
           "license": "GPL-3.0-only",
           "from": ["requisit-holzloeffel"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-badewanne",
+          "path": "requisiten/badewanne.usdz",
+          "description": "Requisit „badewanne“ (Set kulisse-bad) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-badewanne"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-quietscheente",
+          "path": "requisiten/quietscheente.usdz",
+          "description": "Requisit „quietscheente“ (Set kulisse-bad) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-quietscheente"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-seifenstueck",
+          "path": "requisiten/seifenstueck.usdz",
+          "description": "Requisit „seifenstueck“ (Set kulisse-bad) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-seifenstueck"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-seerose",
+          "path": "requisiten/seerose.usdz",
+          "description": "Requisit „seerose“ (Set kulisse-teich) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-seerose"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-schilf",
+          "path": "requisiten/schilf.usdz",
+          "description": "Requisit „schilf“ (Set kulisse-teich) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-schilf"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-steg",
+          "path": "requisiten/steg.usdz",
+          "description": "Requisit „steg“ (Set kulisse-teich) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-steg"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-bauklotz",
+          "path": "requisiten/bauklotz.usdz",
+          "description": "Requisit „bauklotz“ (Set kulisse-spielzimmer) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-bauklotz"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-spielball",
+          "path": "requisiten/spielball.usdz",
+          "description": "Requisit „spielball“ (Set kulisse-spielzimmer) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-spielball"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-spielkiste",
+          "path": "requisiten/spielkiste.usdz",
+          "description": "Requisit „spielkiste“ (Set kulisse-spielzimmer) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-spielkiste"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-baumstumpf",
+          "path": "requisiten/baumstumpf.usdz",
+          "description": "Requisit „baumstumpf“ (Set kulisse-wald) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-baumstumpf"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-fliegenpilz",
+          "path": "requisiten/fliegenpilz.usdz",
+          "description": "Requisit „fliegenpilz“ (Set kulisse-wald) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-fliegenpilz"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-ast",
+          "path": "requisiten/ast.usdz",
+          "description": "Requisit „ast“ (Set kulisse-wald) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-ast"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-truhe",
+          "path": "requisiten/truhe.usdz",
+          "description": "Requisit „truhe“ (Set kulisse-dachboden) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-truhe"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-koffer",
+          "path": "requisiten/koffer.usdz",
+          "description": "Requisit „koffer“ (Set kulisse-dachboden) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-koffer"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-lampe",
+          "path": "requisiten/lampe.usdz",
+          "description": "Requisit „lampe“ (Set kulisse-dachboden) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-lampe"],
           "budgetBytes": 163840
         }
       ]

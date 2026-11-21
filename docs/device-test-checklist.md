@@ -882,7 +882,7 @@ Automatisch geprüft (Linux): Zuteilung, Ersatz zu zweit und zu dritt, Prüfung 
 
 **Stand:** 2026-11-21 · **Aufgabe:** CHAOS-221 · **Anleitung:** [`apple-assets.md`](apple-assets.md)
 
-Automatisch geprüft (Linux, ohne Mac): 27 Requisiten entstehen mit `pnpm build:apple-assets --nur=requisiten`; usd-core findet keine Fehler; Boden, Mitte, Höhe, Materialnamen, Deckkraft und Laufzeit-Materialien wie im GLB (`check_usdz.py`); Herkunft in `herkunft.json`, Budget in `pnpm check:assets`; USDZ in Blender importiert sehen aus wie die GLBs (`docs/screenshots/chaos221-requisiten-usdz.jpg`). **Nicht** automatisch prüfbar: ob RealityKit alles lädt (`check_realitykit.swift` läuft nur am Mac und ist für die Requisiten noch nie gelaufen), wie Metall und Glas in RealityKit wirken. Eingebunden in die App sind die Requisiten noch nicht (CHAOS-91).
+Automatisch geprüft (Linux, ohne Mac): 42 Requisiten entstehen mit `pnpm build:apple-assets --nur=requisiten`; usd-core findet keine Fehler; Boden, Mitte, Höhe, Materialnamen, Deckkraft und Laufzeit-Materialien wie im GLB (`check_usdz.py`); Herkunft in `herkunft.json`, Budget in `pnpm check:assets`; USDZ in Blender importiert sehen aus wie die GLBs (`docs/screenshots/chaos221-requisiten-usdz.jpg`). **Nicht** automatisch prüfbar: ob RealityKit alles lädt (`check_realitykit.swift` läuft nur am Mac und ist für die Requisiten noch nie gelaufen), wie Metall und Glas in RealityKit wirken. Eingebunden in die App sind die Requisiten noch nicht (CHAOS-91).
 
 | ID  | Schritt | Erwartung | Ergebnis | Nachweis |
 | --- | ------- | --------- | -------- | -------- |

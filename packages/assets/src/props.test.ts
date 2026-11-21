@@ -8,10 +8,12 @@ import { describe, expect, it } from 'vitest';
 import {
   MINIGAME_PROP_SETS,
   PROP_IDS,
+  PROP_PLACES,
   PROP_RUNTIME,
   PROP_SET_IDS,
   PROP_SETS,
   minigameProps,
+  placePropSet,
   propAssetId,
   propModelPath,
 } from './props.ts';
@@ -49,6 +51,40 @@ describe('Requisiten-Katalog', () => {
     const block = /^PROPS:[^\n]*\{([\s\S]*?)\n\}/m.exec(source)?.[1] ?? '';
     const generated = [...block.matchAll(/"([a-z-]+)":/g)].map((m) => m[1]);
     expect([...generated].sort()).toEqual([...PROP_IDS].sort());
+  });
+
+  it('je Ort der Arena-Vorlagen ein Kulissen-Set (CHAOS-222)', async () => {
+    // PROP_PLACES spiegelt ORTE aus dem Baukasten (assets hängt nicht von minigame-kit ab).
+    const steckbrief = await readFile(
+      join(blenderDir, '..', '..', 'minigame-kit', 'src', 'steckbrief.ts'),
+      'utf8',
+    );
+    const block = /export const ORTE = \[([\s\S]*?)\]/.exec(steckbrief)?.[1] ?? '';
+    const orte = [...block.matchAll(/'([a-z]+)'/g)].map((m) => m[1]);
+    expect(orte.length).toBeGreaterThan(0);
+    expect([...PROP_PLACES]).toEqual(orte);
+    for (const place of PROP_PLACES) {
+      const set = PROP_SETS[placePropSet(place)];
+      expect(set.family, place).toBeNull();
+      expect(set.props.length, place).toBeGreaterThanOrEqual(3);
+      expect(set.props.length, place).toBeLessThanOrEqual(5);
+    }
+    // Jedes Set „kulisse-…“ gehört zu einem Ort.
+    const kulissen = PROP_SET_IDS.filter((set) => set.startsWith('kulisse-'));
+    expect(kulissen.sort()).toEqual(PROP_PLACES.map(placePropSet).sort());
+  });
+
+  it('Kulissen-Liste im Blender-Generator = Kulissen-Sets', async () => {
+    const source = await readFile(join(blenderDir, 'requisiten.py'), 'utf8');
+    const block = /^KULISSEN:[^\n]*\{([\s\S]*?)\n\}/m.exec(source)?.[1] ?? '';
+    const generated: Record<string, string[]> = {};
+    for (const m of block.matchAll(/"([a-z]+)": \[([^\]]*)\]/g)) {
+      generated[m[1] ?? ''] = [...(m[2] ?? '').matchAll(/"([a-z-]+)"/g)].map((p) => p[1] ?? '');
+    }
+    const expected = Object.fromEntries(
+      PROP_PLACES.map((place) => [place, [...PROP_SETS[placePropSet(place)].props]]),
+    );
+    expect(generated).toEqual(expected);
   });
 
   it('ids und Pfade', () => {

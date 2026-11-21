@@ -5,6 +5,7 @@ Kontaktbogen.
     .venv-blender/bin/python packages/assets/blender/props.py <id|all> <zielordner>
     .venv-blender/bin/python packages/assets/blender/props.py --usdz <id|all> <zielordner>
     .venv-blender/bin/python packages/assets/blender/props.py --vorschau <bild.jpg|bild.png>
+    .venv-blender/bin/python packages/assets/blender/props.py --kulissen <bild.jpg|bild.png>
 
 GLB: je Requisit `<zielordner>/<id>.glb`, statisch (kein Skelett, keine Animation), ein Mesh je
 Material, Wurzelknoten mit dem Namen des Requisits.
@@ -18,7 +19,8 @@ Deckkraft durchscheinender Materialien (`glas`) setzt danach `packages/assets/us
 mit usd-core, weil Blenders USD-Export das Alpha nicht überträgt.
 
 Kontaktbogen: alle Requisiten in einer Reihe nach Sets mit Figur-Maßstab (1,5-m-Stab), Cycles,
-Natur-Licht.
+Natur-Licht. Kulissen-Bogen (CHAOS-222): die Kulissen-Sets aller sieben Orte, je Ort auf einer
+Scheibe in der Bodenfarbe der Arena-Vorlage.
 """
 
 from __future__ import annotations
@@ -181,14 +183,14 @@ def contact_sheet(target: Path) -> None:
     if stab_obj is not None:
         k.assign(stab_obj, k.material("tinte", color=k.hex_color("#1b1530"), roughness=0.6))
 
+    _render([meshes for _, meshes, _ in placed], target)
+
+
+def _render(groups: list[list[bpy.types.Object]], target: Path) -> None:
+    """Orthografische Dreiviertel-Kamera auf alle Meshes, Natur-Licht, Cycles, Bild schreiben."""
     scene = bpy.context.scene
     bpy.context.view_layer.update()
-    corners = [
-        o.matrix_world @ v.co
-        for _, meshes, _ in placed
-        for o in meshes
-        for v in o.data.vertices
-    ]
+    corners = [o.matrix_world @ v.co for meshes in groups for o in meshes for v in o.data.vertices]
     view = Vector((0, -20, 11)).normalized()
     right = Vector((1, 0, 0))
     up = view.cross(right).normalized() * -1
@@ -235,10 +237,50 @@ def contact_sheet(target: Path) -> None:
     print(f"Kontaktbogen → {target}")
 
 
+KULISSEN = [
+    [("dachboden", "#d4ab74"), ("wald", "#a9c46c")],
+    [("teich", "#7ccf8a"), ("spielzimmer", "#ffd18a")],
+    [("garten", "#8fd16a"), ("kueche", "#f6e7cf"), ("bad", "#c6ecf5")],
+]
+"""Kulissen-Bogen (CHAOS-222): je Ort das Set `kulisse-<ort>` auf einer Scheibe in der Bodenfarbe
+(`floor`) der Arena-Vorlage aus `PLACES` (packages/minigame-kit/src/babylon/arena.ts)."""
+
+
+def kulissen_sheet(target: Path) -> None:
+    k.reset()
+    groups: list[list[bpy.types.Object]] = []
+    for row_index, row in enumerate(KULISSEN):
+        x = 0.0
+        y = row_index * 3.2
+        for ort, floor in row:
+            start = x
+            for prop_id in requisiten.KULISSEN[ort]:
+                meshes = requisiten.PROPS[prop_id]().finish()
+                root = meshes[0].parent
+                pts = [v.co for o in meshes for v in o.data.vertices]
+                width = max(p.x for p in pts) - min(p.x for p in pts)
+                x += width / 2 + 0.15
+                root.location = (x, y, 0)
+                root.rotation_euler = (0, 0, math.radians(-20))
+                x += width / 2 + 0.15
+                groups.append(meshes)
+            span = x - start
+            disc = k.cylinder(f"ort-{ort}", ((start + x) / 2, y, -0.02), 1.0, 0.04, segments=48)
+            for v in disc.data.vertices:
+                v.co.x *= span / 2 + 0.1
+            k.assign(disc, k.material(f"ort-{ort}", color=k.hex_color(floor), roughness=0.85))
+            groups.append([disc])
+            x += 0.6
+    _render(groups, target)
+
+
 def main() -> None:
     args = sys.argv[1:]
     if len(args) == 2 and args[0] == "--vorschau":
         contact_sheet(Path(args[1]).resolve())
+        return
+    if len(args) == 2 and args[0] == "--kulissen":
+        kulissen_sheet(Path(args[1]).resolve())
         return
     usdz = bool(args) and args[0] == "--usdz"
     if usdz:
@@ -246,7 +288,7 @@ def main() -> None:
     if len(args) != 2 or (args[0] != "all" and args[0] not in requisiten.PROPS):
         print(
             f"Aufruf: props.py [--usdz] <all|{'|'.join(requisiten.PROPS)}> <zielordner>"
-            "  oder  props.py --vorschau <bild.jpg|bild.png>"
+            "  oder  props.py --vorschau|--kulissen <bild.jpg|bild.png>"
         )
         raise SystemExit(1)
     out = Path(args[1]).resolve()

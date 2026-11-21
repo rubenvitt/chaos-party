@@ -29,7 +29,7 @@ Voraussetzungen: `pnpm install`, Playwright-Chromium (`pnpm exec playwright inst
 |---|---|
 | `figuren/<id>.usdz` | Figur direkt aus dem bpy-Skript (`packages/assets/blender/build.py <id> <ziel.usdz>`), ≈ 0,5–1 MB |
 | `figuren/<id>.clips.json` | Lage der sieben Clips auf der Zeitleiste |
-| `requisiten/<id>.usdz` | Requisit der Minispiele (CHAOS-221) direkt aus dem bpy-Skript (`packages/assets/blender/props.py --usdz <id\|all> <ordner>`), 8–108 KiB (Budget 160 KiB je Requisit im Manifest) |
+| `requisiten/<id>.usdz` | Requisit der Minispiele (CHAOS-221) direkt aus dem bpy-Skript (`packages/assets/blender/props.py --usdz <id\|all> <ordner>`), 8–108 KiB, 42 Requisiten (CHAOS-88 und CHAOS-222) (Budget 160 KiB je Requisit im Manifest) |
 | `bretter/<brett-id>/brett.usdz` | Kulisse eines Bretts aus dem Web-Host (Grafikstufe `hoch`), über Blender nach USDZ, ≈ 25 MB (Wackelwald) bzw. 23 MB (Rummelplatz, mit den Drehteilen `karussell_dreh` und `riesenrad_rad`, CHAOS-199) |
 | `bretter/<brett-id>/brett.szene.json` | Brett-ID (`board`), Kamera, Sonne, Himmel, Figurenorte, **Felder** (`fields`), Instanz-Gruppen |
 | `bretter/<brett-id>/brett.instanzen.json` | Matrizen für Gras und Blumen (Wackelwald: 64 246 Instanzen) |
