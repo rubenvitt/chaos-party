@@ -12,6 +12,13 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import '@babylonjs/core/Physics/joinedPhysicsEngineComponent.js';
 import type { Scene } from '@babylonjs/core/scene.js';
 import type HavokPhysics from '@babylonjs/havok';
+import {
+  BOT_MOVE_STEPS,
+  botSeed,
+  clampStrength,
+  type MinigameBotDriver,
+  type MinigameBotSeat,
+} from '../bot.ts';
 import type { MinigameInput, MinigameResult, Slot } from '../info.ts';
 import { checkResult, rankByScore } from '../result.ts';
 import { createMinigameRng } from '../rng.ts';
@@ -73,6 +80,13 @@ export interface RunnerOptions {
    * (`ctx.pace()` löst sofort auf; Tests bleiben deterministisch und schnell).
    */
   readonly pacing?: PrepareThrottle;
+  /**
+   * KI-Plätze (CHAOS-180, ADR-020): Die Laufzeit erzeugt beim `start` je Platz einen Bot über
+   * `Minigame.createBot` (Zufall aus `botSeed(seed, slot)`) und schickt seine Eingaben in jedem
+   * festen Schritt vor `update` durch denselben Eingang wie Controller-Eingaben. Plätze, die
+   * nicht mitspielen, werden ignoriert.
+   */
+  readonly bots?: readonly MinigameBotSeat[];
 }
 
 /** Aufbau über mehrere Bilder verteilen (`MinigameContext.pace`, CHAOS-141). */
@@ -112,6 +126,8 @@ export interface MinigameRunner {
   readonly elapsedMs: number;
   readonly result: RunnerResult | null;
   readonly paused: boolean;
+  /** Plätze, die gerade ein Bot spielt (nach `start`). */
+  readonly botSlots: readonly Slot[];
   prepare(): Promise<void>;
   start(): void;
   /**
@@ -176,6 +192,9 @@ export function createMinigameRunner(
 
   const elapsedMs = () => Math.round(steps * FIXED_STEP_SECONDS * 1000);
 
+  /** Laufende Bots mit ihrer Eingabe-Warteschlange (Stick gedrosselt, Reihenfolge bleibt). */
+  const bots: BotSeatState[] = [];
+
   /** `cut`: von außen beendet (`finishNow`), dann wertet die Laufzeit auch ohne Überzeit. */
   const settle = (candidate: MinigameResult | null, cut = false): void => {
     if (result) return;
@@ -229,11 +248,59 @@ export function createMinigameRunner(
     options.onResult?.(value);
   };
 
+  const tickBots = () => {
+    for (const bot of bots) {
+      if (bot.failed) continue;
+      try {
+        for (const input of bot.driver.tick()) enqueueBotInput(bot, input);
+      } catch (error) {
+        // Ein Fehler im Bot darf das Minispiel nicht anhalten: Platz steht still.
+        console.error(`Minispiel ${info.id}: KI-Bot für Platz ${bot.driver.slot} gestoppt`, error);
+        bot.failed = true;
+        bot.queue.length = 0;
+        neutralize(bot.driver.slot);
+        continue;
+      }
+      for (let next = bot.queue[0]; next !== undefined; next = bot.queue[0]) {
+        if (next.type === 'move') {
+          if (steps - bot.lastMoveStep < BOT_MOVE_STEPS) break;
+          bot.lastMoveStep = steps;
+        }
+        bot.queue.shift();
+        acceptInput(bot.driver.slot, next);
+      }
+    }
+  };
+
   const fixedStep = () => {
+    if (state === 'running' && bots.length > 0) tickBots();
     game.update(FIXED_STEP_SECONDS);
     physicsStep?.(FIXED_STEP_SECONDS);
     steps++;
     if (state === 'running') settle(game.getResult());
+  };
+
+  /** Eingang für Controller und Bots: nur laufend, nur Teilnehmer, Achsen begrenzt. */
+  const acceptInput = (slot: Slot, input: MinigameInput) => {
+    if (state !== 'running' || paused || !slots.includes(slot) || disconnected.has(slot)) return;
+    if (input.type === 'move') {
+      const x = clampAxis(input.x);
+      const y = clampAxis(input.y);
+      if (x === 0 && y === 0) stickActive.delete(slot);
+      else stickActive.add(slot);
+      game.handleInput(slot, { type: 'move', x, y });
+      return;
+    }
+    const buttons = held.get(slot) ?? new Set();
+    if (input.type === 'press') {
+      if (buttons.has(input.button)) return; // doppeltes press ohne release
+      buttons.add(input.button);
+    } else {
+      if (!buttons.has(input.button)) return;
+      buttons.delete(input.button);
+    }
+    held.set(slot, buttons);
+    game.handleInput(slot, input);
   };
 
   const neutralize = (slot: Slot) => {
@@ -257,6 +324,9 @@ export function createMinigameRunner(
     },
     get paused() {
       return paused;
+    },
+    get botSlots() {
+      return bots.map((bot) => bot.driver.slot);
     },
     async prepare() {
       if (state !== 'created') throw new Error(`prepare in Zustand ${state}`);
@@ -303,31 +373,32 @@ export function createMinigameRunner(
       state = 'running';
       game.start();
       for (const slot of disconnected) neutralize(slot);
+      for (const seat of options.bots ?? []) {
+        if (!slots.includes(seat.slot) || bots.some((bot) => bot.driver.slot === seat.slot)) {
+          continue;
+        }
+        if (!game.createBot) {
+          console.error(`Minispiel ${info.id} hat keinen KI-Bot; Platz ${seat.slot} steht still`);
+          continue;
+        }
+        try {
+          const driver = game.createBot({
+            slot: seat.slot,
+            strength: clampStrength(seat.strength),
+            rng: createMinigameRng(botSeed(options.seed, seat.slot)),
+          });
+          bots.push({ driver, queue: [], lastMoveStep: Number.NEGATIVE_INFINITY, failed: false });
+        } catch (error) {
+          console.error(`Minispiel ${info.id}: KI-Bot für Platz ${seat.slot} fehlt`, error);
+        }
+      }
     },
     finishNow() {
       if (state !== 'running') return;
       settle(game.getResult(), true);
     },
     input(slot, input) {
-      if (state !== 'running' || paused || !slots.includes(slot) || disconnected.has(slot)) return;
-      if (input.type === 'move') {
-        const x = clampAxis(input.x);
-        const y = clampAxis(input.y);
-        if (x === 0 && y === 0) stickActive.delete(slot);
-        else stickActive.add(slot);
-        game.handleInput(slot, { type: 'move', x, y });
-        return;
-      }
-      const buttons = held.get(slot) ?? new Set();
-      if (input.type === 'press') {
-        if (buttons.has(input.button)) return; // doppeltes press ohne release
-        buttons.add(input.button);
-      } else {
-        if (!buttons.has(input.button)) return;
-        buttons.delete(input.button);
-      }
-      held.set(slot, buttons);
-      game.handleInput(slot, input);
+      acceptInput(slot, input);
     },
     setConnected(slot, connected) {
       if (!slots.includes(slot)) return;
@@ -356,6 +427,8 @@ export function createMinigameRunner(
       for (let index = 0; index < count; index++) fixedStep();
     },
     pause() {
+      // Bot-Warteschlangen leeren: Nach `resume` entscheiden die Bots neu.
+      for (const bot of bots) bot.queue.length = 0;
       // Server-Pause (ADR-015): Takt steht, Eingaben werden ignoriert. Gehaltene Sticks und
       // Knöpfe lassen los, damit nach `resume` nichts „klemmt“ (Loslassen kommt in der Pause
       // nicht mehr an, der Server leitet dann keine Eingaben weiter).
@@ -382,6 +455,24 @@ export function createMinigameRunner(
       }
     },
   };
+}
+
+interface BotSeatState {
+  readonly driver: MinigameBotDriver;
+  /** Noch nicht weitergegebene Eingaben in Reihenfolge; ein Stick wartet auf seine Rate. */
+  readonly queue: MinigameInput[];
+  lastMoveStep: number;
+  failed: boolean;
+}
+
+/** Eingabe einreihen; aufeinanderfolgende Stick-Eingaben verschmelzen zur neuesten. */
+function enqueueBotInput(bot: BotSeatState, input: MinigameInput): void {
+  const last = bot.queue[bot.queue.length - 1];
+  if (input.type === 'move' && last?.type === 'move') {
+    bot.queue[bot.queue.length - 1] = input;
+    return;
+  }
+  bot.queue.push(input);
 }
 
 function clampAxis(value: number): number {

@@ -30,6 +30,8 @@ import {
 } from '@chaos-party/minigame-kit/babylon';
 import {
   rankByScore,
+  type MinigameBotDriver,
+  type MinigameBotOptions,
   type MinigameInput,
   type MinigameResult,
   type Slot,
@@ -43,6 +45,7 @@ import type {
   MinigamePlayer,
 } from '@chaos-party/minigame-sdk/babylon';
 import { markVisual } from '@chaos-party/minigame-sdk/babylon';
+import { createSockenregenBot } from './bot.ts';
 import { sockenregenHighlights } from './highlights.ts';
 import { SOCKENREGEN_INFO } from './info.ts';
 import {
@@ -184,6 +187,11 @@ class Sockenregen implements Minigame {
   start(): void {
     this.running = true;
     this.ctx?.fx.sound('go');
+  }
+
+  /** KI-Platz (CHAOS-180): Bot liest die Logik nur. */
+  createBot(options: MinigameBotOptions): MinigameBotDriver {
+    return createSockenregenBot(options, () => this.logic);
   }
 
   handleInput(slot: Slot, input: MinigameInput): void {

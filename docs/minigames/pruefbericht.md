@@ -12,7 +12,7 @@ PRUEFBERICHT=1 pnpm exec vitest run packages/minigames/src/checks --silent=false
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | sockenregen | 200 | 12 % | 17 % | 2,9 | 6 % | 72 % | 0,35 (Dauerdrücken (Hechtsprung)) | 2,2 |
 | pudding-gerangel | 200 | 12 % | 8 % | 6,9 | 7 % | 34 % | 0,35 (Dauerrempler) | 66,7 |
-| wackelturm | 200 | 7 % | 14 % | 6,1 | 32 % | 17 % | 1,28 (gierig (7–10 Törtchen)) | 4,4 |
+| wackelturm | 200 | 9 % | 14 % | 6,2 | 10 % | 44 % | 1,54 (gierig (7–10 Törtchen)) | 4,3 |
 | kuckucks-klatsche | 200 | 10 % | 15 % | 3,8 | 8 % | 53 % | 1,12 (Raffzahn (klaut alles)) | 0,5 |
 | kruemel-kehraus | 200 | 21 % | 19 % | 2,2 | 7 % | 37 % | 0,98 (Dauerrempler) | 156,6 |
 
@@ -21,8 +21,6 @@ PRUEFBERICHT=1 pnpm exec vitest run packages/minigames/src/checks --silent=false
 - **sockenregen:** besteht
 - **pudding-gerangel:** besteht
 - **wackelturm:** besteht
-  - Ausnahme maxNoviceWins: Schon EXP-007 maß für die gewählte Fassung A6 eine Außenseiter-Quote über fair (31 % bei 4 Spielern); Ruben hat Wackelturm in M3 abgenommen. Ob die Bots (Geschick = Tempo und Lenkung, kaum Gefühl für die Kippgrenze) oder das Spiel die Ursache sind, klärt CHAOS-215.
-  - Ausnahme minProWins: Gegenstück zur Neuling-Quote: Der Profi-Bot stapelt schneller und verliert dadurch öfter den Turm. Bis CHAOS-215 geklärt hat, ob Bot oder Spiel, gilt die Ausnahme wie in EXP-007.
 - **kuckucks-klatsche:** besteht
 - **kruemel-kehraus:** besteht
 
@@ -34,9 +32,9 @@ PRUEFBERICHT=1 pnpm exec vitest run packages/minigames/src/checks --silent=false
 | --- | --- | --- |
 | sockenregen | Dauerdrücken (Hechtsprung) | 0,35 |
 | pudding-gerangel | Dauerrempler | 0,35 |
-| wackelturm | Raufbold (rempelt immer) | 0,40 |
-| wackelturm | gierig (7–10 Törtchen) | 1,28 |
-| wackelturm | vorsichtig (2–4 Törtchen) | 0,10 |
+| wackelturm | Raufbold (rempelt immer) | 0,65 |
+| wackelturm | gierig (7–10 Törtchen) | 1,54 |
+| wackelturm | vorsichtig (2–4 Törtchen) | 0,03 |
 | kuckucks-klatsche | Dauerklatscher | 0,47 |
 | kuckucks-klatsche | Raffzahn (klaut alles) | 1,12 |
 | kuckucks-klatsche | brav (klaut nie) | 0,99 |

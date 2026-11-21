@@ -7,9 +7,11 @@
  * über dessen Bot-Profile anbinden; diese Adapter bleiben für die Bestandsspiele.
  *
  * Können-Stufen je Spiel: Arcade-Spiele nutzen die Profile aus EXP-005 (Profi/Normal/Neuling),
- * Wackelturm die Geschicklichkeit aus EXP-007 (0,9/0,6/0,2), Havok-Spiele die `SKILLS` aus
- * EXP-006 plus eine Profi-Stufe (schneller planen, genauer zielen).
+ * Wackelturm die Geschicklichkeit aus EXP-007 (0,9/0,6/0,2) mit dem Kippgefühl aus EXP-039
+ * (CHAOS-215), Havok-Spiele die `SKILLS` aus EXP-006 plus eine Profi-Stufe (schneller planen,
+ * genauer zielen).
  */
+import { PAWN_BOT_SKILLS } from '@chaos-party/minigame-kit';
 import { createMinigameRng, type Slot } from '@chaos-party/minigame-sdk';
 import { runMinigameHeadless } from '@chaos-party/minigame-sdk/testing';
 import { KRUEMEL_KEHRAUS_INFO } from '../kruemel-kehraus/info.ts';
@@ -25,9 +27,13 @@ import {
 } from '../prototypes/arcade/kuckucksKlatscheBot.ts';
 import { SockenregenBot } from '../prototypes/arcade/sockenregenBot.ts';
 import type { Strategy as WackelturmStrategy } from '../prototypes/hybrid/common.ts';
-import { playWackelturm } from '../prototypes/hybrid/wackelturm-sim.ts';
+import {
+  KIPPGEFUEHL_BOT_MODEL,
+  playWackelturm,
+  type WackelturmBotModel,
+} from '../prototypes/hybrid/wackelturm-sim.ts';
 import { KRUEMEL_VARIANTS, simulateKruemel } from '../prototypes/physics/experimentKruemel.ts';
-import type { KruemelStrategy } from '../prototypes/physics/kruemelKehrausBot.ts';
+import type { KruemelStrategy } from '../kruemel-kehraus/bot.ts';
 import { createPuddingGerangelPrototype } from '../prototypes/physics/puddingGerangelView.ts';
 import { SKILLS, type BotDecision, type BotSkill } from '../prototypes/physics/shared.ts';
 import { wackelBot } from '../prototypes/physics/wackel.ts';
@@ -46,16 +52,8 @@ const ARCADE_PROFILES: Record<FairnessSkill, BotProfile> = {
 };
 
 /** Havok-Spiele: Profi plant alle 6 Schritte neu, zielt genauer und rempelt gezielter. */
-const PROFI_SKILL: BotSkill = {
-  name: 'profi',
-  replanSteps: 6,
-  noise: 0.12,
-  dashChance: 0.8,
-  aware: true,
-};
-
 const PHYSICS_SKILLS: Record<FairnessSkill, BotSkill> = {
-  profi: PROFI_SKILL,
+  profi: PAWN_BOT_SKILLS.profi,
   normal: SKILLS.normal,
   neuling: SKILLS.weak,
 };
@@ -110,20 +108,40 @@ function playKuckuck(seats: readonly FairnessSeat[], seed: number): FairnessMatc
   return { scores: record.scores, leadChanges: record.leadChanges };
 }
 
-// --- Wackelturm (EXP-007, echte Logik) ---------------------------------------------------
+// --- Wackelturm (EXP-007, echte Logik; Bot-Modell CHAOS-215/EXP-039) -------------------
 
 const WACKELTURM_SKILL: Record<FairnessSkill, number> = { profi: 0.9, normal: 0.6, neuling: 0.2 };
 
-/** Normale Spielweise: „zufällig“ (mal flach, mal hoch stapeln, gelegentlich rempeln). */
-function playWackelturmSeats(seats: readonly FairnessSeat[], seed: number): FairnessMatch {
-  const record = playWackelturm(
-    seats.map((seat) => ({
-      strategy: (seat.strategy ?? 'zufaellig') as WackelturmStrategy,
-      skill: WACKELTURM_SKILL[seat.skill],
-    })),
-    seed,
-  );
-  return { scores: record.scores, leadChanges: record.leadChanges };
+/**
+ * Wackelturm-Harness mit wählbarem Bot-Modell (Kippgefühl), damit EXP-039 Modelle vergleichen
+ * kann. Normale Spielweise: „zufällig“ (mal flach, mal hoch stapeln, gelegentlich rempeln).
+ */
+export function createWackelturmHarness(
+  model: WackelturmBotModel = KIPPGEFUEHL_BOT_MODEL,
+): FairnessHarness {
+  return {
+    id: WACKELTURM_INFO.id,
+    scoring: WACKELTURM_INFO.scoring,
+    intruders: [
+      { id: 'raufbold', label: 'Raufbold (rempelt immer)' },
+      { id: 'gierig', label: 'gierig (7–10 Törtchen)' },
+      { id: 'vorsichtig', label: 'vorsichtig (2–4 Törtchen)' },
+    ] satisfies { id: WackelturmStrategy; label: string }[],
+    ciSeeds: 60,
+    play: (seats, seed) => {
+      const record = playWackelturm(
+        seats.map((seat) => ({
+          strategy: (seat.strategy ?? 'zufaellig') as WackelturmStrategy,
+          skill: WACKELTURM_SKILL[seat.skill],
+        })),
+        seed,
+        undefined,
+        undefined,
+        model,
+      );
+      return { scores: record.scores, leadChanges: record.leadChanges };
+    },
+  };
 }
 
 // --- Pudding-Gerangel (EXP-006, echte Umsetzung mit Havok) ---------------------------------
@@ -209,32 +227,8 @@ export const FAIRNESS_HARNESSES: Readonly<Record<string, FairnessHarness>> = {
     ciSeeds: 60,
     play: playKuckuck,
   },
-  [WACKELTURM_INFO.id]: {
-    id: WACKELTURM_INFO.id,
-    scoring: WACKELTURM_INFO.scoring,
-    intruders: [
-      { id: 'raufbold', label: 'Raufbold (rempelt immer)' },
-      { id: 'gierig', label: 'gierig (7–10 Törtchen)' },
-      { id: 'vorsichtig', label: 'vorsichtig (2–4 Törtchen)' },
-    ] satisfies { id: WackelturmStrategy; label: string }[],
-    ciSeeds: 60,
-    // Messung CHAOS-84, 200 Seeds: Neuling 32 %, Profi 17 % gegen 3× Normal (fair 25 %).
-    exceptions: [
-      {
-        metric: 'maxNoviceWins',
-        value: 0.32,
-        reason:
-          'Schon EXP-007 maß für die gewählte Fassung A6 eine Außenseiter-Quote über fair (31 % bei 4 Spielern); Ruben hat Wackelturm in M3 abgenommen. Ob die Bots (Geschick = Tempo und Lenkung, kaum Gefühl für die Kippgrenze) oder das Spiel die Ursache sind, klärt CHAOS-215.',
-      },
-      {
-        metric: 'minProWins',
-        value: 0.17,
-        reason:
-          'Gegenstück zur Neuling-Quote: Der Profi-Bot stapelt schneller und verliert dadurch öfter den Turm. Bis CHAOS-215 geklärt hat, ob Bot oder Spiel, gilt die Ausnahme wie in EXP-007.',
-      },
-    ],
-    play: playWackelturmSeats,
-  },
+  // Keine Ausnahme mehr: Die alte Neuling-/Profi-Abweichung war ein Bot-Artefakt (CHAOS-215, EXP-039).
+  [WACKELTURM_INFO.id]: createWackelturmHarness(),
   [PUDDING_GERANGEL_INFO.id]: {
     id: PUDDING_GERANGEL_INFO.id,
     scoring: PUDDING_GERANGEL_INFO.scoring,
