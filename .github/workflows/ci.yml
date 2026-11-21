@@ -261,7 +261,7 @@ jobs:
       # Beleg für geänderte Controller-Bildschirme (CHAOS-127): Beispielzustände im Simulator.
       - name: Controller-Screenshots (Simulator)
         if: hashFiles('apps/controller-ios/scripts/screenshots.sh') != ''
-        run: apps/controller-ios/scripts/screenshots.sh minigameConsolation minigameResults minigameVote minigamePractice
+        run: apps/controller-ios/scripts/screenshots.sh minigameConsolation minigameResults minigameVote minigamePractice minigameTeamIntro minigameSoloIntro minigameKoopResults
 
       - name: Controller-Screenshots hochladen
         if: always() && hashFiles('apps/controller-ios/scripts/screenshots.sh') != ''
