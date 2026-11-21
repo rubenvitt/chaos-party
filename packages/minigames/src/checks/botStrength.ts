@@ -1,0 +1,64 @@
+/**
+ * Stärke-Kennzahl der KI-Bots (CHAOS-180, ADR-020 §4): Bot-Partien mit vier KI-Plätzen, zwei
+ * mit der höheren und zwei mit der niedrigeren Stärke, die Sitze wechseln je Seed. Gemessen
+ * wird auf dem **echten** Minispiel-Modul über die Laufzeit (Bots als KI-Plätze, gleicher
+ * Eingang wie Controller), headless.
+ *
+ * Bot gegen Bot ist eine Näherung: Sie zeigt, dass die Stärke wirkt, nicht, wie sich die KI
+ * gegen Menschen anfühlt (CHAOS-183, CHAOS-185).
+ */
+import type { Slot } from '@chaos-party/minigame-sdk';
+import { runMinigameHeadless } from '@chaos-party/minigame-sdk/testing';
+import { getMinigameModule } from '../index.ts';
+
+export interface BotStrengthDuel {
+  readonly id: string;
+  readonly high: number;
+  readonly low: number;
+  readonly seeds: number;
+  /** Siegquote der stärkeren Hälfte (geteilte Siege anteilig). 0,5 = kein Unterschied. */
+  readonly highWins: number;
+  /** Mittlere Punkte je Platz der stärkeren bzw. schwächeren Hälfte. */
+  readonly highScore: number;
+  readonly lowScore: number;
+}
+
+export async function botStrengthDuel(
+  id: string,
+  high: number,
+  low: number,
+  seeds: number,
+): Promise<BotStrengthDuel> {
+  const module = getMinigameModule(id);
+  if (!module) throw new Error(`Minispiel ${id} fehlt`);
+  const slots: readonly Slot[] = [1, 2, 3, 4];
+  let wins = 0;
+  let highTotal = 0;
+  let lowTotal = 0;
+  for (let seed = 1; seed <= seeds; seed++) {
+    const strengths = slots.map((_, index) => ((index + seed) % 2 === 0 ? high : low));
+    const run = await runMinigameHeadless(module, {
+      players: 4,
+      seed,
+      bots: slots.map((slot, index) => ({ slot, strength: strengths[index] ?? low })),
+    });
+    const placements = run.outcome?.result.placements;
+    if (!placements) throw new Error(`${id}: kein Ergebnis (Seed ${seed})`);
+    const isHigh = (slot: Slot) => strengths[slot - 1] === high;
+    const winners = placements.filter((entry) => entry.place === 1);
+    for (const winner of winners) if (isHigh(winner.slot)) wins += 1 / winners.length;
+    for (const entry of placements) {
+      if (isHigh(entry.slot)) highTotal += entry.score;
+      else lowTotal += entry.score;
+    }
+  }
+  return {
+    id,
+    high,
+    low,
+    seeds,
+    highWins: wins / seeds,
+    highScore: highTotal / seeds / 2,
+    lowScore: lowTotal / seeds / 2,
+  };
+}
