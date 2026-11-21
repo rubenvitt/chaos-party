@@ -4,7 +4,13 @@
  */
 import { createMinigameRng } from '@chaos-party/minigame-sdk';
 import { WACKELTURM_INFO } from '../../wackelturm/info.ts';
-import { WackelturmBot, type WackelturmControls } from '../../wackelturm/bot.ts';
+import {
+  EXP007_BOT_MODEL,
+  KIPPGEFUEHL_BOT_MODEL,
+  WackelturmBot,
+  type WackelturmBotModel,
+  type WackelturmControls,
+} from '../../wackelturm/bot.ts';
 import {
   createWackelturm,
   pressBump,
@@ -27,26 +33,31 @@ import {
   type GameRecord,
 } from './common.ts';
 
-export { WackelturmBot } from '../../wackelturm/bot.ts';
+export {
+  EXP007_BOT_MODEL,
+  KIPPGEFUEHL_BOT_MODEL,
+  WackelturmBot,
+  type WackelturmBotModel,
+} from '../../wackelturm/bot.ts';
 
-/** Steuerung direkt auf die Logik, mit Eingabezähler (wie vor CHAOS-180). */
-function directControls(
+/** Steuerung direkt auf die Logik (Bot-Partien), optional mit Eingabezähler. */
+export function directControls(
   state: WackelturmState,
   slot: Runner['slot'],
-  counter: InputCounter,
+  counter?: InputCounter,
 ): WackelturmControls {
   return {
     stick: (x, z) => {
       setStick(state, slot, x, z);
-      counter.stick(x, z);
+      counter?.stick(x, z);
     },
     grab: () => {
       pressGrab(state, slot);
-      counter.press('a');
+      counter?.press('a');
     },
     bump: () => {
       pressBump(state, slot);
-      counter.press('b');
+      counter?.press('b');
     },
   };
 }
@@ -100,13 +111,19 @@ export const WACKELTURM_VARIANTS: readonly WackelturmVariant[] = [
   },
 ];
 
+/**
+ * Konzept für die EXP-007-Tabellen. Spielt bewusst mit dem damaligen Bot-Modell, damit die
+ * Zahlen in `docs/experiments.md` reproduzierbar bleiben; die Fairness-Prüfung (CHAOS-84)
+ * nutzt das Modell aus CHAOS-215.
+ */
 export const WACKELTURM_CONCEPT: Concept<WackelturmParams> = {
   id: 'A',
   title: 'Wackelturm',
   instructions: WACKELTURM_INFO.instructions,
   controls: { joystick: 'Laufen', a: 'Greifen', b: 'Rempeln' },
   durationSeconds: WACKELTURM_INFO.durationMs / 1000,
-  play: (bots, seed, params) => playWackelturm(bots, seed, params),
+  play: (bots, seed, params) =>
+    playWackelturm(bots, seed, params, WACKELTURM_INFO.durationMs / 1000, EXP007_BOT_MODEL),
 };
 
 export function playWackelturm(
@@ -114,12 +131,13 @@ export function playWackelturm(
   seed: number,
   params: WackelturmParams = WACKELTURM_PARAMS,
   seconds = WACKELTURM_INFO.durationMs / 1000,
+  model: WackelturmBotModel = KIPPGEFUEHL_BOT_MODEL,
 ): GameRecord {
   const slots = slotsFor(profiles.length);
   const state = createWackelturm(slots, seconds, params);
   const gameRng = createMinigameRng(seed);
   const bots = profiles.map(
-    (profile, seat) => new WackelturmBot(profile, botRng(seed, seat), seat),
+    (profile, seat) => new WackelturmBot(profile, botRng(seed, seat), seat, model),
   );
   const counters = profiles.map(() => new InputCounter());
   const lead = new LeadTracker();

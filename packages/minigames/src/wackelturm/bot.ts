@@ -34,15 +34,6 @@ export interface WackelturmBotProfile {
   readonly strategy: WackelturmStrategy;
   /** Geschicklichkeit 0–1: Reaktionszeit, Lenkgenauigkeit, Timing, Gefühl für die Kippgrenze. */
   readonly skill: number;
-  /**
-   * Tempo als Anteil der Kippgrenze (`steadyPace`). Fehlt = wie EXP-007 aus `skill`
-   * (√(0,55 + 0,5·(1 − skill)): Geschickte bleiben weit darunter).
-   */
-  readonly pace?: number;
-  /** Ab diesem Wackeln (0–1) bremsen. Fehlt = wie EXP-007 aus `skill` (0,8 − 0,4·skill). */
-  readonly caution?: number;
-  /** Wunschhöhe je Gang [min, max]. Fehlt = aus der Strategie. */
-  readonly heights?: readonly [number, number];
 }
 
 /** Wunschhöhe je Gang nach Strategie (EXP-007). */
@@ -54,17 +45,52 @@ const STRATEGY_HEIGHTS: Readonly<Record<WackelturmStrategy, readonly [number, nu
 };
 
 /**
- * Eckwerte der KI-Stärke (CHAOS-180). Leicht spielt wie der Neuling aus EXP-007 (Geschick 0,2,
- * Wunschhöhe zufällig 1–10, Tempo und Bremsen aus dem Geschick). Schwer ist geschickt (0,9),
- * zielt auf den Turmbonus (5–8 Törtchen), läuft näher an der Kippgrenze und bremst erst bei
- * deutlichem Wackeln. Der Profi aus EXP-007 (Geschick 0,9 mit Wunschhöhe 1–10, Tempo 0,74,
- * Bremsen ab 0,44) verlor gegen den Neuling; das spricht für ein Bot-Problem, nicht für das
- * Spiel (CHAOS-215). Messung und Raster: EXP-039.
+ * Wie ein Bot die Kippgrenze einschätzt (CHAOS-215, EXP-039). Austauschbar, damit Experimente
+ * Bot-Annahmen vergleichen können, ohne die Spielregeln anzufassen.
  */
-export const WACKELTURM_STRENGTH_CORNERS = {
-  leicht: { skill: 0.2, pace: Math.sqrt(0.55 + 0.5 * 0.8), caution: 0.72, heights: [1, 10] },
-  schwer: { skill: 0.9, pace: 0.85, caution: 0.75, heights: [5, 8] },
-} as const;
+export interface WackelturmBotModel {
+  readonly key: string;
+  readonly label: string;
+  /**
+   * Tempo einer Fahrt relativ zur Dauer-Kippgrenze `steadyPace` (1 = genau an der Grenze).
+   * Wird je Fahrt einmal gezogen: So verschätzt sich ein Mensch auch mal für einen Turm.
+   */
+  readonly pace: (skill: number, rng: MinigameRng) => number;
+  /** Ab diesem Wackeln wird scharf gebremst (0 = ruhig, 1 = kippt). */
+  readonly caution: (skill: number) => number;
+}
+
+/**
+ * EXP-007: Geschickte halten viel Abstand zur Kippgrenze (Tempo 0,77 der Grenze bei Geschick
+ * 0,9) und bremsen früh; Ungeschickte laufen fast an der Grenze (0,97) und bremsen spät.
+ * Folge (CHAOS-215): Geschick macht langsamer statt sicherer, weil Kippen selten ist.
+ */
+export const EXP007_BOT_MODEL: WackelturmBotModel = {
+  key: 'K0',
+  label: 'K0: EXP-007 (Geschick = mehr Abstand zur Grenze)',
+  pace: (skill) => Math.sqrt(0.55 + 0.5 * (1 - skill)),
+  caution: (skill) => 0.8 - 0.4 * skill,
+};
+
+/**
+ * CHAOS-215 (EXP-039): Geschick heißt, die Kippgrenze gut zu kennen. Alle laufen im Mittel
+ * knapp darunter (0,89–0,93 der Grenze); Ungeschickte verschätzen sich je Turm stärker
+ * (Streuung 0,4 · (1 − Geschick)), mal zu zaghaft, mal zu forsch. Gebremst wird, wenn es
+ * sichtbar wackelt: Geschickte lesen das Wackeln und bremsen erst spät (0,78 bei Geschick 0,9),
+ * Ungeschickte erschrecken früh (0,60 bei 0,2).
+ */
+export const KIPPGEFUEHL_BOT_MODEL: WackelturmBotModel = {
+  key: 'K3',
+  label: 'K3: Kippgefühl wächst mit Geschick (gewählt)',
+  pace: (skill, rng) => Math.max(0.5, 0.88 + 0.06 * skill + gauss(rng, 0.4 * (1 - skill))),
+  caution: (skill) => 0.55 + 0.25 * skill,
+};
+
+/**
+ * Eckwerte der KI-Stärke (CHAOS-180): Geschick wie Neuling und Profi aus EXP-007, Kippgefühl
+ * nach `KIPPGEFUEHL_BOT_MODEL` (wie die Fairness-Prüfung). Messung: EXP-040.
+ */
+export const WACKELTURM_SKILL_CORNERS = { leicht: 0.2, schwer: 0.9 } as const;
 
 /** Was der Bot tun kann (Bot-Partie: direkt auf die Logik, Laufzeit: Eingaben). */
 export interface WackelturmControls {
@@ -89,6 +115,7 @@ export class WackelturmBot {
   private readonly turnRate: number;
   private readonly caution: number;
   private readonly noise: number;
+  private pace = 1;
   private nextThink = 0;
   private nextPress = 0;
   private wantX = 0;
@@ -104,11 +131,12 @@ export class WackelturmBot {
     private readonly profile: WackelturmBotProfile,
     private readonly rng: MinigameRng,
     private readonly seatIndex: number,
+    private readonly model: WackelturmBotModel = KIPPGEFUEHL_BOT_MODEL,
   ) {
     const { skill } = profile;
     this.reaction = 0.45 - 0.3 * skill;
     this.turnRate = 2 + 10 * skill;
-    this.caution = profile.caution ?? 0.8 - 0.4 * skill;
+    this.caution = model.caution(skill);
     this.noise = (1 - skill) * 0.35;
     this.newTrip();
   }
@@ -119,11 +147,12 @@ export class WackelturmBot {
 
   private newTrip(): void {
     const { rng } = this;
-    const [min, max] = this.profile.heights ?? STRATEGY_HEIGHTS[this.profile.strategy];
+    const [min, max] = STRATEGY_HEIGHTS[this.profile.strategy];
     this.targetHeight = rng.int(min, max);
     const angle = rng.next() * Math.PI * 2;
     const radius = rng.next() * 0.7;
     this.pileOffset = { x: Math.cos(angle) * radius, z: Math.sin(angle) * radius };
+    this.pace = this.model.pace(this.profile.skill, rng);
   }
 
   private bumpChance(): number {
@@ -247,11 +276,10 @@ export class WackelturmBot {
       this.magnitude = 0;
       return;
     }
-    // Gefühl fürs Tempo: Geschickte bleiben mit Abstand unter der Kippgrenze, Ungeschickte
-    // schätzen sie zu hoch ein. Wackelt es sichtbar, wird gebremst.
+    // Gefühl fürs Tempo (Modell, CHAOS-215): wie nah an der Kippgrenze diese Fahrt läuft.
+    // Wackelt es sichtbar, wird gebremst.
     const height = me.stack.length;
-    const feel = this.profile.pace ?? Math.sqrt(0.55 + 0.5 * (1 - skill));
-    let magnitude = Math.min(1, distance / 0.8, steadyPace(height, params) * feel);
+    let magnitude = Math.min(1, distance / 0.8, steadyPace(height, params) * this.pace);
     if (me.wobble > this.caution) magnitude *= 0.25;
     this.steer(dx, dz, magnitude);
   }
@@ -279,20 +307,10 @@ export class WackelturmBot {
   }
 }
 
-/** Bot-Profil eines KI-Platzes zur Stärke `s` (jeder Wert linear zwischen den Eckwerten). */
+/** Bot-Profil eines KI-Platzes zur Stärke `s`. */
 export function wackelturmProfileForStrength(strength: number): WackelturmBotProfile {
-  const { leicht, schwer } = WACKELTURM_STRENGTH_CORNERS;
-  const mix = (a: number, b: number) => lerpStrength(a, b, strength);
-  return {
-    strategy: 'zufaellig',
-    skill: mix(leicht.skill, schwer.skill),
-    pace: mix(leicht.pace, schwer.pace),
-    caution: mix(leicht.caution, schwer.caution),
-    heights: [
-      Math.round(mix(leicht.heights[0], schwer.heights[0])),
-      Math.round(mix(leicht.heights[1], schwer.heights[1])),
-    ],
-  };
+  const { leicht, schwer } = WACKELTURM_SKILL_CORNERS;
+  return { strategy: 'zufaellig', skill: lerpStrength(leicht, schwer, strength) };
 }
 
 /** Laufzeit-Bot für einen KI-Platz (`Minigame.createBot`). */

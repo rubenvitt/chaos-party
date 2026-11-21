@@ -125,7 +125,7 @@ KI-Plätze spielen Minispiele über denselben Weg wie Menschen. Der Vertrag lieg
 
 - **`Minigame.createBot({ slot, strength, rng })` → `{ slot, tick() }`.** Die Laufzeit (`createMinigameRunner`, Option `bots`) erzeugt den Bot beim `start` und ruft `tick()` in jedem festen Schritt vor `update`. Die Eingaben laufen durch den Controller-Eingang (nur laufend, nur Teilnehmer, Achsen begrenzt, kein doppeltes `press`), der Stick höchstens mit 30 Hz wie `moveSender`. Ein Fehler im Bot stoppt nur diesen Platz.
 - **Nur Beobachtbares:** Der Bot liest, was am Bildschirm zu sehen ist. Er ändert den Zustand nie selbst. Beispiel Kuckucks-Klatsche: Der Bot erkennt Rappeln, Öffnen und Gong an den Türen (`KuckuckDoorWatcher`), nicht am versteckten Inhalt.
-- **Stärke** `s` von 0 (leicht) bis 1 (schwer), mittel = 0,5. Jedes Spiel interpoliert zwischen benannten Eckwerten. Mit dem Baukasten heißt das: `profileForStrength(s)` (Neuling … Profi) für Spiele mit `BotProfile`, `pawnSkillForStrength(s)` für Figuren-Spiele mit Havok, eigene Eckwerte nur, wenn die Messung es verlangt (Wackelturm, EXP-039).
+- **Stärke** `s` von 0 (leicht) bis 1 (schwer), mittel = 0,5. Jedes Spiel interpoliert zwischen benannten Eckwerten. Mit dem Baukasten heißt das: `profileForStrength(s)` (Neuling … Profi) für Spiele mit `BotProfile`, `pawnSkillForStrength(s)` für Figuren-Spiele mit Havok, im Wackelturm Geschick 0,2–0,9 mit dem Kippgefühl `KIPPGEFUEHL_BOT_MODEL` (EXP-039, wie in der Fairness-Prüfung).
 - **Zufall:** eigener Strom je Platz (`botSeed(minigameSeed, slot)`), `ctx.rng` bleibt unberührt.
 
 Muster für neue Spiele: `hallo-baukasten/bot.ts` (`createHalloBot` = `kitBotDriver` + `profileForStrength`). Bot-Partien (`runBotMatch`) und KI-Platz nutzen denselben Bot.
@@ -134,11 +134,11 @@ Muster für neue Spiele: `hallo-baukasten/bot.ts` (`createHalloBot` = `kitBotDri
 | --- | --- | --- |
 | Sockenregen | `sockenregen/bot.ts` (aus EXP-005) | `profileForStrength` |
 | Pudding-Gerangel | `pudding-gerangel/bot.ts` (aus EXP-006) | `pawnSkillForStrength` |
-| Wackelturm | `wackelturm/bot.ts` (aus EXP-007) | `WACKELTURM_STRENGTH_CORNERS` (EXP-039) |
+| Wackelturm | `wackelturm/bot.ts` (aus EXP-007, Kippgefühl K3 aus EXP-039) | `WACKELTURM_SKILL_CORNERS` |
 | Kuckucks-Klatsche | `kuckucks-klatsche/bot.ts` (aus EXP-016) | `profileForStrength` |
 | Krümel-Kehraus | `kruemel-kehraus/bot.ts` (aus EXP-023) | `pawnSkillForStrength` |
 
-Stärke-Kennzahl (EXP-039, je zwei KI schwer gegen zwei leicht, Siegquote schwer): Sockenregen 0,97, Pudding-Gerangel 1,00, Wackelturm 0,80, Kuckucks-Klatsche 0,84, Krümel-Kehraus 1,00. Das sind Bot-gegen-Bot-Werte. Wie sich die Stärken gegen Menschen anfühlen, klären CHAOS-183 und Rubens Playtest (CHAOS-185).
+Stärke-Kennzahl (EXP-040, je zwei KI schwer gegen zwei leicht, Siegquote schwer): Sockenregen 0,97, Pudding-Gerangel 1,00, Wackelturm 0,79, Kuckucks-Klatsche 0,84, Krümel-Kehraus 1,00. Das sind Bot-gegen-Bot-Werte. Wie sich die Stärken gegen Menschen anfühlen, klären CHAOS-183 und Rubens Playtest (CHAOS-185).
 
 ## 6. Folgen für den Rest des Spiels
 

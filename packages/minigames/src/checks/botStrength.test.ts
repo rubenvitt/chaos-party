@@ -4,8 +4,8 @@
  * Seeds. Schwer gewinnt mindestens `MIN_HARD_WINS` der Partien und hat im Mittel mehr Punkte.
  * Dazu der Abstand mittel ↔ leicht, damit die Stärke stufenweise wirkt, nicht nur an den Enden.
  *
- * Messung 2026-11-21 (40 Seeds Logik-Spiele, 8 Seeds Havok-Spiele), Siegquote schwer/leicht:
- * Sockenregen 0,97, Pudding-Gerangel 1,00, Wackelturm 0,80, Kuckucks-Klatsche 0,84,
+ * Messung EXP-040 (40 Seeds Logik-Spiele, 8 Seeds Havok-Spiele), Siegquote schwer/leicht:
+ * Sockenregen 0,97, Pudding-Gerangel 1,00, Wackelturm 0,79, Kuckucks-Klatsche 0,84,
  * Krümel-Kehraus 1,00; mittel/leicht 0,63–0,91. Die CI nutzt weniger Seeds (Laufzeit).
  */
 import { BOT_LEVEL_STRENGTH } from '@chaos-party/minigame-sdk';
