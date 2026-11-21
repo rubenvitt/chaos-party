@@ -23,6 +23,7 @@ import {
 } from '@chaos-party/minigame-sdk';
 import type { MinigameModule } from '@chaos-party/minigame-sdk/babylon';
 import { runMinigameHeadless } from '@chaos-party/minigame-sdk/testing';
+import { aim, type PawnBotSkill, type PawnDecision } from '@chaos-party/minigame-kit';
 
 export const STEP = 1 / 60;
 
@@ -241,17 +242,8 @@ export interface Prototype<View extends ProtoView> {
 
 // --- Bots -------------------------------------------------------------------------------
 
-export interface BotSkill {
-  readonly name: string;
-  /** Alle wie viele Schritte neu entscheiden (Reaktionszeit). */
-  readonly replanSteps: number;
-  /** Zielfehler (Bogenmaß-Streuung der Stick-Richtung). */
-  readonly noise: number;
-  /** Wahrscheinlichkeit, einen guten Rempler auch zu nutzen. */
-  readonly dashChance: number;
-  /** Achtet auf Gefahren aus der Umgebung. */
-  readonly aware: boolean;
-}
+/** Seit CHAOS-180 im Baukasten (`PawnBotSkill`), damit die Produkt-Bots ihn ohne Prototyp nutzen. */
+export type BotSkill = PawnBotSkill;
 
 export const SKILLS = {
   normal: { name: 'normal', replanSteps: 10, noise: 0.25, dashChance: 0.6, aware: true },
@@ -265,11 +257,7 @@ export const SKILLS = {
   },
 } as const satisfies Record<string, BotSkill>;
 
-export interface BotDecision {
-  readonly x: number;
-  readonly y: number;
-  readonly dash: boolean;
-}
+export type BotDecision = PawnDecision;
 
 export type BotPolicy<View extends ProtoView> = (
   me: PawnView,
@@ -278,19 +266,8 @@ export type BotPolicy<View extends ProtoView> = (
   rng: MinigameRng,
 ) => BotDecision;
 
-export function aim(
-  dx: number,
-  dz: number,
-  noise: number,
-  rng: MinigameRng,
-  speed = 1,
-): BotDecision {
-  const len = Math.hypot(dx, dz);
-  if (len < 1e-3) return { x: 0, y: 0, dash: false };
-  const angle = Math.atan2(dz, dx) + (rng.next() * 2 - 1) * noise;
-  const s = Math.min(1, speed);
-  return { x: Math.cos(angle) * s, y: Math.sin(angle) * s, dash: false };
-}
+/** Seit CHAOS-180 im Baukasten (gleiche Rechnung, gleiche Zufallsfolge). */
+export { aim };
 
 // --- Messung ----------------------------------------------------------------------------
 
