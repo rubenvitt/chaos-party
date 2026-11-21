@@ -152,6 +152,8 @@ final class HostRuntime: ObservableObject {
         env.setValue(unsafeBitCast(ratingsUnreadable, to: AnyObject.self), forProperty: "ratingsUnreadable")
         if let stored = storage.load() { env.setValue(stored, forProperty: "ratings") }
         hostLog("Stimmen: \(storage.description)")
+        // Sperrliste und Favoriten der Minispiel-Rotation (CHAOS-216).
+        env.setValue(hostStorage(in: context), forProperty: "storage")
         env.setValue(joinUrl, forProperty: "joinUrl")
         env.setValue(code, forProperty: "joinCode")
         env.setValue(deferScene, forProperty: "deferSceneReady")
@@ -346,4 +348,16 @@ final class HostRuntime: ObservableObject {
 
 func percentile(_ sorted: [Double], _ p: Double) -> Double {
     sorted.isEmpty ? 0 : sorted[min(sorted.count - 1, Int(Double(sorted.count) * p))]
+}
+
+/// `env.storage` für den JS-Kern (CHAOS-216): `getItem`/`setItem` auf `UserDefaults`, damit Sperrliste und Favoriten
+/// der Minispiel-Rotation einen Neustart überdauern (am PC `localStorage`). Schlüssel mit Präfix `js.`, damit sie nicht
+/// mit Einstellungen der App kollidieren. `nil` kommt in JS als `undefined` an; der Kern behandelt das wie „nichts da“.
+func hostStorage(in context: JSContext, defaults: UserDefaults = .standard) -> JSValue {
+    let storage = JSValue(newObjectIn: context)!
+    let getItem: @convention(block) (String) -> String? = { key in defaults.string(forKey: "js.\(key)") }
+    let setItem: @convention(block) (String, String) -> Void = { key, value in defaults.set(value, forKey: "js.\(key)") }
+    storage.setValue(unsafeBitCast(getItem, to: AnyObject.self), forProperty: "getItem")
+    storage.setValue(unsafeBitCast(setItem, to: AnyObject.self), forProperty: "setItem")
+    return storage
 }

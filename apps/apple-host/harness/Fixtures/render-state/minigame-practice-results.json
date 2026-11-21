@@ -27,7 +27,43 @@
           "selected": false,
           "random": true
         }
-      ]
+      ],
+      "minigames": [
+        {
+          "id": "sockenregen",
+          "title": "Sockenregen",
+          "blocked": false,
+          "favorite": false
+        },
+        {
+          "id": "pudding-gerangel",
+          "title": "Pudding-Gerangel",
+          "blocked": false,
+          "favorite": false
+        },
+        {
+          "id": "wackelturm",
+          "title": "Wackelturm",
+          "blocked": false,
+          "favorite": false
+        },
+        {
+          "id": "kuckucks-klatsche",
+          "title": "Kuckucks-Klatsche",
+          "blocked": false,
+          "favorite": false
+        },
+        {
+          "id": "kruemel-kehraus",
+          "title": "Krümel-Kehraus",
+          "blocked": false,
+          "favorite": false
+        }
+      ],
+      "minigameSummary": {
+        "short": "5 im Topf",
+        "long": "5 im Topf"
+      }
     },
     "galleryRevision": 3,
     "players": [

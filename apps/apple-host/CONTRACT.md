@@ -24,6 +24,8 @@ interface HostEnv {
   ratings?: string | null;                           // gespeicherte Stimmen-Datei (CHAOS-220), Format wie am Node-Server
   saveRatings?(json: string): void;                  // nach jeder Stimme der ganze neue Dateiinhalt (CHAOS-220)
   ratingsUnreadable?(reason: string): void;          // `ratings` unlesbar: Swift legt die Datei beiseite (CHAOS-220)
+  storage?: { getItem(key: string): string | null;   // überdauert Neustarts (CHAOS-216); Swift: UserDefaults,
+              setItem(key: string, value: string): void }; // Schlüssel mit Präfix „js.“
 }
 interface ChaosHostApi {
   create(env: HostEnv): ChaosHostInstance;
@@ -36,13 +38,16 @@ interface ChaosHostInstance {
   // Zeitgeber, Session-Fristen und 1/60-Schritte der Minispiele
   renderState(): string; // JSON, siehe unten; je Bild nach tick
   hostCommand(cmd: string): void; // 'start' | 'pause' | 'resume' | 'end-game' | 'rematch' | 'configure:…' | 'practice:<id>' | 'skip-finale'
+  //                                 | 'minigame:favorite=<id>' | 'minigame:blocked=<id>' (CHAOS-216)
   sceneReady(): void; // Brett und Figuren geladen → host-ready (CHAOS-68/142)
   gallery(): string; // JSON nach GalleryStateSchema: Minispiel-Galerie mit Daumen (CHAOS-220)
   ratingsExport(): string; // JSON wie /ratings.json am Node-Server (CHAOS-220)
 }
 ```
 
-`configure` (CHAOS-166): `configure:rounds=12`, `configure:moreReactionTime=1` (`0`/`1`/`true`/`false`), `configure:board=wackelwald` (Brett-ID oder `zufall`, CHAOS-197) oder mehreres mit Komma, `configure:rounds=12,moreReactionTime=1`. Runden 1–20; ein unbekanntes Brett lehnt der Server ab (Log „Server-Fehler an Host: bad-message …“). Wirkt nur in der Lobby; außerhalb loggt der Kern „ignoriert: nur in der Lobby“, Ungültiges „Ungültiger Host-Befehl“, gesendet wird dann nichts. Der neue Stand steht im nächsten `renderState().lobby.settings`.
+`configure` (CHAOS-166): `configure:rounds=12`, `configure:moreReactionTime=1` (`0`/`1`/`true`/`false`), `configure:board=wackelwald` (Brett-ID oder `zufall`, CHAOS-197), `configure:minigameBlocklist=wackelturm+sockenregen,minigameFavorites=` (ganze Listen der Minispiel-Rotation, `+` trennt, leer = keine, CHAOS-216) oder mehreres mit Komma, `configure:rounds=12,moreReactionTime=1`. Runden 1–20; ein unbekanntes Brett lehnt der Server ab (Log „Server-Fehler an Host: bad-message …“). Wirkt nur in der Lobby; außerhalb loggt der Kern „ignoriert: nur in der Lobby“, Ungültiges „Ungültiger Host-Befehl“, gesendet wird dann nichts. Der neue Stand steht im nächsten `renderState().lobby.settings`.
+
+Minispiel-Rotation (CHAOS-216, wie der Dialog „Minispiele“ am PC, CHAOS-85): `minigame:favorite=<id>` bzw. `minigame:blocked=<id>` schaltet ein Spiel der Rotation um. Der Kern rechnet den neuen Stand aus dem Server-Stand (`toggleMinigame`: Favorit und Sperre schließen sich aus), speichert ihn in `env.storage` (Schlüssel `chaos-party:minigame-rotation`, JSON `{ blocklist, favorites }`, wie `localStorage` am PC) und schickt ihn als `configure`. Auch ganze Listen per `configure:minigame…` werden gespeichert. Beim ersten Lobby-Stand mit Rotation schickt der Kern den gespeicherten Stand an die frische Session (Log „Minispiel-Rotation aus dem Speicher: …“). Nur in der Lobby; ein Spiel außerhalb der Rotation loggt „ignoriert: Minispiel nicht in der Rotation“. Ohne `env.storage` oder bei kaputtem Inhalt gilt der Stand nur bis zum Beenden.
 
 `practice:<id>` (CHAOS-220): Übungsrunde aus der Galerie, wie „Üben“ am PC-Host (CHAOS-87): `start` mit `practice` an den Server, ein Minispiel ohne Münzen, danach zurück in die Lobby. Nur in der Lobby und nur mit einer Kennung aus `gallery()`; sonst loggt der Kern „ignoriert: nur in der Lobby“ bzw. „ignoriert: Minispiel nicht in der Galerie“, eine Kennung in falscher Form „Ungültiger Host-Befehl“. Ohne verbundenen Controller lehnt der Server ab (`out-of-phase`); die App bietet „Üben“ darum erst ab einem verbundenen Handy an.
 
@@ -66,7 +71,12 @@ interface ChaosHostInstance {
                                   "boards": [ { "id": "wackelwald", "name": "Wackelwald", "detail": "43 Felder",
                                                 "selected": true, "random": false },
                                               { "id": "zufall", "name": "Zufall", "detail": "Überraschung!",
-                                                "selected": false, "random": true } ] } },
+                                                "selected": false, "random": true } ],
+                                  // Rotation in Katalog-Reihenfolge, leer ohne Rotation (CHAOS-216)
+                                  "minigames": [ { "id": "wackelturm", "title": "Wackelturm",
+                                                   "blocked": true, "favorite": false } ],
+                                  "minigameSummary": null | { "short": "4 im Topf · 2 ★ · 1 ⦸",
+                                                              "long": "4 im Topf, 2 Favoriten, 1 gesperrt" } } },
   "board": null | {
     "round": 1, "rounds": 10, "activeSlot": 1 | null,
     "spaces": [{ "id": "s01", "x": 0, "z": 0, "kind": "start" | "coins-plus" | "coins-minus" | "event" | "item" | "trophy" }],

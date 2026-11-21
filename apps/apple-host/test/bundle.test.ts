@@ -6,7 +6,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { getMinigameInfo } from '@chaos-party/minigames/catalog';
+import { ROTATION, getMinigameInfo } from '@chaos-party/minigames/catalog';
 import { HAVOK_WASM_SOURCE, bundle } from '../build.mjs';
 import { RESULT_MARGIN_MS } from '../../host/src/minigame/plan.ts';
 import { RenderStateSchema, type RenderState } from '../src/contract.ts';
@@ -27,6 +27,31 @@ const BOARD_CHOICES = [
   { id: 'frostgipfel', name: 'Frostgipfel', detail: '75 Felder', selected: false, random: false },
   { id: 'zufall', name: 'Zufall', detail: 'Überraschung!', selected: false, random: true },
 ];
+
+/** Minispiele der Rotation in der Lobby (CHAOS-216): Katalog-Reihenfolge, nichts gewählt. */
+const MINIGAMES = ROTATION.map((id) => ({
+  id,
+  title: (getMinigameInfo(id)?.title ?? id).slice(0, 24),
+  blocked: false,
+  favorite: false,
+}));
+const POOL = `${String(ROTATION.length)} im Topf`;
+const ROTATION_SETTINGS = {
+  minigames: MINIGAMES,
+  minigameSummary: { short: POOL, long: POOL },
+};
+
+/** `env.storage` wie `UserDefaults` in Swift (CHAOS-216): eine Map, die den „Neustart“ überdauert. */
+function memoryStorage(initial: Record<string, string> = {}) {
+  const items = new Map(Object.entries(initial));
+  return {
+    items,
+    getItem: (key: string) => items.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      items.set(key, value);
+    },
+  };
+}
 
 describe('Bündel', () => {
   it('lädt im nackten Kontext und setzt nur ChaosHost, ChaosHostInternals und Polyfills', () => {
@@ -69,6 +94,7 @@ describe('Bündel', () => {
         moreReactionTime: false,
         board: 'wackelwald',
         boards: BOARD_CHOICES,
+        ...ROTATION_SETTINGS,
       },
     });
     expect(logs).toContain('Havok geladen');
@@ -160,6 +186,7 @@ describe('Bündel', () => {
       moreReactionTime: false,
       board: 'wackelwald',
       boards: BOARD_CHOICES,
+      ...ROTATION_SETTINGS,
     });
 
     host.hostCommand('configure:rounds=21');
@@ -172,6 +199,121 @@ describe('Bündel', () => {
     expect(logs.filter((line) => PROBLEM_MARKERS.some((m) => line.includes(m)))).toEqual([
       'Server-Fehler an Host: bad-message Unbekanntes Brett: gibt-es-nicht',
     ]);
+  });
+
+  it('schaltet Minispiele um, merkt sie in env.storage und setzt sie nach dem Neustart (CHAOS-216)', async () => {
+    const [first, second, third] = ROTATION;
+    if (first === undefined || second === undefined || third === undefined) {
+      throw new Error('Rotation hat weniger als drei Minispiele');
+    }
+    const storage = memoryStorage();
+    const start = (seed: number, logs: string[]) =>
+      loadBundle(code).api.create({
+        send: () => undefined,
+        close: () => undefined,
+        log: (line) => logs.push(line),
+        randomBytes: seededBytes(seed),
+        havokWasm: wasm,
+        joinUrl: 'http://10.0.0.5:8787/?code=WXYZ',
+        joinCode: 'WXYZ',
+        storage,
+      });
+    const logs: string[] = [];
+    const host = start(21, logs);
+    await settle();
+    const settings = () => RenderStateSchema.parse(JSON.parse(host.renderState())).lobby.settings;
+    const marks = () =>
+      settings()
+        ?.minigames.filter((game) => game.blocked || game.favorite)
+        .map((game) => `${game.id}:${game.blocked ? 'gesperrt' : 'favorit'}`);
+    expect(settings()?.minigames).toEqual(MINIGAMES);
+    expect(storage.items.size).toBe(0);
+
+    host.hostCommand(`minigame:blocked=${first}`);
+    host.hostCommand(`minigame:favorite=${second}`);
+    host.hostCommand(`minigame:favorite=${third}`);
+    await settle();
+    expect(marks()).toEqual([`${first}:gesperrt`, `${second}:favorit`, `${third}:favorit`]);
+    expect(settings()?.minigameSummary?.long).toBe(
+      `${String(ROTATION.length - 1)} im Topf, 2 Favoriten, 1 gesperrt`,
+    );
+
+    // Favorit und Sperre schließen sich aus; zweimal umschalten nimmt es zurück.
+    host.hostCommand(`minigame:blocked=${third}`);
+    host.hostCommand(`minigame:favorite=${second}`);
+    await settle();
+    expect(marks()).toEqual([`${first}:gesperrt`, `${third}:gesperrt`]);
+    expect(JSON.parse(storage.items.get('chaos-party:minigame-rotation') ?? 'null')).toEqual({
+      blocklist: [first, third],
+      favorites: [],
+    });
+
+    // Ganze Listen per configure (Startparameter, Harness) gehen ebenfalls in den Speicher.
+    host.hostCommand(`configure:minigameFavorites=${second}`);
+    await settle();
+    expect(marks()).toEqual([`${first}:gesperrt`, `${second}:favorit`, `${third}:gesperrt`]);
+
+    // Ungültiges und Unbekanntes ändert nichts.
+    host.hostCommand('minigame:blocked=gibt-es-nicht');
+    host.hostCommand('minigame:favorit=sockenregen');
+    await settle();
+    expect(marks()).toEqual([`${first}:gesperrt`, `${second}:favorit`, `${third}:gesperrt`]);
+    expect(logs).toContain(
+      'Host-Befehl minigame:blocked=gibt-es-nicht ignoriert: Minispiel nicht in der Rotation',
+    );
+    expect(logs).toContain('Unbekannter Host-Befehl: minigame:favorit=sockenregen');
+
+    // „Neustart“: neue Instanz, neue Session, gleicher Speicher → derselbe Stand beim Server.
+    const restartLogs: string[] = [];
+    const restarted = start(22, restartLogs);
+    await settle();
+    const after = RenderStateSchema.parse(JSON.parse(restarted.renderState())).lobby.settings;
+    expect(
+      after?.minigames
+        .filter((game) => game.blocked || game.favorite)
+        .map((game) => `${game.id}:${game.blocked ? 'gesperrt' : 'favorit'}`),
+    ).toEqual([`${first}:gesperrt`, `${second}:favorit`, `${third}:gesperrt`]);
+    expect(restartLogs).toContain('Minispiel-Rotation aus dem Speicher: gesperrt 2, Favoriten 1');
+    expect(
+      [...logs, ...restartLogs].filter((line) => PROBLEM_MARKERS.some((m) => line.includes(m))),
+    ).toEqual([]);
+  });
+
+  it('kommt ohne env.storage und mit kaputtem Speicher aus (CHAOS-216)', async () => {
+    const broken = {
+      getItem: () => {
+        throw new Error('gesperrt');
+      },
+      setItem: () => {
+        throw new Error('voll');
+      },
+    };
+    for (const storage of [
+      undefined,
+      broken,
+      memoryStorage({ 'chaos-party:minigame-rotation': '{kaputt' }),
+    ]) {
+      const logs: string[] = [];
+      const host = loadBundle(code).api.create({
+        send: () => undefined,
+        close: () => undefined,
+        log: (line) => logs.push(line),
+        randomBytes: seededBytes(23),
+        havokWasm: wasm,
+        joinUrl: 'http://10.0.0.5:8787/?code=WXYZ',
+        joinCode: 'WXYZ',
+        ...(storage === undefined ? {} : { storage }),
+      });
+      await settle();
+      const [first] = ROTATION;
+      host.hostCommand(`minigame:favorite=${first ?? ''}`);
+      await settle();
+      const settings = RenderStateSchema.parse(JSON.parse(host.renderState())).lobby.settings;
+      expect(settings?.minigames.filter((game) => game.favorite).map((game) => game.id)).toEqual([
+        first,
+      ]);
+      expect(logs.filter((line) => PROBLEM_MARKERS.some((m) => line.includes(m)))).toEqual([]);
+    }
   });
 
   it('spielt mit den Lobby-Einstellungen aus configure; danach geht configure ins Leere', async () => {
@@ -202,6 +344,7 @@ describe('Bündel', () => {
       moreReactionTime: true,
       board: 'wackelwald',
       boards: BOARD_CHOICES,
+      ...ROTATION_SETTINGS,
     });
     expect(lines).toContain('  js: Host-Befehl configure:rounds=4 ignoriert: nur in der Lobby');
   }, 60_000);

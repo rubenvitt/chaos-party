@@ -161,10 +161,13 @@ struct OverlayView: View {
 struct LobbyView: View {
     let overlay: Overlay
     let start: () -> Void
-    /// `hostCommand` für Rundenwahl und Schalter (`LobbySettingsView`, CHAOS-166) und Brett (`BoardChoiceView`, CHAOS-197).
+    /// `hostCommand` für Rundenwahl und Schalter (`LobbySettingsView`, CHAOS-166), Brett (`BoardChoiceView`, CHAOS-197)
+    /// und Minispiele (`MinigameRotationPanel`, CHAOS-216).
     var command: (String) -> Void = { _ in }
     /// Minispiel-Galerie offen (CHAOS-220); sie ersetzt die Lobby, damit der Fokus (tvOS) nicht dahinter landet.
     @State private var galleryOpen = false
+    /// Liste „Minispiele“ offen (CHAOS-216); die Lobby dahinter ist so lange gesperrt (Fokus und Tasten bleiben in der Liste).
+    @State private var showMinigames = false
     #if os(tvOS)
     @Namespace private var focus
     #endif
@@ -186,7 +189,15 @@ struct LobbyView: View {
                                 exportURL: overlay.ratingsExport,
                                 practice: { command("practice:\($0)") }, close: { galleryOpen = false })
         } else {
-            lobby
+            ZStack {
+                lobby.disabled(showMinigames)
+                if showMinigames, let games = overlay.settings?.minigames, !games.isEmpty {
+                    MinigameRotationPanel(games: games, command: command) { showMinigames = false }
+                }
+            }
+            #if os(tvOS)
+            .focusScope(focus)
+            #endif
         }
     }
 
@@ -237,18 +248,18 @@ struct LobbyView: View {
                 LobbySettingsView(settings: overlay.settings, playerCount: players.count, command: command)
                 HStack(spacing: 28) {
                     startButton
+                    MinigameRotationButton(settings: overlay.settings) { showMinigames = true }
                     Text(hint).font(.system(size: 28, weight: .semibold, design: .rounded))
+                        .lineLimit(2).minimumScaleFactor(0.8)
                         .shadow(color: .black.opacity(0.6), radius: 6)
                 }
+                .frame(width: 1068, alignment: .leading)
             }
         }
         .padding(.horizontal, 80)
         .padding(.vertical, 70)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(LinearGradient(colors: [.black.opacity(0.45), .black.opacity(0.05)], startPoint: .leading, endPoint: .trailing))
-        #if os(tvOS)
-        .focusScope(focus)
-        #endif
     }
 
     @ViewBuilder private var startButton: some View {
