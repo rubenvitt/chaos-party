@@ -761,7 +761,7 @@ Automatisch geprüft (Linux-CI): Regeln, Server und Bots (Unit- und Integrations
 
 ## 40. Minispiel-Rotation: Sperrliste, Favoriten, iPad-Zonen (für CHAOS-85)
 
-**Stand:** 2026-11-20 · **Aufgabe:** CHAOS-85
+**Stand:** 2026-11-21 · **Aufgabe:** CHAOS-85, Apple-Host CHAOS-216
 
 Automatisch geprüft: Auswahl ohne Wiederholung, Familien und Kernverben nie direkt hintereinander, Filter für Spielerzahl und iPad-Zonen, Gewichte, letzte Partie (`packages/game-core/src/rules/rotation.test.ts`, 200 Dummy-Steckbriefe); Sperrliste/Favoriten über die Session und die Revanche (`apps/server/src/minigameRotation.integration.test.ts`); Dialog „Minispiele“ am PC per Maus und Escape, lokale Speicherung und erneutes Senden an eine frische Session (`tests/e2e/host-minispiel-rotation.spec.ts`). **Nicht** automatisch prüfbar: ob die Mischung sich am Abend abwechslungsreich anfühlt (bei fünf Spielen kaum sichtbar, erst mit der Pilotwelle CHAOS-91) und die Erkennung eines echten geteilten iPads.
 
@@ -771,6 +771,17 @@ Automatisch geprüft: Auswahl ohne Wiederholung, Familien und Kernverben nie dir
 | RO2 | Partie mit 10 Runden spielen | Das gesperrte Minispiel kommt nicht vor | | |
 | RO3 | Browser schließen, Server neu starten, Host wieder öffnen | Sperre und Favorit sind wieder gesetzt | | |
 | RO4 | Partie mit geteiltem iPad (zwei Zonen) und einem iPhone | Startet normal; alle Minispiele bleiben an den Zonen bedienbar (heute sind alle als iPad-tauglich markiert) | | |
+
+**Apple-Host (CHAOS-216).** Automatisch geprüft: Parser für `minigame:favorite|blocked=<id>` und `configure:minigame…` (`apps/apple-host/test/hostCommand.test.ts`), Umschalten, Speichern in `env.storage` und Wiederherstellen nach „Neustart“ mit frischer Session, ohne und mit kaputtem Speicher (`apps/apple-host/test/bundle.test.ts`), dieselbe Brücke `getItem`/`setItem` aus Swift-Blöcken in JavaScriptCore (`harness/main.swift`, CI-Job „Native Apps“). **Nicht** automatisch geprüft (kein Swift-Build in der Linux-Umgebung, keine UI-Automation): die Liste „Minispiele“ selbst, Fokus mit der Siri Remote und `UserDefaults` über einen echten App-Neustart.
+
+| ID  | Schritt | Erwartung | Ergebnis | Nachweis |
+| --- | ------- | --------- | -------- | -------- |
+| RO5 | Mac-App: in der Lobby S drücken (oder „Minispiele“ klicken), mit ↓/→ ein Spiel wählen, X; ein anderes wählen, F; Esc | Liste öffnet sich über der Lobby, Rand markiert das gewählte Spiel; Knopf zeigt danach „4 im Topf · 1 ★ · 1 ⦸“; Return/←/→/M/B wirken nicht, solange die Liste offen ist | | Foto |
+| RO6 | Mac-App: dasselbe per Maus, dann bei einem Favoriten „⦸ Sperren“ klicken | Klick schaltet um; Sperren nimmt den Favoriten weg (und umgekehrt); gesperrte Titel durchgestrichen | | |
+| RO7 | Mac-App beenden und neu starten (Log: `Minispiel-Rotation aus dem Speicher: gesperrt …, Favoriten …`) | Knopf und Liste zeigen denselben Stand; eine Partie mit 10 Runden enthält das gesperrte Spiel nicht | | Log |
+| RO8 | Apple TV, Siri Remote: Fokus auf „Minispiele“ (rechts vom Startknopf), drücken; ein Spiel sperren, eines als Favorit markieren; Menü-Taste | Fokus springt in die Liste aufs erste Spiel und bleibt darin (die Lobby dahinter ist nicht erreichbar); Menü schließt nur die Liste, die App bleibt offen; Knopf zeigt den neuen Stand | | Foto |
+| RO9 | Apple TV: App ganz beenden (App-Umschalter) und neu öffnen | Sperre und Favorit sind wieder gesetzt | | |
+| RO10 | Apple TV mit 4K: Liste lesen | Schrift aus 3 m lesbar, alle Spiele per Fokus erreichbar (Liste scrollt mit) | | |
 
 ## 41. Rummelplatz: Karussell, Kulisse und Nacht (für CHAOS-199)
 
