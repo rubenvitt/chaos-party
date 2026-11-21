@@ -71,7 +71,7 @@ struct Action: OpenStringEnum {
     static let buttonA: Self = "button-a", buttonB: Self = "button-b"
     static let gesture: Self = "gesture", reaction: Self = "reaction", choose: Self = "choose"
     static let pickCharacter: Self = "pick-character"
-    /// Thumbs up/down after a minigame (CHAOS-87); no UI yet (CHAOS-219).
+    /// Thumbs up/down after a minigame (CHAOS-87; native UI: CHAOS-219).
     static let rate: Self = "rate"
     static let known: [Self] = [
         .ready, .move, .buttonA, .buttonB, .gesture, .reaction, .choose, .pickCharacter, .rate,
@@ -179,6 +179,15 @@ struct MinigameStage: OpenStringEnum {
     init(rawValue: String) { self.rawValue = rawValue }
     static let intro: Self = "intro", play: Self = "play", results: Self = "results"
     static let known: [Self] = [.intro, .play, .results]
+}
+
+/// `VOTES`: thumbs after a minigame (CHAOS-87). Open because it also arrives in
+/// `minigame.vote`; the app only sends `up` and `down`.
+struct Vote: OpenStringEnum {
+    let rawValue: String
+    init(rawValue: String) { self.rawValue = rawValue }
+    static let up: Self = "up", down: Self = "down"
+    static let known: [Self] = [.up, .down]
 }
 
 /// `MINIGAME_TEAM_LAYOUTS` (CHAOS-89): line-up of a team or koop minigame.
@@ -322,6 +331,12 @@ struct ControllerMinigameInfo: Codable, Equatable, Sendable {
     /// `true` = this slot already pressed it. Missing = the intro does not wait (fixed timer,
     /// older servers): no button.
     var ready: Bool?
+    /// v4 addendum (CHAOS-87, optional): practice round from the minigame gallery (no coins,
+    /// back to the lobby afterwards). Missing = `false`.
+    var practice: Bool?
+    /// v4 addendum (CHAOS-87, optional), only in `results`: own thumbs vote for this run.
+    /// Missing = not voted yet. Voting is possible while `actions` contains `rate`.
+    var vote: Vote?
     /// v4 addendum (CHAOS-89, optional): own role in a team or koop minigame. Missing = every
     /// player for themselves (and older servers): no role card, no team outcome.
     var team: ControllerMinigameTeam?
@@ -481,8 +496,9 @@ enum SlotIntent: Equatable, Sendable {
     case reaction(slot: Int, windowId: Int)
     case choose(slot: Int, promptId: Int, option: String)
     case pickCharacter(slot: Int, character: CharacterId)
-    /// Thumbs after a minigame (CHAOS-87): `vote` is `up` or `down` (`VOTES`). No UI yet (CHAOS-219).
-    case rate(slot: Int, minigameId: String, round: Int, vote: String)
+    /// Thumbs after a minigame (CHAOS-87, CHAOS-219): `minigameId` and `round` name the run
+    /// (`minigame.id`, `board.round`); sending again changes the vote.
+    case rate(slot: Int, minigameId: String, round: Int, vote: Vote)
 
     var slot: Int {
         switch self {
@@ -635,7 +651,7 @@ extension ControllerMessage: Codable {
             intent = .rate(
                 slot: slot, minigameId: try c.decode(String.self, forKey: .minigameId),
                 round: try c.decode(Int.self, forKey: .round),
-                vote: try c.decode(String.self, forKey: .vote))
+                vote: try c.decode(Vote.self, forKey: .vote))
         default:
             throw DecodingError.dataCorruptedError(
                 forKey: .type, in: c, debugDescription: "Unbekannter Controller-Typ \(type)")

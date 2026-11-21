@@ -249,6 +249,17 @@ import Testing
         #expect(MinigameIntroReady(minigame: minigame, actions: context.actions, sent: false) == .waiting)
     }
 
+    /// CHAOS-219: a thumb sends `rate` for the run and the vote shows as selected.
+    @Test func thumbSendsRate() throws {
+        let session = FakeControllerSession(.minigamePracticeSample)
+        #expect(session.rate(slot: 1, .down))
+        #expect(session.sent == ["rate 1 pump-race 2 down"])
+        let context = try #require(session.state.contexts[1])
+        let minigame = try #require(context.minigame)
+        #expect(MinigameVoting(minigame: minigame, actions: context.actions, pending: nil).selected == .down)
+        #expect(!FakeControllerSession(.minigameResultsSample).rate(slot: 1, .up))
+    }
+
     @Test func choiceIsSentOncePerPrompt() {
         let session = FakeControllerSession(.rollPromptSample)
         #expect(session.choose(slot: 1, promptId: 7, option: "roll"))
@@ -297,10 +308,59 @@ import Testing
         #expect(try info(prizes: []).prizeText == nil)
     }
 
+    /// CHAOS-87/CHAOS-219: practice round without coin line, lead back to the lobby.
+    @Test func practiceRoundHasNoCoinsAndLeadsToTheLobby() throws {
+        let practice = try #require(ControllerState.minigamePracticeSample.contexts[1]?.minigame)
+        #expect(practice.resultRewardText == nil)
+        #expect(practice.resultLead == "Übungsrunde ohne Münzen – gleich geht’s zurück in die Lobby.")
+        var withZero = practice
+        withZero.reward = 0
+        #expect(withZero.resultRewardText == nil)
+        let normal = try info(reward: 0)
+        #expect(normal.resultRewardText == "Keine Münzen")
+        #expect(normal.resultLead == "Gleich geht’s auf dem Brett weiter.")
+    }
+
     @Test func consolationSampleShowsAPrize() {
         let minigame = ControllerState.minigameConsolationSample.contexts[1]?.minigame
         #expect(minigame?.stage == .results)
         #expect(minigame?.prizeText == "Trostpreis: Falle")
+    }
+}
+
+/// Thumbs after the minigame (CHAOS-87, CHAOS-219; `describeVote` in `minigame/view.ts`).
+@Suite struct MinigameVotingTests {
+    private func results(_ sample: ControllerState) throws -> (ControllerMinigameInfo, [Action]) {
+        let context = try #require(sample.contexts[1])
+        return (try #require(context.minigame), context.actions)
+    }
+
+    @Test func openOnlyWhileRateIsOffered() throws {
+        let (minigame, actions) = try results(.minigameVoteSample)
+        let voting = MinigameVoting(minigame: minigame, actions: actions, pending: nil)
+        #expect(voting.open)
+        #expect(voting.selected == .up)
+        // Older server or pause: no `rate` → no thumbs.
+        #expect(!MinigameVoting(minigame: minigame, actions: [], pending: nil).open)
+        var intro = minigame
+        intro.stage = .intro
+        let introVoting = MinigameVoting(minigame: intro, actions: [.rate], pending: nil)
+        #expect(!introVoting.open)
+        #expect(introVoting.selected == nil)
+    }
+
+    @Test func pendingTapWinsOverTheServerVote() throws {
+        let (minigame, actions) = try results(.minigameVoteSample)
+        #expect(MinigameVoting(minigame: minigame, actions: actions, pending: .down).selected == .down)
+        let (fresh, freshActions) = try results(.minigamePracticeSample)
+        #expect(MinigameVoting(minigame: fresh, actions: freshActions, pending: nil).selected == nil)
+    }
+
+    @Test func textsMatchTheWebController() {
+        #expect(MinigameVoting.question == "Hat’s Spaß gemacht?")
+        #expect(MinigameVoting.options == [.up, .down])
+        #expect(MinigameVoting.options.map(MinigameVoting.symbol) == ["👍", "👎"])
+        #expect(MinigameVoting.options.map(MinigameVoting.label) == ["Daumen hoch", "Daumen runter"])
     }
 }
 

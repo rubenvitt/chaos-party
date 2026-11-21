@@ -362,6 +362,30 @@ enum MinigameIntroReady: Equatable {
     }
 }
 
+/// Thumbs after the minigame (CHAOS-87, CHAOS-219; `describeVote` in `minigame/view.ts`).
+/// Voluntary, nothing waits for it. A tap lights up at once (sent); the server confirms it in
+/// `minigame.vote` with the next context. Changing the vote works while the results show.
+struct MinigameVoting: Equatable {
+    static let question = "Hat’s Spaß gemacht?"
+    /// Order of the buttons: up first, like the web controller.
+    static let options: [Vote] = [.up, .down]
+
+    /// The server offers `rate` right now (results, not paused).
+    let open: Bool
+    /// Own vote: tapped and unconfirmed, else the server's, else `nil`.
+    let selected: Vote?
+
+    init(minigame: ControllerMinigameInfo, actions: [Action], pending: Vote?) {
+        let results = minigame.stage == .results
+        open = results && actions.contains(.rate)
+        selected = pending ?? (results ? minigame.vote : nil)
+    }
+
+    static func symbol(_ vote: Vote) -> String { vote == .down ? "👎" : "👍" }
+    /// Spoken label (`VOTE_LABELS` in `ui/minigame.tsx`).
+    static func label(_ vote: Vote) -> String { vote == .down ? "Daumen runter" : "Daumen hoch" }
+}
+
 struct MinigameCard: View {
     let minigame: ControllerMinigameInfo
     let actions: [Action]
@@ -369,6 +393,8 @@ struct MinigameCard: View {
     /// `SlotContext.key`: a new context releases the local „sent“ lock.
     let contextKey: String
     let onReady: () -> Void
+    /// Thumbs in the results (CHAOS-219).
+    let onVote: (Vote) -> Void
 
     var body: some View {
         ScrollView {
@@ -461,7 +487,7 @@ struct MinigameCard: View {
                 Text("\(score.formatted(.number.locale(Locale(identifier: "de_DE")))) \(minigame.scoreUnit)")
                     .font(.title3.weight(.semibold))
             }
-            if let reward = minigame.rewardText {
+            if let reward = minigame.resultRewardText {
                 HStack(spacing: 8) {
                     GameIcon(name: "coin", size: 28)
                     Text(reward).font(.title3.bold())
@@ -477,12 +503,62 @@ struct MinigameCard: View {
                 }
                 .accessibilityElement(children: .combine)
             }
-            Text("Gleich geht’s auf dem Brett weiter.").font(.body).foregroundStyle(Palette.dim)
+            Text(minigame.resultLead).font(.body).foregroundStyle(Palette.dim)
+                .multilineTextAlignment(.center)
         }
-        Text(lookAtScreen).font(.callout.weight(.semibold)).foregroundStyle(Palette.dim)
+        ResultVoteFooter(minigame: minigame, actions: actions, tint: tint, onVote: onVote)
+            .id(contextKey)
     }
 
     private static let cheers = [1: "Gewonnen!", 2: "Stark gespielt!", 3: "Gut gemacht!", 4: "Nächstes Mal!"]
+}
+
+/// Closing part of the results: thumbs while the server offers `rate`, otherwise the hint to
+/// look at the big screen (like `MinigameResult` in `ui/minigame.tsx`).
+private struct ResultVoteFooter: View {
+    let minigame: ControllerMinigameInfo
+    let actions: [Action]
+    let tint: Tint
+    let onVote: (Vote) -> Void
+    /// Tapped, not yet confirmed by the server.
+    @State private var pending: Vote?
+
+    var body: some View {
+        let voting = MinigameVoting(minigame: minigame, actions: actions, pending: pending)
+        if voting.open {
+            VStack(spacing: 12) {
+                Text(MinigameVoting.question).font(.title3.bold())
+                HStack(spacing: 20) {
+                    ForEach(MinigameVoting.options, id: \.self) { vote in
+                        thumb(vote, selected: voting.selected == vote)
+                    }
+                }
+            }
+            .padding(.top, 4)
+            .sensoryFeedback(.selection, trigger: pending)
+        } else {
+            Text(lookAtScreen).font(.callout.weight(.semibold)).foregroundStyle(Palette.dim)
+        }
+    }
+
+    private func thumb(_ vote: Vote, selected: Bool) -> some View {
+        SwiftUI.Button {
+            pending = vote
+            onVote(vote)
+        } label: {
+            Text(MinigameVoting.symbol(vote))
+                .font(.system(size: 44))
+                .frame(width: 96, height: 96)
+                .background(Circle().fill(selected ? tint.color : Palette.glassStrong))
+                .overlay(
+                    Circle().strokeBorder(selected ? Palette.ink : Palette.line, lineWidth: selected ? 3 : 1))
+                .scaleEffect(selected ? 1.06 : 1)
+                .animation(.easeOut(duration: 0.15), value: selected)
+        }
+        .buttonStyle(PressStyle())
+        .accessibilityLabel(MinigameVoting.label(vote))
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
 }
 
 /// Closing line of the intro: fixed text, „Bereit!“ button or waiting note (CHAOS-214).
@@ -543,6 +619,16 @@ extension ControllerMinigameInfo {
         default: "+\(reward) Münzen"
         }
     }
+
+    static let resultsLead = "Gleich geht’s auf dem Brett weiter."
+    /// Practice round from the gallery (CHAOS-87, `PRACTICE_LEAD` in `minigame/view.ts`).
+    static let practiceLead = "Übungsrunde ohne Münzen – gleich geht’s zurück in die Lobby."
+
+    /// Line under the result: board, or back to the lobby after a practice round.
+    var resultLead: String { practice == true ? Self.practiceLead : Self.resultsLead }
+
+    /// Coin line of the result: none in a practice round, not even „Keine Münzen“ (CHAOS-87).
+    var resultRewardText: String? { practice == true ? nil : rewardText }
 
     /// Consolation prize line as in the web controller (`ui/minigame.tsx`, CHAOS-51):
     /// „Trostpreis: Falle“, several items comma-separated; `nil` when there is none.
