@@ -356,6 +356,30 @@ final class Harness {
         #expect(h.socket.types.filter { $0 == "choose" }.count == 2)
     }
 
+    /// CHAOS-219: thumbs only while the results offer `rate`; `minigameId` and `round` come
+    /// from the context, sending again changes the vote.
+    @Test func rateOnlyWhileOfferedAndCarriesTheRun() {
+        let h = Harness()
+        h.joined()
+        #expect(!h.session.rate(slot: 1, .up))
+        h.socket.receive(Msg.results(actions: []))
+        #expect(!h.session.rate(slot: 1, .up))
+        h.socket.receive(Msg.results(round: 4))
+        #expect(h.session.rate(slot: 1, .up))
+        #expect(h.session.rate(slot: 1, .down))
+        #expect(!h.session.rate(slot: 2, .up))
+        #expect(
+            h.socket.messages.suffix(2)
+                == [
+                    .intent(.rate(slot: 1, minigameId: "pump-race", round: 4, vote: .up), seq: 1),
+                    .intent(.rate(slot: 1, minigameId: "pump-race", round: 4, vote: .down), seq: 2),
+                ])
+        h.socket.receive(Msg.results(round: 4, vote: .down))
+        #expect(h.state.contexts[1]?.minigame?.vote == .down)
+        h.socket.drop()
+        #expect(!h.session.rate(slot: 1, .up))
+    }
+
     @Test func chooseWithoutConnectionLocksNothing() {
         let h = Harness()
         h.joined()

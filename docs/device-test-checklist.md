@@ -794,7 +794,9 @@ Automatisch geprüft (Mac): Regeln und Validierung (Unit- und Integrationstests,
 
 **Seit CHAOS-228 (2026-11-21):** Galerie und Rotations-Dialog (§40) sind eine Ansicht hinter dem Lobby-Knopf „Minispiele ›“; je Spiel der Rotation stehen „★ Favorit“ und „⦸ Sperren“ neben den Daumen, der Rauswurf-Vorschlag hat einen eigenen Sperren-Knopf.
 
-Automatisch geprüft (Linux): Übungsrunde in game-core (ohne Münzen, Siege, Items; Ende nach dem Ergebnis), Session (Übungsstart, Daumen nur in der Ergebnisanzeige, Umentscheiden ersetzt, Rückweg zum Brett bzw. in die Lobby genauso schnell mit und ohne Stimmen), Stimmen-Datei und Export `/ratings.json`, E2E: „Minispiele“ öffnen → Sockenregen üben → Ergebnis → Daumen am iPhone (Chromium-Emulation) → dieselbe Ansicht zeigt die Stimme → dort sperren → nächste Partie führt es als gesperrt; Rauswurf-Vorschlag sperrt erst auf Klick (`tests/e2e/minispiel-galerie.spec.ts`, `tests/e2e/host-minispiel-rotation.spec.ts`). **Nicht** automatisch geprüft: Tippen auf echtem iOS, Lesbarkeit am Fernseher, Datei nach Server-Neustart auf Rubens PC. **Noch nicht umgesetzt:** Daumen in den iPad-Zonen und in der nativen Controller-App, Galerie am Apple-Host (eigene Folgeaufgaben); dort fehlen die Knöpfe, alles andere läuft wie bisher.
+Automatisch geprüft (Linux): Übungsrunde in game-core (ohne Münzen, Siege, Items; Ende nach dem Ergebnis), Session (Übungsstart, Daumen nur in der Ergebnisanzeige, Umentscheiden ersetzt, Rückweg zum Brett bzw. in die Lobby genauso schnell mit und ohne Stimmen), Stimmen-Datei und Export `/ratings.json`, E2E: „Minispiele“ öffnen → Sockenregen üben → Ergebnis → Daumen am iPhone (Chromium-Emulation) → dieselbe Ansicht zeigt die Stimme → dort sperren → nächste Partie führt es als gesperrt; Rauswurf-Vorschlag sperrt erst auf Klick (`tests/e2e/minispiel-galerie.spec.ts`, `tests/e2e/host-minispiel-rotation.spec.ts`). **Nicht** automatisch geprüft: Tippen auf echtem iOS, Lesbarkeit am Fernseher, Datei nach Server-Neustart auf Rubens PC. **Noch nicht umgesetzt:** Daumen in den iPad-Zonen (CHAOS-218), Galerie am Apple-Host (CHAOS-220); dort fehlen die Knöpfe, alles andere läuft wie bisher.
+
+**Nachtrag 2026-11-21 (CHAOS-219):** Die native Controller-App zeigt die Daumen jetzt auch (Schritte GA10–GA14). Automatisch geprüft nur in der macOS-CI („Native Apps“): Kodierung von `rate` gegen die Fixtures aus dem TS-Parser, Sitzung (nur gesendet, solange `rate` angeboten wird; Lauf aus `minigame.id` und `board.round`), Ergebnis-Logik (Übungsrunde ohne Münzzeile, Hinweis auf die Lobby) und Screenshots `minigameVote`/`minigamePractice`. **Nicht** geprüft: Tippen am echten iPhone, Haptik, Lesbarkeit.
 
 | ID  | Schritt | Erwartung | Ergebnis | Nachweis |
 | --- | ------- | --------- | -------- | -------- |
@@ -808,6 +810,11 @@ Automatisch geprüft (Linux): Übungsrunde in game-core (ohne Münzen, Siege, It
 | GA7 | „Stimmen exportieren“ | Browser lädt `minispiel-stimmen-<Datum>.json` mit allen Spielen und Einzelstimmen | | Datei |
 | GA8 | Server beenden und neu starten (`pnpm play`), Galerie öffnen | Stimmen sind noch da (Datei `~/.chaos-party/minispiel-stimmen.json`, Pfad steht beim Start im Terminal) | | |
 | GA9 | Ruben: Urteil | Sind die Daumen am Handy schnell genug erreichbar? Schwelle für den Rauswurf-Vorschlag (6 Stimmen, ≥ 60 % runter) sinnvoll? | | Kommentar an CHAOS-87 |
+| GA10 | Native App (TestFlight-Build mit CHAOS-219) verbinden, in der Galerie „Üben“, Spiel zu Ende spielen | App zeigt Platz und Punkte, **keine** Münzzeile, „Übungsrunde ohne Münzen – gleich geht’s zurück in die Lobby.“, darunter „Hat’s Spaß gemacht?“ mit 👍/👎 | | Foto |
+| GA11 | In der App 👍 tippen, dann 👎 | Gewählter Daumen leuchtet sofort in Spielerfarbe und ist etwas größer, kurze Haptik; Umentscheiden geht; danach zurück in der Lobby | | |
+| GA12 | Galerie am PC öffnen | Stimme aus der App zählt mit (👎 für dieses Spiel) | | |
+| GA13 | Echte Partie mit App und Browser-Handy gemischt, nach einem Minispiel in beiden abstimmen | App zeigt Münzzeile und „Gleich geht’s auf dem Brett weiter.“ plus Daumen; beide Stimmen landen in der Galerie; das Brett geht ohne Warten weiter | | |
+| GA14 | Pause am Host während der Ergebnisanzeige | Daumen verschwinden, stattdessen „Schau auf den großen Bildschirm!“; nach dem Fortsetzen wieder da, die abgegebene Stimme bleibt markiert | | |
 
 ## 43. Frostgipfel: Eis, Seilbahn, Lawinen und Winterkulisse (für CHAOS-198)
 

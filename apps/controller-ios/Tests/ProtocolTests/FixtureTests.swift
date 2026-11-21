@@ -138,6 +138,52 @@ private func jsonObject(_ data: Data) throws -> NSDictionary {
         #expect(try context("context-minigame-intro.json")?.minigame?.ready == nil)
     }
 
+    /// v4 addendum (CHAOS-87, CHAOS-219): results offer `rate`, carry the own `vote` and mark a
+    /// practice round; older results contexts have neither.
+    @Test func minigameVoteAndPracticeAreDecoded() throws {
+        func context(_ name: String) throws -> Context? {
+            guard case .context(let context) = try ServerMessage.decode(try Fixtures.text("server-to-controller", name))
+            else { return nil }
+            return context
+        }
+        let voted = try #require(try context("context-minigame-results-vote.json"))
+        #expect(voted.actions == [.rate])
+        #expect(voted.minigame?.vote == .down)
+        #expect(voted.minigame?.practice == nil)
+
+        let practice = try #require(try context("context-minigame-results-practice.json"))
+        #expect(practice.actions == [.rate])
+        #expect(practice.minigame?.practice == true)
+        #expect(practice.minigame?.vote == nil)
+        #expect(practice.minigame?.reward == nil)
+
+        let old = try #require(try context("context-minigame-results.json"))
+        #expect(old.minigame?.vote == nil && old.minigame?.practice == nil)
+    }
+
+    /// CHAOS-219: `rate` encodes exactly like `RateMessageSchema` (fixtures from the TS parser).
+    @Test func rateEncodesLikeTheSchema() throws {
+        let cases: [(String, ControllerMessage)] = [
+            ("rate.json", .intent(.rate(slot: 1, minigameId: "sockenregen", round: 2, vote: .up), seq: 10)),
+            ("rate-down.json", .intent(.rate(slot: 1, minigameId: "pump-race", round: 1, vote: .down), seq: 11)),
+        ]
+        for (name, message) in cases {
+            let fixture = Data(try Fixtures.text("controller-to-server", name).utf8)
+            let encoded = Data(try message.encoded().utf8)
+            #expect(try jsonObject(encoded) == jsonObject(fixture), "\(name)")
+            #expect(try JSONDecoder().decode(ControllerMessage.self, from: fixture) == message)
+        }
+        let text = try ControllerMessage.intent(
+            .rate(slot: 2, minigameId: "pump-race", round: 3, vote: .up), seq: 4
+        ).encoded()
+        let object = try #require(try JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any])
+        #expect(object["type"] as? String == "rate")
+        #expect(object["vote"] as? String == "up")
+        #expect(object["round"] as? Int == 3)
+        #expect(object["v"] as? Int == ProtocolConstants.version)
+        #expect(Set(object.keys) == ["v", "type", "slot", "seq", "minigameId", "round", "vote"])
+    }
+
     @Test func enumsMatchProtocolConstants() throws {
         let data = Data(try Fixtures.text(".", "protocol-constants.json").utf8)
         let constants = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
@@ -155,6 +201,7 @@ private func jsonObject(_ data: Data) throws -> NSDictionary {
             "minigameStages": MinigameStage.known.map(\.rawValue),
             "buttons": Button.allCases.map(\.rawValue),
             "gestureKinds": GestureKind.allCases.map(\.rawValue),
+            "votes": Vote.known.map(\.rawValue),
         ]
         #expect(Set(enums.keys) == Set(swift.keys))
         for (key, values) in swift { #expect(enums[key] == values, "\(key)") }
