@@ -763,7 +763,7 @@ Automatisch geprüft (Linux-CI): Regeln, Server und Bots (Unit- und Integrations
 
 **Stand:** 2026-11-20 · **Aufgabe:** CHAOS-85
 
-Automatisch geprüft: Auswahl ohne Wiederholung, Familien und Kernverben nie direkt hintereinander, Filter für Spielerzahl und iPad-Zonen, Gewichte, letzte Partie (`packages/game-core/src/rules/rotation.test.ts`, 200 Dummy-Steckbriefe); Sperrliste/Favoriten über die Session und die Revanche (`apps/server/src/minigameRotation.integration.test.ts`); Dialog „Minispiele“ am PC per Maus und Escape, lokale Speicherung und erneutes Senden an eine frische Session (`tests/e2e/host-minispiel-rotation.spec.ts`). **Nicht** automatisch prüfbar: ob die Mischung sich am Abend abwechslungsreich anfühlt (bei fünf Spielen kaum sichtbar, erst mit der Pilotwelle CHAOS-91) und die Erkennung eines echten geteilten iPads.
+Automatisch geprüft: Auswahl ohne Wiederholung, Familien und Kernverben nie direkt hintereinander, Filter für Spielerzahl und iPad-Zonen, Gewichte, letzte Partie (`packages/game-core/src/rules/rotation.test.ts`, 200 Dummy-Steckbriefe); Sperrliste/Favoriten über die Session und die Revanche (`apps/server/src/minigameRotation.integration.test.ts`); Dialog „Minispiele“ am PC per Maus und Escape, lokale Speicherung und erneutes Senden an eine frische Session (`tests/e2e/host-minispiel-rotation.spec.ts`; seit CHAOS-228 in derselben Ansicht wie die Galerie, §42). **Nicht** automatisch prüfbar: ob die Mischung sich am Abend abwechslungsreich anfühlt (bei fünf Spielen kaum sichtbar, erst mit der Pilotwelle CHAOS-91) und die Erkennung eines echten geteilten iPads.
 
 | ID  | Schritt | Erwartung | Ergebnis | Nachweis |
 | --- | ------- | --------- | -------- | -------- |
@@ -792,15 +792,18 @@ Automatisch geprüft (Mac): Regeln und Validierung (Unit- und Integrationstests,
 
 **Stand:** 2026-11-20 · **Aufgabe:** CHAOS-87 · **Protokoll:** v4-Nachtrag CHAOS-87 (`start.practice`, `rate`, `ratings`)
 
-Automatisch geprüft (Linux): Übungsrunde in game-core (ohne Münzen, Siege, Items; Ende nach dem Ergebnis), Session (Übungsstart, Daumen nur in der Ergebnisanzeige, Umentscheiden ersetzt, Rückweg zum Brett bzw. in die Lobby genauso schnell mit und ohne Stimmen), Stimmen-Datei und Export `/ratings.json`, E2E: Galerie öffnen → Pump-Parade üben → Ergebnis → Daumen am iPhone (Chromium-Emulation) → Galerie zeigt die Stimme. **Nicht** automatisch geprüft: Tippen auf echtem iOS, Lesbarkeit am Fernseher, Datei nach Server-Neustart auf Rubens PC. **Noch nicht umgesetzt:** Daumen in den iPad-Zonen und in der nativen Controller-App, Galerie am Apple-Host (eigene Folgeaufgaben); dort fehlen die Knöpfe, alles andere läuft wie bisher.
+**Seit CHAOS-228 (2026-11-21):** Galerie und Rotations-Dialog (§40) sind eine Ansicht hinter dem Lobby-Knopf „Minispiele ›“; je Spiel der Rotation stehen „★ Favorit“ und „⦸ Sperren“ neben den Daumen, der Rauswurf-Vorschlag hat einen eigenen Sperren-Knopf.
+
+Automatisch geprüft (Linux): Übungsrunde in game-core (ohne Münzen, Siege, Items; Ende nach dem Ergebnis), Session (Übungsstart, Daumen nur in der Ergebnisanzeige, Umentscheiden ersetzt, Rückweg zum Brett bzw. in die Lobby genauso schnell mit und ohne Stimmen), Stimmen-Datei und Export `/ratings.json`, E2E: „Minispiele“ öffnen → Sockenregen üben → Ergebnis → Daumen am iPhone (Chromium-Emulation) → dieselbe Ansicht zeigt die Stimme → dort sperren → nächste Partie führt es als gesperrt; Rauswurf-Vorschlag sperrt erst auf Klick (`tests/e2e/minispiel-galerie.spec.ts`, `tests/e2e/host-minispiel-rotation.spec.ts`). **Nicht** automatisch geprüft: Tippen auf echtem iOS, Lesbarkeit am Fernseher, Datei nach Server-Neustart auf Rubens PC. **Noch nicht umgesetzt:** Daumen in den iPad-Zonen und in der nativen Controller-App, Galerie am Apple-Host (eigene Folgeaufgaben); dort fehlen die Knöpfe, alles andere läuft wie bisher.
 
 | ID  | Schritt | Erwartung | Ergebnis | Nachweis |
 | --- | ------- | --------- | -------- | -------- |
-| GA1 | PC: `pnpm play`, Lobby, „Minispiel-Galerie“ | Alle Minispiele mit Status (Rotation/Spielbar), Kategorie, Spielzeit, Bedienung und Daumen; Liste scrollt, Escape schließt | | Foto |
+| GA1 | PC: `pnpm play`, Lobby, „Minispiele ›“ | Alle Minispiele mit Status (Rotation/Spielbar), Kategorie, Spielzeit, Bedienung und Daumen, Spiele der Rotation mit „Favorit“ und „Sperren“; Karte passt auf den Bildschirm, Liste scrollt, Escape schließt | | Foto |
 | GA2 | Ein iPhone verbinden (nicht bereit), in der Galerie „Üben“ bei einem Spiel, am Handy „Bereit!“ | Gleich die Anleitung dieses Spiels, kein Brettzug; auch gesperrte Spiele lassen sich üben; Handy zeigt Anleitung, dann Joystick/Knöpfe | | |
 | GA3 | Spiel zu Ende spielen | PC: Ergebnis ohne Münzspalte, Hinweis „Übungsrunde – keine Münzen“; iPhone: Platz, kein „Keine Münzen“, Frage „Hat’s Spaß gemacht?“ mit 👍/👎 | | Foto |
 | GA4 | 👍 tippen, dann 👎 | Gewählter Daumen leuchtet in Spielerfarbe sofort; Umentscheiden geht; nach ~6 s ohne Warten zurück in der Lobby | | |
-| GA5 | Galerie erneut öffnen | Spiel zeigt 👍 0 · 👎 1 („1 Stimme“) | | |
+| GA5 | „Minispiele ›“ erneut öffnen | Spiel zeigt 👍 0 · 👎 1 („1 Stimme“) | | |
+| GA5a | Im selben Dialog „Sperren“ beim geübten Spiel (falls Rotation), „Fertig“ | Zeile durchgestrichen mit „Gesperrt“; Lobby-Knopf zeigt „… · 1 ⦸“; die nächste Partie zieht das Spiel nicht | | |
 | GA6 | Echte Partie, nach einem Minispiel 👍 am Handy | Stimme zählt in der Galerie dazu; das Brett geht nach dem Ergebnis genauso schnell weiter wie ohne Stimme | | |
 | GA7 | „Stimmen exportieren“ | Browser lädt `minispiel-stimmen-<Datum>.json` mit allen Spielen und Einzelstimmen | | Datei |
 | GA8 | Server beenden und neu starten (`pnpm play`), Galerie öffnen | Stimmen sind noch da (Datei `~/.chaos-party/minispiel-stimmen.json`, Pfad steht beim Start im Terminal) | | |

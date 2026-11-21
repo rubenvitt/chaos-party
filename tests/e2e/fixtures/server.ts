@@ -65,7 +65,13 @@ function isAddressInUse(error: unknown): boolean {
  * Prozess den Port in der Zwischenzeit, wird mit einem neuen Port wiederholt.
  */
 export async function startChaosServer(
-  options: { joinCode?: string; withJoinUrl?: boolean; game?: ChaosServerOptions['game'] } = {},
+  options: {
+    joinCode?: string;
+    withJoinUrl?: boolean;
+    game?: ChaosServerOptions['game'];
+    /** Vorbelegte Daumen-Stimmen (CHAOS-87), z. B. für den Rauswurf-Vorschlag. */
+    ratings?: ChaosServerOptions['ratings'];
+  } = {},
 ): Promise<RunningServer> {
   const joinCode = options.joinCode ?? E2E_JOIN_CODE;
   for (let attempt = 1; ; attempt++) {
@@ -78,6 +84,7 @@ export async function startChaosServer(
       joinCode,
       joinUrl: options.withJoinUrl === false ? undefined : joinUrl,
       game: { seed: E2E_GAME_SEED, ...options.game },
+      ratings: options.ratings,
     });
     try {
       await server.listen(port, '127.0.0.1');

@@ -1,6 +1,7 @@
 /**
- * Minispiel-Galerie in der PC-Lobby (CHAOS-87): reine Ableitung der Zeilen aus Katalog und
- * Daumen-Übersicht des Servers. Ohne React, unit-getestet.
+ * Minispiel-Galerie in der PC-Lobby (CHAOS-87, seit CHAOS-228 auch Favoriten und Sperrliste der
+ * Rotation aus CHAOS-85): reine Ableitung der Zeilen aus Katalog, Daumen-Übersicht und
+ * Rotations-Stand des Servers. Ohne React, unit-getestet.
  */
 import {
   GALLERY_STATUS_LABELS,
@@ -10,7 +11,7 @@ import {
   type GalleryStatus,
 } from '@chaos-party/minigames/gallery';
 import type { MinigameCategory } from '@chaos-party/minigame-sdk';
-import type { MinigameRating } from '@chaos-party/protocol';
+import type { LobbyMinigame, MinigameRating } from '@chaos-party/protocol';
 
 export const CATEGORY_LABELS: Readonly<Record<MinigameCategory, string>> = {
   arcade: 'Arcade',
@@ -32,17 +33,29 @@ export interface GalleryRow {
   readonly seconds: number;
   readonly up: number;
   readonly down: number;
-  /** Rotation, genug Stimmen, überwiegend Daumen runter: Rauswurf vorschlagen (Ruben entscheidet). */
+  /**
+   * Favorit/Sperre, wenn der Server das Spiel in seiner Rotation führt (`lobby.settings.minigames`);
+   * sonst `null` (nur „spielbar“ oder alter Server): dann gibt es nichts umzuschalten.
+   */
+  readonly pick: { readonly blocked: boolean; readonly favorite: boolean } | null;
+  /**
+   * Rotation, genug Stimmen, überwiegend Daumen runter und noch nicht gesperrt: Rauswurf
+   * vorschlagen. Sperren geht mit einem Klick, aber nur durch Ruben (nichts automatisch).
+   */
   readonly suggestRemoval: boolean;
 }
 
 export function galleryRows(
   ratings: readonly MinigameRating[],
+  rotation: readonly LobbyMinigame[] = [],
   entries: readonly GalleryEntry[] = galleryEntries(),
 ): GalleryRow[] {
   const byId = new Map(ratings.map((rating) => [rating.id, rating]));
+  const picks = new Map(rotation.map((game) => [game.id, game]));
   return entries.map((entry) => {
     const rating = byId.get(entry.info.id) ?? { up: 0, down: 0 };
+    const game = picks.get(entry.info.id);
+    const pick = game === undefined ? null : { blocked: game.blocked, favorite: game.favorite };
     return {
       id: entry.info.id,
       title: entry.info.title,
@@ -55,7 +68,9 @@ export function galleryRows(
       seconds: Math.round(entry.info.durationMs / 1000),
       up: rating.up,
       down: rating.down,
-      suggestRemoval: entry.status === 'rotation' && suggestsRemoval(rating),
+      pick,
+      suggestRemoval:
+        entry.status === 'rotation' && pick?.blocked !== true && suggestsRemoval(rating),
     };
   });
 }
@@ -65,4 +80,13 @@ export function votesText(row: Pick<GalleryRow, 'up' | 'down'>): string {
   const total = row.up + row.down;
   if (total === 0) return 'Noch keine Stimmen';
   return total === 1 ? '1 Stimme' : `${String(total)} Stimmen`;
+}
+
+/** Knopf „Minispiele“ ohne Rotation vom Server: nur die Zahl der startbaren Spiele. */
+export function galleryCountSummary(entries: readonly GalleryEntry[] = galleryEntries()): {
+  readonly short: string;
+  readonly long: string;
+} {
+  const text = entries.length === 1 ? '1 Spiel' : `${String(entries.length)} Spiele`;
+  return { short: text, long: text };
 }
