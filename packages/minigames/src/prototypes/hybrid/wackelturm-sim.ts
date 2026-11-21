@@ -33,12 +33,55 @@ import {
   type GameRecord,
 } from './common.ts';
 
+/**
+ * Wie ein Bot die Kippgrenze einschätzt (CHAOS-215). Austauschbar, damit das Experiment
+ * Bot-Annahmen vergleichen kann, ohne die Spielregeln anzufassen.
+ */
+export interface WackelturmBotModel {
+  readonly key: string;
+  readonly label: string;
+  /**
+   * Tempo einer Fahrt relativ zur Dauer-Kippgrenze `steadyPace` (1 = genau an der Grenze).
+   * Wird je Fahrt einmal gezogen: So verschätzt sich ein Mensch auch mal für einen Turm.
+   */
+  readonly pace: (skill: number, rng: MinigameRng) => number;
+  /** Ab diesem Wackeln wird scharf gebremst (0 = ruhig, 1 = kippt). */
+  readonly caution: (skill: number) => number;
+}
+
+/**
+ * EXP-007: Geschickte halten viel Abstand zur Kippgrenze (Tempo 0,77 der Grenze bei Geschick
+ * 0,9) und bremsen früh; Ungeschickte laufen fast an der Grenze (0,97) und bremsen spät.
+ * Folge (CHAOS-215): Geschick macht langsamer statt sicherer, weil Kippen selten ist.
+ */
+export const EXP007_BOT_MODEL: WackelturmBotModel = {
+  key: 'K0',
+  label: 'K0: EXP-007 (Geschick = mehr Abstand zur Grenze)',
+  pace: (skill) => Math.sqrt(0.55 + 0.5 * (1 - skill)),
+  caution: (skill) => 0.8 - 0.4 * skill,
+};
+
+/**
+ * CHAOS-215 (EXP-039): Geschick heißt, die Kippgrenze gut zu kennen. Alle laufen im Mittel
+ * knapp darunter (0,89–0,93 der Grenze); Ungeschickte verschätzen sich je Turm stärker
+ * (Streuung 0,4 · (1 − Geschick)), mal zu zaghaft, mal zu forsch. Gebremst wird, wenn es
+ * sichtbar wackelt: Geschickte lesen das Wackeln und bremsen erst spät (0,78 bei Geschick 0,9),
+ * Ungeschickte erschrecken früh (0,60 bei 0,2).
+ */
+export const KIPPGEFUEHL_BOT_MODEL: WackelturmBotModel = {
+  key: 'K3',
+  label: 'K3: Kippgefühl wächst mit Geschick (gewählt)',
+  pace: (skill, rng) => Math.max(0.5, 0.88 + 0.06 * skill + gauss(rng, 0.4 * (1 - skill))),
+  caution: (skill) => 0.55 + 0.25 * skill,
+};
+
 /** Bot für den Wackelturm: plant im Takt seiner Reaktionszeit, lenkt mit begrenzter Drehrate. */
 export class WackelturmBot {
   private readonly reaction: number;
   private readonly turnRate: number;
   private readonly caution: number;
   private readonly noise: number;
+  private pace = 1;
   private nextThink = 0;
   private nextPress = 0;
   private wantX = 0;
@@ -56,11 +99,12 @@ export class WackelturmBot {
     private readonly profile: BotProfile,
     private readonly rng: MinigameRng,
     private readonly seatIndex: number,
+    private readonly model: WackelturmBotModel = KIPPGEFUEHL_BOT_MODEL,
   ) {
     const { skill } = profile;
     this.reaction = 0.45 - 0.3 * skill;
     this.turnRate = 2 + 10 * skill;
-    this.caution = 0.8 - 0.4 * skill;
+    this.caution = model.caution(skill);
     this.noise = (1 - skill) * 0.35;
     this.newTrip();
   }
@@ -88,6 +132,7 @@ export class WackelturmBot {
     const angle = rng.next() * Math.PI * 2;
     const radius = rng.next() * 0.7;
     this.pileOffset = { x: Math.cos(angle) * radius, z: Math.sin(angle) * radius };
+    this.pace = this.model.pace(this.profile.skill, rng);
   }
 
   private bumpChance(): number {
@@ -214,11 +259,10 @@ export class WackelturmBot {
       this.magnitude = 0;
       return;
     }
-    // Gefühl fürs Tempo: Geschickte bleiben mit Abstand unter der Kippgrenze, Ungeschickte
-    // schätzen sie zu hoch ein. Wackelt es sichtbar, wird gebremst.
+    // Gefühl fürs Tempo (Modell, CHAOS-215): wie nah an der Kippgrenze diese Fahrt läuft.
+    // Wackelt es sichtbar, wird gebremst.
     const height = me.stack.length;
-    const feel = Math.sqrt(0.55 + 0.5 * (1 - skill));
-    let magnitude = Math.min(1, distance / 0.8, steadyPace(height, params) * feel);
+    let magnitude = Math.min(1, distance / 0.8, steadyPace(height, params) * this.pace);
     if (me.wobble > this.caution) magnitude *= 0.25;
     this.steer(dx, dz, magnitude);
   }
@@ -295,13 +339,19 @@ export const WACKELTURM_VARIANTS: readonly WackelturmVariant[] = [
   },
 ];
 
+/**
+ * Konzept für die EXP-007-Tabellen. Spielt bewusst mit dem damaligen Bot-Modell, damit die
+ * Zahlen in `docs/experiments.md` reproduzierbar bleiben; die Fairness-Prüfung (CHAOS-84)
+ * nutzt das Modell aus CHAOS-215.
+ */
 export const WACKELTURM_CONCEPT: Concept<WackelturmParams> = {
   id: 'A',
   title: 'Wackelturm',
   instructions: WACKELTURM_INFO.instructions,
   controls: { joystick: 'Laufen', a: 'Greifen', b: 'Rempeln' },
   durationSeconds: WACKELTURM_INFO.durationMs / 1000,
-  play: (bots, seed, params) => playWackelturm(bots, seed, params),
+  play: (bots, seed, params) =>
+    playWackelturm(bots, seed, params, WACKELTURM_INFO.durationMs / 1000, EXP007_BOT_MODEL),
 };
 
 export function playWackelturm(
@@ -309,12 +359,13 @@ export function playWackelturm(
   seed: number,
   params: WackelturmParams = WACKELTURM_PARAMS,
   seconds = WACKELTURM_INFO.durationMs / 1000,
+  model: WackelturmBotModel = KIPPGEFUEHL_BOT_MODEL,
 ): GameRecord {
   const slots = slotsFor(profiles.length);
   const state = createWackelturm(slots, seconds, params);
   const gameRng = createMinigameRng(seed);
   const bots = profiles.map(
-    (profile, seat) => new WackelturmBot(profile, botRng(seed, seat), seat),
+    (profile, seat) => new WackelturmBot(profile, botRng(seed, seat), seat, model),
   );
   const lead = new LeadTracker();
   let drama = 0;
