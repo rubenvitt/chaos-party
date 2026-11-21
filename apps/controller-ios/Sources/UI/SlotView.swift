@@ -82,6 +82,8 @@ struct SlotView: View {
             if let context, let minigame = context.minigame {
                 MinigameCard(minigame: minigame, actions: context.actions, tint: tint, contextKey: context.key) {
                     session.setReady(slot: slot)
+                } onVote: {
+                    session.rate(slot: slot, $0)
                 }
             }
         case .pause:

@@ -54,6 +54,23 @@ enum Msg {
                 actions: [.move, .buttonA, .buttonB], board: board(slot: slot, gamePhase: .minigamePlay)))
     }
 
+    /// Minigame results (CHAOS-87): `rate` offered unless `actions` says otherwise.
+    static func results(
+        slot: Int = 1, actions: [Action] = [.rate], round: Int = 3, vote: Vote? = nil
+    ) -> ServerMessage {
+        var info = board(slot: slot, gamePhase: .minigameResults)
+        info.round = round
+        info.activeSlot = nil
+        return .context(
+            Context(
+                slot: slot, phase: .board, layout: .board, actions: actions, board: info,
+                minigame: ControllerMinigameInfo(
+                    id: "pump-race", title: "Pump-Rennen", tagline: "Wer pumpt am schnellsten?",
+                    instructions: ["Tippe A"], controls: MinigameControls(joystick: nil, a: "Pumpen", b: nil),
+                    stage: .results, place: 1, score: 42, scoreUnit: "Pumpstöße", tied: false,
+                    aborted: false, reward: 10, vote: vote)))
+    }
+
     static func error(_ code: ErrorCode, seq: Int? = nil) -> ServerMessage {
         .error(ServerError(code: code, message: "x", seq: seq))
     }
