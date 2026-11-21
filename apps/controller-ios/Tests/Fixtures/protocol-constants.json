@@ -6,7 +6,8 @@
     "maxNameLength": 16,
     "maxErrorMessageLength": 200,
     "maxPlayers": 4,
-    "stickEpsilon": 0.001
+    "stickEpsilon": 0.001,
+    "minigameKoopMaxTier": 3
   },
   "enums": {
     "phases": [
@@ -98,6 +99,13 @@
       "intro",
       "play",
       "results"
+    ],
+    "minigameTeamLayouts": [
+      "1v3",
+      "2v2",
+      "1v2",
+      "1v1",
+      "koop"
     ],
     "buttons": [
       "a",

@@ -24,6 +24,8 @@ enum ProtocolConstants {
     static let maxNameLength = 16
     static let maxErrorMessageLength = 200
     static let maxPlayers = 4
+    /// `MINIGAME_KOOP_MAX_TIER`: highest koop tier (CHAOS-89).
+    static let minigameKoopMaxTier = 3
     /// Close code: the slots were taken over by another connection via `reconnect`.
     static let closeReplaced = 4003
 }
@@ -190,6 +192,31 @@ struct Vote: OpenStringEnum {
     static let known: [Self] = [.up, .down]
 }
 
+/// `MINIGAME_TEAM_LAYOUTS` (CHAOS-89): line-up of a team or koop minigame.
+struct MinigameTeamLayout: OpenStringEnum {
+    let rawValue: String
+    init(rawValue: String) { self.rawValue = rawValue }
+    static let oneVsThree: Self = "1v3", twoVsTwo: Self = "2v2", oneVsTwo: Self = "1v2"
+    static let oneVsOne: Self = "1v1", koop: Self = "koop"
+    static let known: [Self] = [.oneVsThree, .twoVsTwo, .oneVsTwo, .oneVsOne, .koop]
+}
+
+/// `ControllerMinigameTeamSchema.role`: alone, in a team, or everybody together.
+struct MinigameTeamRole: OpenStringEnum {
+    let rawValue: String
+    init(rawValue: String) { self.rawValue = rawValue }
+    static let solo: Self = "solo", team: Self = "team", koop: Self = "koop"
+    static let known: [Self] = [.solo, .team, .koop]
+}
+
+/// `ControllerMinigameTeamSchema.result`: own team's outcome (not for koop).
+struct MinigameTeamResult: OpenStringEnum {
+    let rawValue: String
+    init(rawValue: String) { self.rawValue = rawValue }
+    static let won: Self = "won", lost: Self = "lost", draw: Self = "draw"
+    static let known: [Self] = [.won, .lost, .draw]
+}
+
 /// `BUTTONS` (outbound only, therefore closed).
 enum Button: String, Codable, CaseIterable, Sendable {
     case a, b
@@ -265,6 +292,23 @@ struct MinigameControls: Codable, Equatable, Sendable {
     var b: String?
 }
 
+/// `ControllerMinigameTeamSchema` (v4 addendum CHAOS-89, Swift: CHAOS-229): own role in a
+/// team or koop minigame, from the intro on; `result`/`tier` only in `results`.
+struct ControllerMinigameTeam: Codable, Equatable, Sendable {
+    var layout: MinigameTeamLayout
+    var role: MinigameTeamRole
+    /// Own team (marks like on the PC: 0 = ☀ Sonne, 1 = ☾ Mond).
+    var index: Int
+    var mates: [Int]
+    var opponents: [Int]
+    /// With three players the single person has an advantage in the game.
+    var advantage: Bool
+    /// Only in `results`: own team won, lost or drew (not in koop).
+    var result: MinigameTeamResult?
+    /// Only in `results` for koop: reached tier 0–3.
+    var tier: Int?
+}
+
 /// `ControllerMinigameInfoSchema`
 struct ControllerMinigameInfo: Codable, Equatable, Sendable {
     var id: String
@@ -295,6 +339,9 @@ struct ControllerMinigameInfo: Codable, Equatable, Sendable {
     /// v4 addendum (CHAOS-87, optional), only in `results`: own thumbs vote for this run.
     /// Missing = not voted yet. Voting is possible while `actions` contains `rate`.
     var vote: Vote?
+    /// v4 addendum (CHAOS-89, optional): own role in a team or koop minigame. Missing = every
+    /// player for themselves (and older servers): no role card, no team outcome.
+    var team: ControllerMinigameTeam?
 }
 
 /// Element of `ControllerLobbyInfoSchema.takenBy`.
