@@ -24,6 +24,8 @@ import {
 import { PhysicsAggregate } from '@babylonjs/core/Physics/v2/physicsAggregate.js';
 import {
   rankByScore,
+  type MinigameBotDriver,
+  type MinigameBotOptions,
   type MinigameInput,
   type MinigameResult,
   type Slot,
@@ -38,6 +40,7 @@ import type {
   MinigamePlayer,
 } from '@chaos-party/minigame-sdk/babylon';
 import { markVisual } from '@chaos-party/minigame-sdk/babylon';
+import { createKruemelBot } from './bot.ts';
 import { KRUEMEL_KEHRAUS_INFO } from './info.ts';
 import {
   allCorners,
@@ -572,6 +575,11 @@ export class KruemelKehraus implements Minigame {
   start(): void {
     this.running = true;
     this.ctx?.fx.sound('go');
+  }
+
+  /** KI-Platz (CHAOS-180): Bot sieht Figuren, Krümel, Löcher und Punkte (`snapshot`). */
+  createBot(options: MinigameBotOptions): MinigameBotDriver {
+    return createKruemelBot(options, () => (this.running && !this.result ? this.snapshot() : null));
   }
 
   handleInput(slot: Slot, input: MinigameInput): void {

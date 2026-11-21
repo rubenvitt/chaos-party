@@ -822,6 +822,8 @@ Begründung: A verbindet Ausführung (sanft lenken unter Kippgefahr, greifen, au
 
 **Für später (CHAOS-44):** Konzept B „Geysir-Gier“ (geteilte Becken, Geysir-Ritt); verstreute Krümel nach einem Sturz zum Aufsammeln; Törtchenberg, der schrumpft und nachwächst.
 
+**Nachtrag 2026-11-21 (CHAOS-215, EXP-039):** Die Außenseiter-Quote über fair (31 % bei 4 Spielern) war ein Bot-Artefakt: Im Bot-Modell dieses Experiments liefen Geschickte mit mehr Abstand zur Kippgrenze und bremsten früher, also langsamer statt sicherer. Mit einem Kippgefühl, das mit Geschick wächst, gewinnt der Neuling gegen 3× Normal 10 %, der Profi 44 %. Die Tabellen oben bleiben mit dem alten Modell reproduzierbar (`EXP007_BOT_MODEL`).
+
 ---
 
 ## EXP-008: Look-Dev – drei moderne Stilrichtungen (2026-11-15, CHAOS-56)
@@ -2797,3 +2799,98 @@ Bei allen Varianten zahlt 1 gegen 1 (Ersatz zu zweit) wie jeder gegen jeden. Das
 **Entscheidung:** **E behalten** (`DEFAULT_TEAM_REWARDS`: Sieg 7, Niederlage 2, Unentschieden 4, Einzelsieg ×2, Koop 12/9/6/3 × Stufe/3; 1 gegen 1 wie jeder gegen jeden). Münzen wie bei A, zu viert der stärkste Aufholeffekt, und Koop lohnt sich bei gutem Gelingen. Minispiel-Siege zählen bei Teams für alle im Siegerteam, bei Koop für niemanden; den Trostpreis gibt es bei Teams nur, wenn eine Einzelperson verliert. Die Zahlen sind Bot-Simulation, kein Spieltest.
 
 **Offen für Playtest (Ruben, Gerätecheckliste §46):** Fühlt sich ein Team-Sieg mit 7 Münzen lohnend an, oder wirkt er kleiner als Platz 1 mit 10? Ist „Letzter gegen alle“ spannend oder demütigend? Lohnt sich im Koop das Mitmachen, auch für die Person auf dem letzten Einzelplatz?
+
+---
+
+## EXP-039: Wackelturm – Neuling gewinnt öfter als fair, Profi seltener: Bot oder Spiel? (2026-11-21, CHAOS-215)
+
+**Hypothese / gewünschtes Spielerlebnis:** Beim Wackelturm soll Können zählen: Wer die Kippgrenze spürt, sanft lenkt und spät, aber rechtzeitig bremst, trägt mehr Törtchen nach Hause. Die Fairness-Prüfung (CHAOS-84) maß das Gegenteil: Neuling gegen 3× Normal gewinnt 32 %, Profi nur 17 % (fair je 25 %). Verdacht: Das Bot-Modell aus EXP-007 bildet Geschick falsch ab. Die Spielregeln (Fassung A6, `WACKELTURM_PARAMS`) bleiben in diesem Experiment unverändert.
+
+**Befund vorab (Aufschlüsselung K0):** Kippen ist selten (0,02–0,07 selbst gekippte Türme je Partie und Bot). Der Profi-Bot verliert nicht durch Kippen, sondern durch Zeit: Im EXP-007-Modell lief er mit 0,77 der Kippgrenze (`steadyPace`), der Neuling mit 0,97, und der Profi bremste schon bei Wackeln 0,44 auf ein Viertel, der Neuling erst bei 0,72. Geschick machte den Bot also langsamer, nicht sicherer: Der Profi lieferte 18,5 Törtchen je Partie, die Normalen 20,2, der Neuling 21,0.
+
+**Varianten (`KIPPGEFUEHL_VARIANTS` in `packages/minigames/src/prototypes/hybrid/kippgefuehl.ts`):** Je ein Hebel einzeln, dann beide zusammen, dann eine Empfindlichkeitsprobe.
+- **K0** EXP-007: Tempo √(0,55 + 0,5 · (1 − Geschick)) der Grenze, Bremsen ab Wackeln 0,8 − 0,4 · Geschick.
+- **K1** nur Tempo neu: im Mittel 0,88 + 0,06 · Geschick der Grenze, je Turm verschätzt mit Streuung 0,4 · (1 − Geschick); Bremsen wie K0.
+- **K2** nur Bremsen neu: ab Wackeln 0,55 + 0,25 · Geschick (Profi 0,78, Neuling 0,60); Tempo wie K0.
+- **K3** beides (gewählt): Geschickte kennen die Grenze genau und lesen das Wackeln, bremsen deshalb spät; Ungeschickte verschätzen sich je Turm, mal zaghaft, mal forsch, und erschrecken früh.
+- **K4** wie K3, doppelte Streuung beim Verschätzen.
+
+Reaktionszeit, Lenk-Drehrate, Zielstreuung, Greiftempo, Ausweichen und Strategien bleiben wie in EXP-007.
+
+**Objektive Messgrößen:** Fairness-Vorlage CHAOS-84 (Siegquote Neuling bzw. Profi gegen 3× Normal, Gleichstand, Abstand Platz 1–2, Führungswechsel, Eindringling-Faktor je Strategie); Aufschlüsselung je Außenseiter: Punkte, gelieferte Törtchen, selbst gekippte und umgerempelte Türme je Partie.
+
+**Testumgebung:** reine Logik, fester Schritt 1/60 s, Seeds 1–200 je Tisch, Spielzeit 35 s, Geschick Profi/Normal/Neuling 0,9/0,6/0,2, normale Spielweise „zufällig“. Cloud-Container (Node 22). Skript: `EXPERIMENTS=1 pnpm exec vitest run packages/minigames/src/prototypes/hybrid -t "EXP-039: volle" --silent=false`.
+
+**Ergebnisse:**
+
+**EXP-039: Wackelturm-Fairness je Bot-Modell (200 Seeds je Tisch, Fassung A6)**
+
+| Modell | Neuling vs 3× Normal | Profi vs 3× Normal | Gleichstand | Abstand 1–2 | Führungswechsel | Raufbold | gierig | vorsichtig |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| K0: EXP-007 (Geschick = mehr Abstand zur Grenze) | 32 % | 17 % | 7 % | 14 % | 6,1 | 0,40 | 1,28 | 0,10 |
+| K1: nur Tempo wie K3, Bremsen wie K0 | 16 % | 16 % | 2 % | 14 % | 6,1 | 0,56 | 1,52 | 0,04 |
+| K2: nur Bremsen wie K3, Tempo wie K0 | 8 % | 49 % | 4 % | 12 % | 6,4 | 0,38 | 1,70 | 0,09 |
+| K3: Kippgefühl wächst mit Geschick (gewählt) | 10 % | 44 % | 9 % | 14 % | 6,2 | 0,65 | 1,54 | 0,03 |
+| K4: wie K3, doppelte Streuung beim Verschätzen | 7 % | 52 % | 5 % | 16 % | 5,8 | 0,46 | 1,54 | 0,09 |
+
+**EXP-039: Außenseiter gegen 3× Normal, Aufschlüsselung (200 Seeds, Außenseiter / Mittel Normale)**
+
+| Modell | Außenseiter | Siege | Punkte | geliefert | selbst gekippt | umgerempelt |
+| --- | --- | --- | --- | --- | --- | --- |
+| K0 | Neuling | 32 % | 37,6 / 35,9 | 21,0 / 20,3 | 0,07 / 0,04 | 0,30 / 0,35 |
+| K0 | Profi | 17 % | 33,6 / 36,1 | 18,5 / 20,2 | 0,02 / 0,05 | 0,46 / 0,43 |
+| K1 | Neuling | 16 % | 32,0 / 37,3 | 18,3 / 21,1 | 0,52 / 0,05 | 0,34 / 0,33 |
+| K1 | Profi | 16 % | 34,9 / 36,8 | 19,5 / 20,7 | 0,04 / 0,05 | 0,46 / 0,47 |
+| K2 | Neuling | 8 % | 34,2 / 40,4 | 19,2 / 22,6 | 0,07 / 0,09 | 0,39 / 0,38 |
+| K2 | Profi | 49 % | 47,4 / 39,7 | 25,7 / 22,2 | 0,04 / 0,05 | 0,53 / 0,60 |
+| K3 | Neuling | 10 % | 33,1 / 39,9 | 18,9 / 22,2 | 0,23 / 0,18 | 0,41 / 0,35 |
+| K3 | Profi | 44 % | 44,4 / 38,7 | 24,6 / 21,9 | 0,12 / 0,14 | 0,48 / 0,57 |
+| K4 | Neuling | 7 % | 27,9 / 36,7 | 16,3 / 20,8 | 0,57 / 0,37 | 0,47 / 0,40 |
+| K4 | Profi | 52 % | 45,1 / 35,1 | 24,9 / 20,0 | 0,10 / 0,39 | 0,56 / 0,60 |
+
+- **Es liegt am Bot.** Schon der Bremshebel allein (K2) dreht das Bild: Neuling 8 %, Profi 49 %. Das Tempo allein (K1) senkt die Neuling-Quote auf 16 %, hebt den Profi aber nicht (16 %), weil er weiter früh auf ein Viertel bremst.
+- **Robust:** In einem Raster aus 24 weiteren Einstellungen (Grundtempo 0,85–0,99 der Grenze, Streuung 0,3–0,4, Bremsschwelle mit Geschick steigend, 200 Seeds) lagen Neulinge immer bei 8–17 % und Profis bei 36–49 %. Das Ergebnis hängt nicht an einer fein gewählten Zahl, sondern an der Richtung: Geschick muss näher an die Grenze und später bremsen lassen, nicht weiter weg.
+- **Mit K3** verliert der Neuling durch mehr eigene Stürze (0,23 gegen 0,18 je Partie) und weniger gelieferte Törtchen (18,9 gegen 22,2); der Profi liefert mehr (24,6 gegen 21,9). Beides passt zur Absicht des Spiels.
+- **Eindringling „gierig“ steigt von 1,28 auf 1,54** (Grenze 1,50, Siegquote 51 %, ihr Wilson-Bereich 44–58 % schließt die Grenze von 50 % ein, die Prüfung besteht). Gierig wird stärker, weil gute Bots hohe Türme jetzt sicher und zügig tragen und der Turmbonus ×2 ab 6 greift. Eine dominante Strategie ist es trotzdem nicht: Die Eindringling-Matrix (3 Spieler, Geschick 0,6, 200 Seeds) zeigt mit K3 weiter einen Kreis – gierig schlägt zufällig (1,46), Raufbold hält gierig die Waage (1,04, umgekehrt 1,09), zufällig schlägt Raufbolde (1,40). Mit K0 war es derselbe Kreis, nur flacher (1,22 / 1,01 / 1,22).
+
+**Entscheidung:** **K3 behalten** als Bot-Modell der Fairness-Prüfung (`KIPPGEFUEHL_BOT_MODEL`, Standard in `playWackelturm`). Die Ausnahmen `maxNoviceWins` und `minProWins` am Wackelturm-Harness sind entfernt: Wackelturm besteht die Prüfung ohne Ausnahme (Prüfbericht: Neuling 10 %, Profi 44 %). Das Konzept für die EXP-007-Tabellen spielt bewusst weiter mit K0 (`EXP007_BOT_MODEL`), damit die dortigen Zahlen reproduzierbar bleiben. **Keine Regeländerung:** Das Spiel belohnt Können, wenn man Können als Gefühl für die Kippgrenze versteht; Ruben hat Wackelturm in M3 abgenommen. Die Zahlen sind Bot-Simulation, kein Spieltest.
+
+**Offen für Playtest (Ruben, echte Controller):** Spüren Menschen die Kippgrenze so, wie K3 annimmt – lernen Geübte, schneller zu laufen und später zu bremsen? Oder wirkt das Kippen trotz „kippelt!“ zufällig? Lockt „gierig“ (7–10 Törtchen) am Sofa zu oft, oder wird es durch Rempler bestraft? Passt zu den offenen Fragen 1, 2 und 4 aus EXP-007.
+
+---
+
+## EXP-040: KI-Stärke in Minispielen – Eckwerte leicht/schwer (2026-11-21, CHAOS-180)
+
+**Hypothese / gewünschtes Spielerlebnis:** Die Stärke eines KI-Platzes (leicht, mittel, schwer) wirkt in jedem Minispiel der Rotation spürbar und stufenweise. Gegen „schwer“ spielt man gegen eine geschickte KI, gegen „leicht“ gegen eine, die oft danebenliegt. Ansatz: Die Bots der Fairness-Messung liefern die Eckwerte (leicht = Neuling, schwer = Profi), dazwischen wird linear interpoliert.
+
+**Varianten:**
+- **A** Bot-Modelle wie vor CHAOS-215. Sockenregen und Kuckucks-Klatsche: `BotProfile` Neuling/Profi. Pudding-Gerangel und Krümel-Kehraus: Figuren-Können Neuling/Profi. Wackelturm: Geschick 0,2/0,9 mit dem Kippgefühl aus EXP-007 (K0).
+- **B** nur Wackelturm, eigenes Raster unabhängig von CHAOS-215: Tempo (Anteil der Kippgrenze 0,74–1,0), Bremsschwelle (0,44–0,75) und Wunschhöhe (1–10, 4–6, 6–7, 5–8) für den geschickten Bot.
+- **C** gewählt: A, aber im Wackelturm das Kippgefühl K3 aus EXP-039 (CHAOS-215). Das ist dasselbe Bot-Modell wie in der Fairness-Prüfung.
+
+**Objektive Messgrößen:** Siegquote der stärkeren Hälfte und mittlere Punkte je Platz. Zwei KI spielen gegen zwei, die Sitze wechseln je Seed, geteilte Siege zählen anteilig, 0,5 heißt kein Unterschied. Paare: schwer/leicht, schwer/mittel, mittel/leicht.
+
+**Testumgebung:**
+- Echtes Minispiel-Modul headless über die Laufzeit mit KI-Plätzen (`runMinigameHeadless(…, { bots })`, `checks/botStrength.ts`).
+- Seeds 1–40 für Logik-Spiele, 1–8 für Havok-Spiele. Raster B auf der reinen Wackelturm-Logik (`playWackelturm`), Seeds 1–120.
+- Cloud-Container, Node 22.
+- CI: `checks/botStrength.test.ts` mit 16 bzw. 6 Seeds.
+
+**Ergebnisse:**
+
+| Minispiel | A schwer/leicht | C schwer/leicht | C schwer/mittel | C mittel/leicht | Punkte schwer/leicht (C) |
+| --- | --- | --- | --- | --- | --- |
+| Sockenregen | 1,00 | 0,97 | 0,83 | 0,91 | 18,1 / 8,9 |
+| Pudding-Gerangel | 1,00 | 1,00 | 0,75 | 0,88 | 43,4 / 30,3 |
+| Wackelturm | **0,19** | 0,79 | 0,59 | 0,69 | 43,5 / 33,2 |
+| Kuckucks-Klatsche | 0,79 | 0,84 | 0,74 | 0,63 | 20,6 / 13,5 |
+| Krümel-Kehraus | 1,00 | 1,00 | 0,69 | 0,69 | 7,6 / 3,9 |
+
+(A mit 24 bzw. 6 Seeds.)
+
+- In vier Spielen wirkt die Stärke schon mit den Fairness-Stufen, auch über „mittel“ hinweg stufenweise.
+- Im Wackelturm verliert der geschickte Bot mit dem alten Kippgefühl (K0) gegen den ungeschickten. Raster B hat den Befund aus EXP-039 unabhängig bestätigt: Den Ausschlag gibt die Bremsschwelle. Mit Bremsen ab 0,75 statt 0,44 gewinnt der Geschickte gegen leicht 82 %, mit Wunschhöhe am Turmbonus (5–8) bis 97 %. Eigene KI-Eckwerte dafür wären ein zweites Bot-Modell neben K3 gewesen. Das wurde verworfen, als CHAOS-215 (PR #143) K3 einführte.
+
+**Entscheidung:** **C behalten.** Die Eckwerte stehen in `profileForStrength` und `pawnSkillForStrength`. Im Wackelturm gilt `WACKELTURM_SKILL_CORNERS` mit `KIPPGEFUEHL_BOT_MODEL`. KI-Platz, Fairness-Prüfung und Bot-Partien nutzen damit je Spiel denselben Bot. Die Eckwerte sind Bot gegen Bot gemessen. Sie sind ein Startpunkt für CHAOS-183 (Messung gegen eine Mensch-Näherung) und kein Beweis, dass die KI Spaß macht.
+
+**Offen für Playtest (CHAOS-185):** Ist „leicht“ in Sockenregen und Krümel-Kehraus noch ein Gegner, oder steht es nur herum? Wirkt „schwer“ in Pudding-Gerangel (Siegquote 1,00) unfair?

@@ -8,8 +8,14 @@
  *
  * Neue Minispiele werden hier automatisch mitgeprüft (Schleife über `MINIGAME_MODULES`).
  * Fairness und Vielfalt prüft `checks/checks.test.ts` für die Rotation.
+ *
+ * KI (CHAOS-180, ADR-020): Jedes Minispiel der Rotation hat einen KI-Bot (`createBot`), der in
+ * allen Stufen fehlerfrei spielt, Punkte macht und deterministisch ist. Die Stärke-Kennzahl
+ * (schwer schlägt leicht) prüft `checks/botStrength.test.ts`.
  */
 import {
+  BOT_LEVEL_STRENGTH,
+  BOT_LEVELS,
   checkInfo,
   checkResult,
   CHARACTER_IDS,
@@ -24,7 +30,7 @@ import {
   type InputScript,
 } from '@chaos-party/minigame-sdk/testing';
 import { createMinigameRng } from '@chaos-party/minigame-sdk';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { getMinigameInfo, MINIGAME_INFOS, ROTATION, rotationInfos } from './catalog.ts';
 import { getMinigameModule, MINIGAME_MODULES } from './index.ts';
 
@@ -144,6 +150,64 @@ describe.each(MINIGAME_MODULES.map((module) => [module.info.id, module] as const
         },
       });
       expectCleanRun(run, module.info, [1, 2, 3]);
+    });
+  },
+);
+
+describe.each(ROTATION.map((id) => [id, getMinigameModule(id)] as const))(
+  'Minispiel %s: KI-Bot (CHAOS-180)',
+  (_id, module) => {
+    if (!module) throw new Error('Minispiel der Rotation ohne Modul');
+    const slots = [1, 2, 3, 4] as const;
+
+    it('hat einen KI-Bot (Pflicht für die Rotation)', () => {
+      const game = module.create();
+      expect(typeof game.createBot).toBe('function');
+      game.dispose();
+    });
+
+    it.each(BOT_LEVELS)(
+      'spielt mit vier KI-Plätzen der Stufe „%s“ fehlerfrei und macht Punkte',
+      async (level) => {
+        const errors = vi.spyOn(console, 'error');
+        const run = await runMinigameHeadless(module, {
+          players: 4,
+          seed: 4242,
+          bots: slots.map((slot) => ({ slot, strength: BOT_LEVEL_STRENGTH[level] })),
+        });
+        expect(run.runner.botSlots).toEqual([...slots]);
+        expectCleanRun(run, module.info, slots);
+        const total = run.outcome?.result.placements.reduce((sum, p) => sum + p.score, 0) ?? 0;
+        expect(total).toBeGreaterThan(0);
+        expect(errors).not.toHaveBeenCalled();
+        errors.mockRestore();
+      },
+    );
+
+    it('Solo: ein Mensch (tut nichts) gegen drei KI – jede KI punktet besser', async () => {
+      const run = await runMinigameHeadless(module, {
+        players: 4,
+        seed: 31,
+        bots: ([2, 3, 4] as const).map((slot) => ({ slot, strength: BOT_LEVEL_STRENGTH.mittel })),
+      });
+      expectCleanRun(run, module.info, slots);
+      const score = (slot: Slot) =>
+        run.outcome?.result.placements.find((p) => p.slot === slot)?.score ?? 0;
+      for (const slot of [2, 3, 4] as const) expect(score(slot)).toBeGreaterThan(score(1));
+    });
+
+    it('gleicher Seed → gleiche KI-Partie', async () => {
+      const play = async () =>
+        (
+          await runMinigameHeadless(module, {
+            players: 3,
+            seed: 99,
+            bots: ([1, 2, 3] as const).map((slot, index) => ({ slot, strength: index / 2 })),
+          })
+        ).outcome?.result.placements;
+      const first = await play();
+      expect(first).toBeDefined();
+      expect(await play()).toEqual(first);
     });
   },
 );
