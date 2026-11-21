@@ -5,25 +5,49 @@
  * - `start`, `pause`, `resume`, `end-game`, `rematch` (`HOST_COMMANDS`)
  * - `skip-finale` (`LOCAL_HOST_COMMANDS`, CHAOS-145): wirkt nur im Kern, geht nie an den Server
  * - `configure:rounds=12`, `configure:moreReactionTime=1` (`0`/`1`/`true`/`false`),
- *   `configure:board=wackelwald` (Brett-ID oder `zufall`, CHAOS-197), mehreres mit Komma
- *   verbunden: `configure:rounds=12,moreReactionTime=1` (Lobby-Einstellungen, CHAOS-166)
+ *   `configure:board=wackelwald` (Brett-ID oder `zufall`, CHAOS-197),
+ *   `configure:minigameBlocklist=a+b,minigameFavorites=` (ganze Listen der Minispiel-Rotation,
+ *   `+` trennt, leer = keine, CHAOS-216), mehreres mit Komma verbunden:
+ *   `configure:rounds=12,moreReactionTime=1` (Lobby-Einstellungen, CHAOS-166)
+ * - `minigame:favorite=<id>`, `minigame:blocked=<id>` (CHAOS-216): Minispiel umschalten; wirkt
+ *   im Kern (Stand ausrechnen, speichern) und geht als `configure` an den Server
  *
  * Alles andere ist ungültig (`null`): unbekannte oder doppelte Schlüssel, Runden außerhalb
- * 1–`MAX_ROUNDS`, Brett-IDs außerhalb von `BoardChoiceSchema`, leeres `configure:`. Ob es das
- * Brett gibt, prüft der Server (`bad-message`).
+ * 1–`MAX_ROUNDS`, Brett-IDs außerhalb von `BoardChoiceSchema`, Minispiel-Kennungen außerhalb
+ * von `MinigameIdSchema` oder doppelt in einer Liste, mehr als `MAX_ROTATION_MINIGAMES`, leeres
+ * `configure:`. Ob es Brett oder Minispiel gibt, prüft der Server (`bad-message` bzw. er lässt
+ * Unbekanntes weg).
  */
-import { BoardChoiceSchema, MAX_ROUNDS } from '@chaos-party/protocol';
+import {
+  BoardChoiceSchema,
+  MAX_ROTATION_MINIGAMES,
+  MAX_ROUNDS,
+  MinigameIdSchema,
+} from '@chaos-party/protocol';
 import type { HostCommand } from '../../host/src/net/hostConnection.ts';
 import {
   CONFIGURE_PREFIX,
   HOST_COMMANDS,
   LOCAL_HOST_COMMANDS,
+  MINIGAME_TOGGLE_KINDS,
+  MINIGAME_TOGGLE_PREFIX,
   type HostCommandName,
   type LocalHostCommandName,
+  type MinigameToggleKind,
 } from './contract.ts';
 
+/** Minispiel umschalten (`minigame:<kind>=<id>`, CHAOS-216). */
+export interface MinigameToggleCommand {
+  readonly type: 'toggle-minigame';
+  readonly kind: MinigameToggleKind;
+  readonly id: string;
+}
+
 export type ParsedHostCommand =
-  { readonly type: 'start' } | { readonly type: LocalHostCommandName } | HostCommand;
+  | { readonly type: 'start' }
+  | { readonly type: LocalHostCommandName }
+  | MinigameToggleCommand
+  | HostCommand;
 
 type ConfigureCommand = Extract<HostCommand, { type: 'configure' }>;
 
@@ -34,10 +58,20 @@ const BOOLEANS: Readonly<Record<string, boolean>> = {
   false: false,
 };
 
+/** `a+b+c` → Kennungen; leer → `[]`; `null` bei ungültiger Kennung, Doppelten oder zu vielen. */
+function parseMinigameIds(value: string): string[] | null {
+  if (value === '') return [];
+  const ids = value.split('+');
+  if (ids.length > MAX_ROTATION_MINIGAMES || new Set(ids).size !== ids.length) return null;
+  return ids.every((id) => MinigameIdSchema.safeParse(id).success) ? ids : null;
+}
+
 function parseConfigure(spec: string): ConfigureCommand | null {
   let rounds: number | undefined;
   let moreReactionTime: boolean | undefined;
   let board: string | undefined;
+  let minigameBlocklist: string[] | undefined;
+  let minigameFavorites: string[] | undefined;
   for (const pair of spec.split(',')) {
     const [key, value, ...rest] = pair.split('=');
     if (value === undefined || rest.length > 0) return null;
@@ -51,6 +85,14 @@ function parseConfigure(spec: string): ConfigureCommand | null {
     } else if (key === 'board' && board === undefined) {
       if (!BoardChoiceSchema.safeParse(value).success) return null;
       board = value;
+    } else if (key === 'minigameBlocklist' && minigameBlocklist === undefined) {
+      const ids = parseMinigameIds(value);
+      if (ids === null) return null;
+      minigameBlocklist = ids;
+    } else if (key === 'minigameFavorites' && minigameFavorites === undefined) {
+      const ids = parseMinigameIds(value);
+      if (ids === null) return null;
+      minigameFavorites = ids;
     } else {
       return null;
     }
@@ -60,12 +102,25 @@ function parseConfigure(spec: string): ConfigureCommand | null {
     ...(rounds === undefined ? {} : { rounds }),
     ...(moreReactionTime === undefined ? {} : { moreReactionTime }),
     ...(board === undefined ? {} : { board }),
+    ...(minigameBlocklist === undefined ? {} : { minigameBlocklist }),
+    ...(minigameFavorites === undefined ? {} : { minigameFavorites }),
   };
+}
+
+function parseMinigameToggle(spec: string): MinigameToggleCommand | null {
+  const [kind, id, ...rest] = spec.split('=');
+  if (id === undefined || rest.length > 0) return null;
+  if (!(MINIGAME_TOGGLE_KINDS as readonly string[]).includes(kind ?? '')) return null;
+  if (!MinigameIdSchema.safeParse(id).success) return null;
+  return { type: 'toggle-minigame', kind: kind as MinigameToggleKind, id };
 }
 
 /** Zeichenkette → Befehl; `null` bei Unbekanntem oder Ungültigem. */
 export function parseHostCommand(cmd: string): ParsedHostCommand | null {
   if (cmd.startsWith(CONFIGURE_PREFIX)) return parseConfigure(cmd.slice(CONFIGURE_PREFIX.length));
+  if (cmd.startsWith(MINIGAME_TOGGLE_PREFIX)) {
+    return parseMinigameToggle(cmd.slice(MINIGAME_TOGGLE_PREFIX.length));
+  }
   if ((LOCAL_HOST_COMMANDS as readonly string[]).includes(cmd)) {
     return { type: cmd as LocalHostCommandName };
   }
