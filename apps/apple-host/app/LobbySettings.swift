@@ -198,3 +198,15 @@ func launchTailwind(_ arguments: [String], environment: [String: String]) -> Boo
     }
     return environment["RUECKENWIND"]?.trimmingCharacters(in: .whitespaces) == "1"
 }
+
+/// `--schnellfeuer=<wert>` (`an`, `aus`, `ereignis`, `halbzeit`, `finale`; ohne Wert `an`) oder die
+/// Umgebungsvariable `SCHNELLFEUER`: Auslöser der Schnellfeuer-Runde (CHAOS-232), wie `SCHNELLFEUER`
+/// am PC-Server (CHAOS-90, EXP-039). Der Startparameter geht vor der Umgebungsvariable; `nil` = Standard.
+/// Geht unverändert als `rapidFire` an `HostEnv`; der JS-Kern prüft den Wert (`parseRapidFire`).
+func launchRapidFire(_ arguments: [String], environment: [String: String]) -> String? {
+    if let arg = arguments.last(where: { $0 == "--schnellfeuer" || $0.hasPrefix("--schnellfeuer=") }) {
+        return arg == "--schnellfeuer" ? "an" : String(arg.dropFirst("--schnellfeuer=".count))
+    }
+    let value = environment["SCHNELLFEUER"]?.trimmingCharacters(in: .whitespaces) ?? ""
+    return value.isEmpty ? nil : value
+}

@@ -90,6 +90,13 @@ jobs:
       - name: Apple-Host – Bot-Partie mit Rückenwind (Node)
         run: pnpm --filter @chaos-party/apple-host bots --full --rueckenwind
 
+      # Schnellfeuer-Schalter über `HostEnv.rapidFire` (CHAOS-232): `aus` spielt nie Schnellfeuer,
+      # `halbzeit` genau in Runde 5 (der Standard `an` läuft in den Bot-Partien oben mit).
+      - name: Apple-Host – Bot-Partien mit Schnellfeuer aus/halbzeit (Node)
+        run: |
+          pnpm --filter @chaos-party/apple-host bots --full --ohne-extras --schnellfeuer=aus
+          pnpm --filter @chaos-party/apple-host bots --full --ohne-extras --schnellfeuer=halbzeit
+
       - name: Apple-Host – Beispielnachrichten aktuell
         run: node scripts/export-apple-host-fixtures.mjs --check
 

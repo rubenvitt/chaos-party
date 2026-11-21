@@ -48,6 +48,13 @@ export interface HostEnv {
    */
   tailwind?: boolean;
   /**
+   * Schnellfeuer-Auslöser (CHAOS-232), wie `SCHNELLFEUER` am PC-Server (CHAOS-90, EXP-039):
+   * `an` (Standard: Ereignis „Schnellfeuer!“, sonst im Finale), `aus`, `ereignis`, `halbzeit`
+   * oder `finale`. Fehlt der Wert oder ist er unbekannt, gilt der Standard (unbekannt mit
+   * Logzeile). Swift setzt ihn mit `--schnellfeuer=<wert>` oder der Umgebungsvariable `SCHNELLFEUER`.
+   */
+  rapidFire?: string;
+  /**
    * Nur Tests und Nachstellen (CHAOS-206): Jede Minispiel-Bühne ist frühestens so viele ms nach
    * Beginn ihres Aufbaus fertig, wie auf einem gedrosselten Gerät. Fehlt der Wert, baut sie so
    * schnell wie möglich.
