@@ -122,6 +122,7 @@ describe('createZoneTracker', () => {
       readyHeld: false,
       choicesHeld: [],
       picksHeld: [],
+      votesHeld: [],
     });
   });
 

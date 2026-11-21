@@ -958,6 +958,39 @@
     transition: none;
   }
 }
+
+/*
+ * iPad-Zone (CHAOS-218): Frage und Daumen in der Fußzeile aus `minigameVoteFrames`, an genau
+ * den Rechtecken, die der Zonen-Tracker prüft. Gedrückt zeigt `data-pressed` (Touch-Router).
+ */
+.zone-vote {
+  position: absolute;
+}
+
+.zone-vote-question {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: right;
+}
+
+.zone .zone-vote-button {
+  position: absolute;
+  font-size: 40px;
+}
+
+.zone .zone-vote-button[data-pressed='true'] {
+  transform: scale(0.94);
+}
+
+.zone-vote[data-selected]:not([data-selected='']) .zone-vote-button[aria-pressed='false'] {
+  opacity: 0.55;
+}
 /* ---------------------------------------------------------------------------
  * „Bereit“ in der Minispiel-Anleitung (CHAOS-214): großer Knopf statt Schlusszeile, in der
  * Schonfrist nach dem Erscheinen sichtbar gesperrt; danach „Bereit! Warte auf die anderen …“.

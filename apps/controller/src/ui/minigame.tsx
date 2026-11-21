@@ -15,6 +15,7 @@ import {
   INTRO_READY_DONE_HINT,
   introReadyState,
   REPEAT_KICKER,
+  VOTE_LABELS,
   VOTE_QUESTION,
   type ControlLegendItem,
 } from '../minigame/view.ts';
@@ -157,7 +158,7 @@ export function MinigameResult({
 }: {
   minigame: ControllerMinigameInfo;
   compact?: boolean;
-  /** Daumen-Knöpfe (CHAOS-87), nur am iPhone; fehlt = keine Knöpfe. */
+  /** Daumen-Knöpfe (CHAOS-87) am iPhone; fehlt = keine Knöpfe (iPad-Zone: eigene Fußzeile, CHAOS-218). */
   voting?: VotingProps | undefined;
 }) {
   const view = describeResult(minigame);
@@ -244,11 +245,6 @@ export interface VotingProps {
   readonly context: Pick<SlotContext, 'actions' | 'minigame'>;
   readonly onVote: (vote: Vote) => void;
 }
-
-const VOTE_LABELS: Readonly<Record<Vote, string>> = {
-  up: 'Daumen hoch',
-  down: 'Daumen runter',
-};
 
 /**
  * Daumen hoch/runter nach dem Minispiel (CHAOS-87): freiwillig, nichts wartet darauf. Die Wahl

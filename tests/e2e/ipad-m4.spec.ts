@@ -328,6 +328,93 @@ test('vier Zonen: Pause, Minispiel-Ergebnis mit Gleichstand und Endstand in jede
   }
 });
 
+test('zwei Zonen: Daumen nach dem Minispiel, jede Zone für sich, Umentscheiden (CHAOS-218)', async ({
+  page,
+}, testInfo) => {
+  await joinLobby(page, 2);
+  const touch = await TouchScreen.create(page);
+  const info: ControllerMinigameInfo = {
+    id: 'pump-parade',
+    title: 'Pump-Parade',
+    tagline: 'Pumpt euren Ballon am schnellsten auf!',
+    instructions: ['Tippe A so oft du kannst.'],
+    controls: { joystick: null, a: 'Pumpen', b: null },
+    stage: 'results',
+    scoreUnit: 'Pumpstöße',
+    tied: false,
+    aborted: false,
+  };
+  const results = (slot: SlotNumber, rate: boolean, vote?: 'up' | 'down') =>
+    createMessage('context', {
+      slot,
+      phase: 'board',
+      layout: 'board',
+      actions: rate ? ['rate'] : [],
+      board: boardInfo({ gamePhase: 'minigame-results', activeSlot: null, round: 2 }),
+      minigame: {
+        ...info,
+        place: slot === 1 ? 1 : 2,
+        score: slot === 1 ? 31 : 24,
+        reward: slot === 1 ? 10 : 5,
+        ...(vote && { vote }),
+      },
+    });
+  for (const slot of [1, 2] as const) fake.send(results(slot, true));
+
+  for (const slot of [1, 2]) {
+    await expect(zone(page, slot).getByTestId('minigame-vote')).toHaveAttribute(
+      'data-selected',
+      '',
+    );
+    await expect(zone(page, slot).getByTestId('vote-up')).toHaveAttribute('aria-pressed', 'false');
+  }
+  await expect(zone(page, 1).getByTestId('result-reward')).toHaveText('+10 Münzen');
+  await expectInsideZones(page, 2);
+  await beleg(page, '2-zonen-daumen', testInfo.project.name);
+  await expect(page).toHaveScreenshot('ipad-2-zonen-daumen.png', { mask: screenshotMask(page) });
+
+  // Zwei Finger gleichzeitig: Zone 1 👍, Zone 2 👎; die Wahl leuchtet sofort.
+  await touch.down(1, await centerOf(zone(page, 1).getByTestId('vote-up')));
+  await touch.down(2, await centerOf(zone(page, 2).getByTestId('vote-down')));
+  await expect(zone(page, 1).getByTestId('vote-up')).toHaveAttribute('data-pressed', 'true');
+  await touch.upAll();
+  await expect(zone(page, 1).getByTestId('vote-up')).toHaveAttribute('aria-pressed', 'true');
+  await expect(zone(page, 2).getByTestId('vote-down')).toHaveAttribute('aria-pressed', 'true');
+  await expect(zone(page, 1).getByTestId('vote-down')).toHaveAttribute('aria-pressed', 'false');
+  await expect
+    .poll(() =>
+      fake
+        .ofType('rate')
+        .map((m) => [m.slot, m.vote, m.minigameId, m.round])
+        .sort(),
+    )
+    .toEqual([
+      [1, 'up', 'pump-parade', 2],
+      [2, 'down', 'pump-parade', 2],
+    ]);
+  await expect(page).toHaveScreenshot('ipad-2-zonen-daumen-gewaehlt.png', {
+    mask: screenshotMask(page),
+  });
+
+  // Umentscheiden in Zone 1; Zone 2 bleibt.
+  await touch.tap(await centerOf(zone(page, 1).getByTestId('vote-down')));
+  await expect(zone(page, 1).getByTestId('vote-down')).toHaveAttribute('aria-pressed', 'true');
+  await expect(zone(page, 1).getByTestId('vote-up')).toHaveAttribute('aria-pressed', 'false');
+  await expect.poll(() => fake.ofType('rate').length).toBe(3);
+  expect(fake.ofType('rate').at(-1)).toMatchObject({ slot: 1, vote: 'down' });
+
+  // Server bestätigt, dann endet das Abstimmen: Knöpfe weg, Ergebnis bleibt.
+  fake.send(results(1, true, 'down'));
+  fake.send(results(2, true, 'down'));
+  await expect(zone(page, 1).getByTestId('minigame-vote')).toHaveAttribute('data-selected', 'down');
+  for (const slot of [1, 2] as const) fake.send(results(slot, false));
+  for (const slot of [1, 2]) {
+    await expect(zone(page, slot).getByTestId('minigame-vote')).toHaveCount(0);
+    await expect(zone(page, slot).getByTestId('minigame-result')).toBeVisible();
+  }
+  expect(fake.ofType('rate')).toHaveLength(3);
+});
+
 test('Drehen und Neuladen in der Lobby: Figuren und Bereit-Stand je Zone bleiben', async ({
   page,
 }) => {
