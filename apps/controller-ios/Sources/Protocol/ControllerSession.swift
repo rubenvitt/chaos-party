@@ -83,6 +83,7 @@ struct UiErrorCode: OpenStringEnum {
         case "invalid-result": "Das Minispiel-Ergebnis wurde nicht angenommen."
         case "character-taken": "Die Figur hat sich gerade jemand anderes geschnappt."
         case "paused": "Das Spiel ist pausiert."
+        case "not-lead": "KI-Plätze verwaltet die Spielleitung."
         case "connection-failed": "Der Spiel-PC ist nicht erreichbar. Bist du im selben WLAN?"
         case "connection-lost": "Die Verbindung zum Spiel-PC ist weg."
         case "replaced": "Dein Platz wird gerade auf einem anderen Gerät oder im Browser gespielt."

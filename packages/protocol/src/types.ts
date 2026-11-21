@@ -64,6 +64,11 @@ import type {
   RankingEntrySchema,
   ReactionMessageSchema,
   RateMessageSchema,
+  AiSeatMessageSchema,
+  LobbySeatSchema,
+  SEAT_KINDS,
+  AI_STRENGTHS,
+  AI_PERSONALITIES,
   RatingsMessageSchema,
   MinigameRatingSchema,
   ReadyMessageSchema,
@@ -92,6 +97,9 @@ export type BoardEventKindName = (typeof BOARD_EVENT_KINDS)[number];
 export type CoinReasonName = (typeof COIN_REASONS)[number];
 export type RankingCriterion = (typeof RANKING_CRITERIA)[number];
 export type Vote = (typeof VOTES)[number];
+export type SeatKind = (typeof SEAT_KINDS)[number];
+export type AiStrength = (typeof AI_STRENGTHS)[number];
+export type AiPersonality = (typeof AI_PERSONALITIES)[number];
 
 // Controller → Server
 export type JoinMessage = z.infer<typeof JoinMessageSchema>;
@@ -105,6 +113,7 @@ export type ReactionMessage = z.infer<typeof ReactionMessageSchema>;
 export type ChooseMessage = z.infer<typeof ChooseMessageSchema>;
 export type PickCharacterMessage = z.infer<typeof PickCharacterMessageSchema>;
 export type RateMessage = z.infer<typeof RateMessageSchema>;
+export type AiSeatMessage = z.infer<typeof AiSeatMessageSchema>;
 export type HeartbeatMessage = z.infer<typeof HeartbeatMessageSchema>;
 export type ControllerMessage = z.infer<typeof ControllerMessageSchema>;
 
@@ -135,6 +144,7 @@ export type ControllerMinigameTeam = z.infer<typeof ControllerMinigameTeamSchema
 export type MinigameTeamsInfo = z.infer<typeof MinigameTeamsSchema>;
 export type MinigameOutcomeInfo = z.infer<typeof MinigameOutcomeSchema>;
 export type ControllerLobbyInfo = z.infer<typeof ControllerLobbyInfoSchema>;
+export type LobbySeat = z.infer<typeof LobbySeatSchema>;
 export type MinigamePlacementInfo = z.infer<typeof MinigamePlacementSchema>;
 export type MinigameControlsInfo = z.infer<typeof MinigameControlsSchema>;
 export type FeedbackMessage = z.infer<typeof FeedbackMessageSchema>;

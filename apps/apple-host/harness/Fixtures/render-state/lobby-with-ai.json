@@ -1,0 +1,64 @@
+{
+  "phase": "lobby",
+  "lobby": {
+    "joinUrl": "http://192.168.0.2:8787/?code=AB12",
+    "joinCode": "AB12",
+    "settings": {
+      "rounds": 10,
+      "roundPresets": [
+        10,
+        16,
+        20
+      ],
+      "moreReactionTime": false,
+      "board": "wackelwald",
+      "boards": [
+        {
+          "id": "wackelwald",
+          "name": "Wackelwald",
+          "detail": "74 Felder",
+          "selected": true,
+          "random": false
+        },
+        {
+          "id": "zufall",
+          "name": "Zufall",
+          "detail": "Überraschung!",
+          "selected": false,
+          "random": true
+        }
+      ]
+    },
+    "players": [
+      {
+        "slot": 1,
+        "name": "Anna",
+        "color": "#0072B2",
+        "connected": true,
+        "ready": true,
+        "character": "raccoon",
+        "kind": "human",
+        "strength": null
+      },
+      {
+        "slot": 3,
+        "name": "KI Grün",
+        "color": "#009E73",
+        "connected": true,
+        "ready": true,
+        "character": null,
+        "kind": "ai",
+        "strength": "mittel"
+      }
+    ]
+  },
+  "board": null,
+  "minigame": null,
+  "final": null,
+  "pause": {
+    "paused": false,
+    "canPause": false,
+    "roundText": null,
+    "sounds": []
+  }
+}

@@ -10,6 +10,7 @@ import { getMinigameInfo } from '@chaos-party/minigames/catalog';
 import {
   createMessage,
   parseServerMessage,
+  type AiStrength,
   type BoardEvent,
   type BoardMessage,
   type CharacterId,
@@ -203,13 +204,16 @@ export class Harness {
 
   join(id: ConnectionId, seats = 1): void {
     this.handle(this.session.connect(id));
-    const slotsBefore = new Set(this.session.snapshot().players.map((p) => p.slot));
+    // Nur Menschen-Plätze zählen: Ein Beitritt kann KI-Plätze verdrängen (CHAOS-179).
+    const humanSlots = (): SlotNumber[] =>
+      this.session
+        .snapshot()
+        .players.filter((p) => p.kind === 'human')
+        .map((p) => p.slot);
+    const slotsBefore = new Set(humanSlots());
     this.controllers.set(id, { id, slots: [], token: null, seq: 0, connected: true });
     this.send(id, createMessage('join', { joinCode: CODE, seats }));
-    const slots = this.session
-      .snapshot()
-      .players.map((p) => p.slot)
-      .filter((slot) => !slotsBefore.has(slot));
+    const slots = humanSlots().filter((slot) => !slotsBefore.has(slot));
     const controller = this.controllers.get(id);
     if (controller) controller.slots.push(...slots);
   }
@@ -271,6 +275,22 @@ export class Harness {
   /** Lobby-Schalter „Mehr Zeit zum Reagieren“ (CHAOS-124). */
   configureReactionTime(moreReactionTime: boolean): void {
     this.send(HOST, createMessage('configure', { moreReactionTime }));
+  }
+
+  /** KI-Platz am Host setzen, ändern oder entfernen (`null`, CHAOS-179). */
+  aiSeat(seat: SlotNumber, strength: AiStrength | null): void {
+    this.send(HOST, createMessage('configure', { aiSeat: { seat, strength } }));
+  }
+
+  /** KI-Platz über einen Controller (`ai-seat`, nur Spielleitung; CHAOS-179). */
+  aiSeatFrom(
+    id: ConnectionId,
+    slot: SlotNumber,
+    seat: SlotNumber,
+    strength: AiStrength | null,
+  ): void {
+    const controller = this.controller(id);
+    this.send(id, createMessage('ai-seat', { slot, seq: ++controller.seq, seat, strength }));
   }
 
   /** Brett-Wahl der Lobby (CHAOS-197): Brett-ID oder `zufall`. */
@@ -474,11 +494,18 @@ export class Harness {
 export function setupGame(
   players: number,
   seed: number,
-  options: { rounds?: number; policy?: Partial<BotPolicy>; seats?: number[] } = {},
+  options: {
+    rounds?: number;
+    policy?: Partial<BotPolicy>;
+    seats?: number[];
+    /** KI-Plätze (CHAOS-179) auf den nächsten freien Plätzen nach den Menschen. */
+    ai?: AiStrength[];
+    session?: Partial<SessionOptions>;
+  } = {},
 ): Harness {
   const h = new Harness(
     // M2-Ablauf mit Minispiel-Platzhalter; echte Minispiele: unten „Minispiele über die Session“.
-    { game: { seed, rounds: options.rounds ?? 3, minigames: [] } },
+    { game: { seed, rounds: options.rounds ?? 3, minigames: [] }, ...options.session },
     { useItems: true, reaction: 'brace', ...options.policy },
     seed,
   );
@@ -486,6 +513,10 @@ export function setupGame(
   const seats = options.seats ?? Array.from({ length: players }, () => 1);
   seats.forEach((count, index) => {
     h.join(index + 1, count);
+  });
+  const human = seats.reduce((sum, count) => sum + count, 0);
+  (options.ai ?? []).forEach((strength, index) => {
+    h.aiSeat((human + index + 1) as SlotNumber, strength);
   });
   for (const id of h.controllers.keys()) h.ready(id);
   h.start();

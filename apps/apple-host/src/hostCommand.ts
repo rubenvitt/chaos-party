@@ -7,12 +7,20 @@
  * - `configure:rounds=12`, `configure:moreReactionTime=1` (`0`/`1`/`true`/`false`),
  *   `configure:board=wackelwald` (Brett-ID oder `zufall`, CHAOS-197), mehreres mit Komma
  *   verbunden: `configure:rounds=12,moreReactionTime=1` (Lobby-Einstellungen, CHAOS-166)
+ * - `configure:aiSeat=3:mittel` setzt eine KI auf Platz 3 bzw. ändert ihre Stärke
+ *   (`leicht`/`mittel`/`schwer`/`dynamisch`), `configure:aiSeat=3:aus` entfernt sie (CHAOS-179)
  *
  * Alles andere ist ungültig (`null`): unbekannte oder doppelte Schlüssel, Runden außerhalb
  * 1–`MAX_ROUNDS`, Brett-IDs außerhalb von `BoardChoiceSchema`, leeres `configure:`. Ob es das
  * Brett gibt, prüft der Server (`bad-message`).
  */
-import { BoardChoiceSchema, MAX_ROUNDS } from '@chaos-party/protocol';
+import {
+  AI_STRENGTHS,
+  BoardChoiceSchema,
+  MAX_ROUNDS,
+  type AiStrength,
+  type SlotNumber,
+} from '@chaos-party/protocol';
 import type { HostCommand } from '../../host/src/net/hostConnection.ts';
 import {
   CONFIGURE_PREFIX,
@@ -34,10 +42,24 @@ const BOOLEANS: Readonly<Record<string, boolean>> = {
   false: false,
 };
 
+/** Wert von `aiSeat`: `<platz>:<stärke>` oder `<platz>:aus` (CHAOS-179). */
+const AI_SEAT_OFF = 'aus';
+
+function parseAiSeat(value: string): ConfigureCommand['aiSeat'] | null {
+  const match = /^([1-4]):([a-z]+)$/.exec(value);
+  if (!match) return null;
+  const seat = Number(match[1]) as SlotNumber;
+  const strength = match[2] ?? '';
+  if (strength === AI_SEAT_OFF) return { seat, strength: null };
+  if (!(AI_STRENGTHS as readonly string[]).includes(strength)) return null;
+  return { seat, strength: strength as AiStrength };
+}
+
 function parseConfigure(spec: string): ConfigureCommand | null {
   let rounds: number | undefined;
   let moreReactionTime: boolean | undefined;
   let board: string | undefined;
+  let aiSeat: ConfigureCommand['aiSeat'];
   for (const pair of spec.split(',')) {
     const [key, value, ...rest] = pair.split('=');
     if (value === undefined || rest.length > 0) return null;
@@ -51,6 +73,10 @@ function parseConfigure(spec: string): ConfigureCommand | null {
     } else if (key === 'board' && board === undefined) {
       if (!BoardChoiceSchema.safeParse(value).success) return null;
       board = value;
+    } else if (key === 'aiSeat' && aiSeat === undefined) {
+      const parsed = parseAiSeat(value);
+      if (!parsed) return null;
+      aiSeat = parsed;
     } else {
       return null;
     }
@@ -60,6 +86,7 @@ function parseConfigure(spec: string): ConfigureCommand | null {
     ...(rounds === undefined ? {} : { rounds }),
     ...(moreReactionTime === undefined ? {} : { moreReactionTime }),
     ...(board === undefined ? {} : { board }),
+    ...(aiSeat === undefined ? {} : { aiSeat }),
   };
 }
 

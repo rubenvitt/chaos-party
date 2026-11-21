@@ -639,6 +639,8 @@ function create(env: HostEnv): ChaosHostInstance {
         connected: player.connected,
         ready: player.ready,
         character: player.character,
+        kind: player.kind ?? 'human',
+        strength: player.strength ?? null,
       }));
       const state: RenderState = {
         phase: contractPhase(),

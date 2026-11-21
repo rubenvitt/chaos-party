@@ -37,7 +37,7 @@ interface ChaosHostInstance {
 }
 ```
 
-`configure` (CHAOS-166): `configure:rounds=12`, `configure:moreReactionTime=1` (`0`/`1`/`true`/`false`), `configure:board=wackelwald` (Brett-ID oder `zufall`, CHAOS-197) oder mehreres mit Komma, `configure:rounds=12,moreReactionTime=1`. Runden 1–20; ein unbekanntes Brett lehnt der Server ab (Log „Server-Fehler an Host: bad-message …“). Wirkt nur in der Lobby; außerhalb loggt der Kern „ignoriert: nur in der Lobby“, Ungültiges „Ungültiger Host-Befehl“, gesendet wird dann nichts. Der neue Stand steht im nächsten `renderState().lobby.settings`.
+`configure` (CHAOS-166): `configure:rounds=12`, `configure:moreReactionTime=1` (`0`/`1`/`true`/`false`), `configure:board=wackelwald` (Brett-ID oder `zufall`, CHAOS-197), `configure:aiSeat=3:mittel` bzw. `configure:aiSeat=3:aus` (KI-Platz setzen, Stärke ändern oder entfernen, CHAOS-179; einen Platz mit Mensch lehnt der Server mit `bad-message` ab) oder mehreres mit Komma, `configure:rounds=12,moreReactionTime=1`. Runden 1–20; ein unbekanntes Brett lehnt der Server ab (Log „Server-Fehler an Host: bad-message …“). Wirkt nur in der Lobby; außerhalb loggt der Kern „ignoriert: nur in der Lobby“, Ungültiges „Ungültiger Host-Befehl“, gesendet wird dann nichts. Der neue Stand steht im nächsten `renderState().lobby.settings`.
 
 `pause`, `resume`, `end-game` und `rematch` (CHAOS-145) gehen nur an den Server, wenn sie passen: `pause` nur bei `renderState().pause.canPause` (Brett und Minispiel, nicht vor dem Start und nicht im Finale), `resume` nur in der Pause, `end-game` nur in der laufenden Partie, `rematch` nur im Finale. Sonst loggt der Kern „Host-Befehl … ignoriert: passt gerade nicht“ (kein Server-Fehler; die Fernbedienung drückt man auch in der Lobby). `skip-finale` wirkt nur im Kern: Die Trophäenzählung springt zum Siegerbildschirm.
 
@@ -51,7 +51,8 @@ interface ChaosHostInstance {
 {
   "phase": "lobby" | "board" | "minigame" | "final" | "paused",
   "lobby": { "joinUrl": "…", "joinCode": "AB12",
-             "players": [{ "slot": 1, "name": "Anna", "color": "#0072B2", "connected": true, "ready": false, "character": "raccoon" | null }],
+             "players": [{ "slot": 1, "name": "Anna", "color": "#0072B2", "connected": true, "ready": false, "character": "raccoon" | null,
+                           "kind": "human" | "ai", "strength": null | "leicht" | "mittel" | "schwer" | "dynamisch" }],  // CHAOS-179
              "settings": null | { "rounds": 10, "roundPresets": [10, 16, 20], "moreReactionTime": false,  // CHAOS-166
                                   "board": "wackelwald",  // Brett-ID oder "zufall" (CHAOS-197)
                                   "boards": [ { "id": "wackelwald", "name": "Wackelwald", "detail": "43 Felder",

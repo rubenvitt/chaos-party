@@ -53,6 +53,8 @@ const ANNA: LobbyPlayer = {
   connected: true,
   ready: true,
   character: 'raccoon',
+  kind: 'human',
+  strength: null,
 };
 const BEN: LobbyPlayer = {
   slot: 2,
@@ -61,6 +63,19 @@ const BEN: LobbyPlayer = {
   connected: true,
   ready: false,
   character: null,
+  kind: 'human',
+  strength: null,
+};
+/** KI-Platz in der Lobby (CHAOS-179): immer verbunden und bereit, noch ohne Figur. */
+const KI_GRUEN: LobbyPlayer = {
+  slot: 3,
+  name: 'KI Grün',
+  color: '#009E73',
+  connected: true,
+  ready: true,
+  character: null,
+  kind: 'ai',
+  strength: 'mittel',
 };
 
 const HUD: Hud = {
@@ -635,8 +650,26 @@ const FINALE_TALLY: FinaleState = {
 
 const PLAYERS_FINALE: LobbyPlayer[] = [
   ...PLAYERS_IN_GAME,
-  { slot: 3, name: 'Cleo', color: '#009E73', connected: true, ready: true, character: 'robot' },
-  { slot: 4, name: 'Dana', color: '#CC79A7', connected: false, ready: true, character: 'cactus' },
+  {
+    slot: 3,
+    name: 'Cleo',
+    color: '#009E73',
+    connected: true,
+    ready: true,
+    character: 'robot',
+    kind: 'human',
+    strength: null,
+  },
+  {
+    slot: 4,
+    name: 'Dana',
+    color: '#CC79A7',
+    connected: false,
+    ready: true,
+    character: 'cactus',
+    kind: 'human',
+    strength: null,
+  },
 ];
 
 /** Pause (CHAOS-145): außerhalb der Partie weder Pause noch Rundentext. */
@@ -674,6 +707,13 @@ const EXAMPLES: Readonly<Record<string, ExampleBase>> = {
   'lobby-two-players': {
     phase: 'lobby',
     lobby: { ...JOIN, players: [ANNA, BEN] },
+    board: null,
+    minigame: null,
+  },
+  // CHAOS-179: ein Mensch und eine KI (Platz 3); `configure:aiSeat=3:aus` entfernt sie.
+  'lobby-with-ai': {
+    phase: 'lobby',
+    lobby: { ...JOIN, players: [ANNA, KI_GRUEN] },
     board: null,
     minigame: null,
   },
