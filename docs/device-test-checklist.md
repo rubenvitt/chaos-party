@@ -890,3 +890,15 @@ Automatisch geprüft (Linux): Zuteilung, Ersatz zu zweit und zu dritt, Prüfung 
 | SF6 | Native App (TestFlight) auf zwei iPhones, zwei Browser-Handys: SF1 | Die App zeigt in der Anleitung die Rollenkarte mit ☀ bzw. ☾, „Team Sonne“/„Team Mond“ und „Du und … gegen …“; lesbar ohne Scrollen | | Foto |
 | SF7 | Native App: SF2–SF4 | Ergebnis zeigt „Dein Team hat gewonnen!“/„verloren“, bei Pump-Solo „Allein gegen alle“ mit Vorteil-Hinweis, bei Riesenballon „Gemeinsam geschafft: Stufe … von 3“ | | Foto |
 | SF5 | Ruben: Urteil | Team-Sieg mit 7 Münzen lohnend? „Letzter gegen alle“ spannend oder demütigend? Koop für alle lohnend? (EXP-038) | | Kommentar an CHAOS-89 |
+
+## 47. Requisiten der Minispiele als USDZ in RealityKit (für CHAOS-221)
+
+**Stand:** 2026-11-21 · **Aufgabe:** CHAOS-221 · **Anleitung:** [`apple-assets.md`](apple-assets.md)
+
+Automatisch geprüft (Linux, ohne Mac): 42 Requisiten entstehen mit `pnpm build:apple-assets --nur=requisiten`; usd-core findet keine Fehler; Boden, Mitte, Höhe, Materialnamen, Deckkraft und Laufzeit-Materialien wie im GLB (`check_usdz.py`); Herkunft in `herkunft.json`, Budget in `pnpm check:assets`; USDZ in Blender importiert sehen aus wie die GLBs (`docs/screenshots/chaos221-requisiten-usdz.jpg`). **Nicht** automatisch prüfbar: ob RealityKit alles lädt (`check_realitykit.swift` läuft nur am Mac und ist für die Requisiten noch nie gelaufen), wie Metall und Glas in RealityKit wirken. Eingebunden in die App sind die Requisiten noch nicht (CHAOS-91).
+
+| ID  | Schritt | Erwartung | Ergebnis | Nachweis |
+| --- | ------- | --------- | -------- | -------- |
+| RQ1 | Mac: `pnpm build:apple-assets` | „USDZ ok“, danach RealityKit-Prüfung „OK“ mit einer Zeile je Requisit (`requisiten/<id>.usdz: Höhe …, Teile […]`), keine Meldung „glas ist undurchsichtig“ | | Log als Kommentar an CHAOS-221 |
+| RQ2 | Mac: `build/apple-assets/requisiten/` im Finder, Requisiten mit Quick Look (Leertaste) drehen | Farben wie im Kontaktbogen `docs/screenshots/chaos88-requisiten.jpg`; Metall silbern (Toaster, Milchkanne, Gießkanne), keine fremden Farbflecken; Limoglas, Eiswürfel, Honigglas und Bienenflügel durchscheinend; `akzent`/`zustand` weiß | | Screenshots |
+
