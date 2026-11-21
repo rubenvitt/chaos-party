@@ -135,6 +135,8 @@ export function flattenTransitions(
         longestMaxMs: s.longestMaxMs,
         blockedMedianMs: s.blockedMedianMs,
         waitMedianMs: s.waitMedianMs,
+        requestMedianMs: s.requestMedianMs,
+        requestMaxMs: s.requestMaxMs,
       },
     ]),
   );

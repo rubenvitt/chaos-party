@@ -6,6 +6,8 @@
  * Änderungen nur additiv und abgestimmt (Koordinator).
  */
 
+import type { MinigameOutcome, MinigameTeamPlay } from './teams.ts';
+
 /** Spielerplatz 1–4 (gleich `Slot` aus game-core und `SlotNumber` aus protocol). */
 export type Slot = 1 | 2 | 3 | 4;
 
@@ -80,6 +82,12 @@ export interface MinigameInfo {
    * Aufstellung zieht die Rotation das Spiel deutlich seltener (Gewicht, kein Ausschluss).
    */
   readonly secretChoice?: boolean;
+  /**
+   * Spielform mit Teams oder Koop (CHAOS-89). Fehlt = jeder gegen jeden. Muss zur Spielform im
+   * Vielfalts-Steckbrief passen (Katalogtest). Die Aufstellung einer Runde bekommt das Spiel
+   * fertig über `MinigameContext.teams`.
+   */
+  readonly teamPlay?: MinigameTeamPlay;
 }
 
 /** Die 20 Mechanik-Familien aus README §4 (Kennung für Steckbrief und Rotation). */
@@ -128,6 +136,12 @@ export interface MinigameResult {
   readonly placements: readonly MinigamePlacement[];
   /** 0–4 kurze Höhepunkte für die Ergebnisanzeige („Rot flog dreimal vom Floß“). */
   readonly highlights?: readonly string[];
+  /**
+   * Ausgang bei Teams bzw. Koop (CHAOS-89): Pflicht, wenn das Minispiel mit Teams lief, sonst
+   * verboten. Bei Teams bestimmt er die Plätze (Siegerteam Platz 1, `teamPlacements`), bei
+   * Koop die Münzen; die Plätze sind dort die Einzelwertung.
+   */
+  readonly outcome?: MinigameOutcome;
 }
 
 /**

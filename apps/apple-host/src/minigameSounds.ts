@@ -12,9 +12,10 @@
  *   `tick`, unabhängig von der Bühne (die fehlt, solange Havok noch lädt).
  */
 import type { MINIGAME_STAGES } from '@chaos-party/protocol';
-import { SOUNDS, shapeRecipe, type PlayOptions, type SoundName } from '../../host/src/fx/sounds.ts';
+import type { PlayOptions, SoundName } from '../../host/src/fx/sounds.ts';
 import { SOUND_WINDOW_MS } from './boardDirection.ts';
 import type { SoundCue } from './contract.ts';
+import { soundCue, toCue } from './soundCue.ts';
 
 type MinigameStage = (typeof MINIGAME_STAGES)[number];
 
@@ -70,11 +71,7 @@ export function createMinigameSounds(now: () => number): MinigameSounds {
   const play = (name: SoundName, options?: PlayOptions, key?: string) => {
     const owner = key ?? currentKey;
     if (owner === null) return;
-    // Klon über JSON: `readonly`-Rezept → Vertragstyp, und keine geteilten Objekte im Zustand.
-    const voices = JSON.parse(
-      JSON.stringify(shapeRecipe(SOUNDS[name].recipe, options)),
-    ) as SoundCue['voices'];
-    cues.push({ id: nextId++, name, voices, at: now(), key: owner });
+    cues.push({ ...soundCue(nextId++, name, options), at: now(), key: owner });
     if (cues.length > MAX_MINIGAME_SOUNDS) cues.splice(0, cues.length - MAX_MINIGAME_SOUNDS);
   };
 
@@ -105,9 +102,7 @@ export function createMinigameSounds(now: () => number): MinigameSounds {
     cues(key) {
       expire();
       if (key === null) return [];
-      return cues
-        .filter((cue) => cue.key === key)
-        .map(({ id, name, voices }) => ({ id, name, voices }));
+      return cues.filter((cue) => cue.key === key).map(toCue);
     },
   };
 }

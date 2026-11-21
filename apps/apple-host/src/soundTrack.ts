@@ -3,9 +3,10 @@
  * (`boardDirection.ts`): Rezepte aus `apps/host/src/fx/sounds.ts` fertig angewandt, mit
  * steigender ID, `SOUND_WINDOW_MS` lang in `renderState`; Swift spielt jede ID einmal.
  */
-import { SOUNDS, shapeRecipe, type SoundName } from '../../host/src/fx/sounds.ts';
+import type { SoundName } from '../../host/src/fx/sounds.ts';
 import { SOUND_WINDOW_MS } from './boardDirection.ts';
 import type { SoundCue } from './contract.ts';
+import { soundCue, toCue } from './soundCue.ts';
 
 export interface SoundTrack {
   /** Klang `name` zum Zeitpunkt `now` (ms) auslösen. */
@@ -21,15 +22,11 @@ export function createSoundTrack(): SoundTrack {
   let cues: (SoundCue & { readonly at: number })[] = [];
   return {
     play(name, now) {
-      // JSON-Kopie: `shapeRecipe` lässt fehlende Felder als `undefined` stehen.
-      const voices = JSON.parse(
-        JSON.stringify(shapeRecipe(SOUNDS[name].recipe)),
-      ) as SoundCue['voices'];
-      cues.push({ id: nextId++, name, voices, at: now });
+      cues.push({ ...soundCue(nextId++, name), at: now });
     },
     list(now) {
       cues = cues.filter((cue) => now - cue.at < SOUND_WINDOW_MS);
-      return cues.map(({ id, name, voices }) => ({ id, name, voices }));
+      return cues.map(toCue);
     },
     reset() {
       nextId = 1;

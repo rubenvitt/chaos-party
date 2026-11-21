@@ -2,7 +2,7 @@
 
 **Stand:** 2026-11-20 · **Zunder:** `CHAOS-84` (Epic `CHAOS-80`) · **Rahmen:** [`README.md`](README.md) §5.2, §5.3, §5.5 · **Messwerte:** [`pruefbericht.md`](pruefbericht.md)
 
-Bei rund 200 Minispielen kann nicht jedes Spiel seine Rahmen-Tests selbst mitbringen. Vier gemeinsame Prüfungen sichern alle gleich ab. Ein neues Spiel wird ohne eigenen Testcode mitgeprüft, sobald es im Katalog steht; für Fairness und Vielfalt braucht es je einen Eintrag (Bots, Steckbrief), sonst schlägt der Test fehl und sagt, was fehlt.
+Bei rund 200 Minispielen kann nicht jedes Spiel seine Rahmen-Tests selbst mitbringen. Vier gemeinsame Prüfungen sichern alle gleich ab, eine fünfte hält den Skizzen-Vorrat im Katalog groß und ausgewogen genug. Ein neues Spiel wird ohne eigenen Testcode mitgeprüft, sobald es im Katalog steht; für Fairness und Vielfalt braucht es je einen Eintrag (Bots, Steckbrief), sonst schlägt der Test fehl und sagt, was fehlt.
 
 | Prüfung | Datei | Für | Läuft |
 |---|---|---|---|
@@ -10,6 +10,7 @@ Bei rund 200 Minispielen kann nicht jedes Spiel seine Rahmen-Tests selbst mitbri
 | Bot-Fairness | `packages/minigames/src/checks/` (`fairness.ts`, `harnesses.ts`) | jedes Spiel in `ROTATION` | `pnpm test` (Stichprobe), Bericht mit `PRUEFBERICHT=1` |
 | Vielfalt | `packages/minigames/src/checks/variety.ts` mit den Steckbriefen aus `packages/minigames/src/steckbriefe.ts` (Baukasten, ADR-021) | jedes Spiel in `ROTATION` | `pnpm test` (CI) |
 | Screenshots | `tests/e2e/m3-minispiele-bild.spec.ts` | jedes Spiel in `ROTATION` | `pnpm test:e2e` (CI) |
+| Katalog-Bestand | `packages/minigames/src/sketchCatalog.test.ts` | Skizzen in `docs/minigames/katalog.md` (≥ 200 aktiv, ≥ 30 % ohne Stick, ≥ 25 % Physik, `CHAOS-93`) | `pnpm test` (CI) |
 
 ## 1. Vertragstest
 

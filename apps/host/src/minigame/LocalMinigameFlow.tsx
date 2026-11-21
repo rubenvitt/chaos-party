@@ -7,7 +7,6 @@
  * (`&test=1`) schaltet `window.__chaosMinigame.next()` weiter, `step(n)` rechnet das Spiel.
  * Das Ergebnis erscheint, sobald das Minispiel fertig ist.
  */
-import { getMinigameModule } from '@chaos-party/minigames';
 import { useCallback, useEffect, useState } from 'react';
 import type { LocalReadiness } from '../config.ts';
 import type { MinigameResultPayload } from '../net/hostConnection.ts';
@@ -20,6 +19,7 @@ import {
   type LocalFlowState,
 } from './localFlow.ts';
 import { minigameStageOf } from './plan.ts';
+import { useMinigameModule } from './useMinigameModule.ts';
 
 interface LocalMinigameFlowProps {
   readonly id: string;
@@ -43,7 +43,7 @@ export function LocalMinigameFlow({
   repeat = false,
   readiness = null,
 }: LocalMinigameFlowProps) {
-  const module = getMinigameModule(id);
+  const module = useMinigameModule(id);
   const [state, setState] = useState<LocalFlowState & { readonly receivedAt: number }>(() => ({
     view: localView(module?.info ?? { id, durationMs: 5_000 }, 'intro', {
       players,

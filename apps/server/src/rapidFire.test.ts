@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { parseRapidFire } from './rapidFire.ts';
 
 describe('SCHNELLFEUER (CHAOS-90)', () => {
-  it('Standard und „an“ sind die Regel aus EXP-038, „aus“ schaltet ab', () => {
+  it('Standard und „an“ sind die Regel aus EXP-041, „aus“ schaltet ab', () => {
     expect(parseRapidFire(undefined)).toEqual(RAPID_FIRE_RULE);
     expect(parseRapidFire(' AN ')).toEqual(RAPID_FIRE_RULE);
     expect(parseRapidFire('aus')).toBeNull();

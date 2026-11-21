@@ -2607,6 +2607,31 @@ Feinabstimmung innerhalb von C:
 
 **Entscheidung:** **Behalten**, mit 12 empfohlenen Runden. Die Zahlen sind Bot-Simulation, kein Spieltest. Offen für Ruben (Gerätecheckliste §41): Ist die Stellung des Karussells am Fernseher klar, und fühlt sich die Ehrenrunde lustig oder ärgerlich an?
 
+## EXP-035: Echte Klänge statt Synthese (2026-11-20, CHAOS-223)
+
+**Hypothese / gewünschtes Spielerlebnis:** Echte Aufnahmen (Würfelklappern, Boing, Platschen, Fanfare, Jubel) machen die Partie am Fernseher lebendig und cartoonig. Die prozeduralen Rezepte (CHAOS-33) klangen nach Piepsen. Ruben nach einer Partie auf der Apple TV (2026-11-20): „Wir brauchen dringend VIEL BESSERE Töne. Das ist ja grauenhaft so.“
+
+**Varianten:**
+- **A (bisher):** 35 Rezepte aus Oszillator und Rauschen (`apps/host/src/fx/sounds.ts`), Synthese per WebAudio bzw. AVAudioEngine.
+- **B (gewählt):** CC0-Aufnahmen. Kenney-Pakete (Casino: Würfel; Interface: Bestätigen, Fehler, Glas, Pause/Weiter; Impact: Holz, Treffer; RPG: Münzbeutel; Music Jingles: Pizzicato-Läufe für Zugbeginn, Minispiel-Zeit, Münzverlust, ein Saxofon-Lauf abwärts für die Finte) und freesound.org für das, was Kenney nicht hat (Boing, Platschen, Wusch, Plopp, Münze, Trillerpfeife, Lotusflöte, Jubel, Fanfaren, Mausefalle). Je häufigem Klang zwei bis drei Varianten reihum, dazu ±2–10 % Tonhöhen-Streuung.
+- **Verworfen:** Kenney „Voiceover Pack“ (englische Ansagen „Go!“, „You win“) passt nicht zu deutschen Texten. Kenney „Digital Audio“ und „Sci-Fi Sounds“ klingen nach Weltraum, nicht nach Picknick. Sonniss-, BBC- und Pixabay-Sammlungen sind nicht CC0 und dürfen nicht als Rohdatei in ein öffentliches Repository.
+
+**Auswahl ohne Ohr:** Claude kann nicht hören. Grundlage waren Titel, Beschreibung und Downloadzahl auf freesound.org, die Paketstruktur bei Kenney und eine grobe Tonhöhen-Kontur der Jingles (dominante Frequenz je 50 ms): aufsteigend (+5 bis +9 Halbtöne) für Zugbeginn und Minispiel-Zeit, fallend (−9) für Münzverlust. Das Urteil liegt bei Ruben.
+
+**Objektive Messgrößen:** Dauer je Datei (häufige Klänge ≤ 0,3–0,6 s, längste 1,9 s), Spitzenpegel ≤ −0,1 dBFS, Effektivpegel nach dem Import (Ziel −18 dBFS, Würfel und Münzbeutel wegen Pausen zwischen den Anschlägen −21 bis −30 dBFS), Größe (40 Dateien, rund 310 KiB), verworfene Klänge je Minispiel (Logzeile „Minispiel-Klänge …: n gespielt, m verworfen“), Ladezeit der Dateien in Swift (Log „Klang-Dateien: n geladen in … ms“).
+
+**Subjektive Playtest-Fragen (für Ruben):** Klingt es jetzt nach Partyspiel? Welche Klänge nerven nach zehn Runden (Zugbeginn, Münzen, Würfel)? Ist etwas zu laut oder zu leise im Verhältnis? Passt die Trillerpfeife zum Minispiel-Start? Sind Jubel und Fanfare zu lang?
+
+**Testumgebung:** MacBook (Apple Silicon), Import mit ffmpeg 8 und libmp3lame (VBR q3, mono 44,1 kHz), Branch `claude/chaos-223-klaenge`. Unit-Tests `apps/host/src/fx/samples.test.ts`, `audio.test.ts`, `apps/apple-host/test/soundCue.test.ts`; Mac-App mit `--selftest` und Bot-Partie.
+
+**Ergebnisse:**
+- Mac-App (Release, `--autostart --runden=3`, vier Bots mit `--bunt`): „Klang-Dateien: 40 geladen in 126 ms“ (Hintergrund-Queue). Alle Minispiel-Klänge kamen aus Dateien, keiner wurde verworfen: Sockenregen 114 (whoosh×69, coin×20, bump×17), Kuckucks-Klatsche 223 (pop×46, tick×49, bump×35), Pudding-Gerangel 134 (whoosh×33, splash×31, pop×30).
+- Befund: Kuckucks-Klatsche spielt `lose` bei jeder Finte (8× in einem Spiel). Die erste Wahl, ein 1,9 s langes „Wah-wah-wah“ (freesound 835112), wäre dort nervig gewesen. Ersetzt durch einen Saxofon-Lauf abwärts (Kenney `jingles_SAX01`, 0,84 s), Test-Grenze für `lose` 1,2 s.
+- `--selftest` meldet 40 Klang-Dateien, Browser-Build und Apple-Host-Bündel im Budget (Apple-Host-Bündel enthält nur die Dateinamen, keine Tondaten).
+- Hörprobe alt gegen neu als Seite: https://claude.ai/artifact/WvAV3q58ah5VLnCRWTLMj7
+
+**Entscheidung:** B behalten, vorbehaltlich Rubens Hörprobe am Fernseher (Gerätecheckliste §44). Einzelne Klänge tauscht eine Zeile in `packages/assets/sounds.json`.
+
 ## EXP-036: Frostgipfel – Eis, Seilbahn und Lawinen (2026-11-20, CHAOS-198)
 
 **Hypothese / gewünschtes Spielerlebnis:** Ein zweites Themenbrett „Frostgipfel“ mit drei eigenen Mechaniken bringt Abwechslung, ohne die Wegwahl zu verzerren. Eisfelder sorgen für kleine Überraschungen (die Figur rutscht weiter, manchmal auf ein Minusfeld). Die Lawine ist eine angekündigte Gefahr: Wer in der Warnrunde am Hang stehen bleibt, verliert Münzen. Die Seilbahn ist eine teure Abkürzung, die sich gezielt lohnt (Trophäe vorn), aber nicht immer.
@@ -2642,7 +2667,138 @@ Feinabstimmung innerhalb von C:
 
 **Entscheidung:** **Behalten**: Seilbahn 8 Münzen, Kandidat hinter der Bergstation, Lawine alle drei Runden mit 5 Münzen, 12 empfohlene Runden. Die Zahlen sind Bot-Simulation, kein Spieltest. Offen für Ruben (Gerätecheckliste §43): Ist die Lawinen-Warnung klar, wird die Seilbahn gezielt genutzt, ist die Rutschpartie nachvollziehbar?
 
-## EXP-038: Schnellfeuer – Auslöser, Wertung und Mikro-Fairness (2026-11-21, CHAOS-90)
+## EXP-037: Großer Wackelwald – 74 Felder, vier Gabeln (2026-11-20, CHAOS-196)
+
+**Hypothese / gewünschtes Spielerlebnis:** Ein größeres Brett mit mehr Wegen macht die Wegwahl interessanter und das Brett abwechslungsreicher, ohne dass Trophäen außer Reichweite geraten. Ruben (2026-11-19): „auch das wackelwald brett muss größer werden“. Die dynamische Kamera (CHAOS-194, EXP-033) hält das größere Brett lesbar.
+
+**Varianten:**
+- **A (bisher, `wackelwaldM2.ts`):** 43 Felder auf ≈ 32 × 18, zwei Gabeln (Klippenweg/Sumpf, Pilzpfad/Wackelbrücke), Runde 32–36 Felder, sechs Trophäen-Kandidaten, sechs Item-Felder. Bleibt für EXP-001 … EXP-022 erhalten (`rules/experiments.ts`, `rules/experimentsM4.ts`), damit deren Tabellen wiederholbar bleiben.
+- **B1 (erster Entwurf):** 74 Felder auf ≈ 41 × 26, vier Gabeln: A Klippenweg 6 / Sumpfabkürzung 4, D Bachlauf oben herum / Lichtung 11 quer durch die Mitte, B (oben) Uferweg 11 / Baumkronenweg 8, C Pilzpfad 6 / Wackelbrücke 4; Runde 37–47 Felder. Acht Trophäen-Kandidaten, vorwiegend auf kurzen Zweigen wie in A.
+- **B2:** wie B1, zusätzlich Trophäen-Kandidaten auf Pilzpfad, Uferweg und oben (s22), Lichtung beginnt mit Minus.
+- **B3:** wie B2 ohne s22, Lichtung wieder mit Plus; dafür drei Kandidaten auf gemeinsamen Stücken (s05 nach dem Start, s73 hinter Lichtung und Bachlauf, s42 wie bisher) und ein Ereignis statt Minus am Ende der Sumpfabkürzung. Zwölf Kandidaten, zehn Item-Felder, jeder Zweig hat einen Kandidaten.
+- **B4 (gewählt):** wie B3, dazu ein Kandidat auf s18 (gemeinsam, hinter Gabel A): In fünf Runden läuft man nur etwa 20 Felder, also bis kurz hinter Gabel A. 13 Kandidaten.
+
+**Objektive Messgrößen:** Bot-Partien mit den Standardregeln und echter Minispiel-Rotation (`packages/game-core/src/rules/experimentsBoard.ts`, Seeds 1–200, 2–4 Spieler, 5/10/12/15/20 Runden): Trophäen je Partie, Anteil Spieler und Partien ohne Trophäe, gelaufene Runden ums Brett. **Fairness der Wegwahl:** Bots mit fester Wegwahl (`BotPolicy.routes`: an jeder Gabel der kürzeste bzw. längste Weg zurück zum Start) spielen gegeneinander, die Hälfte „immer kurz“, die Hälfte „immer lang“, mit getauschten Rollen gegen den Vorteil der Zugreihenfolge. Fair heißt: Siegquote „kurz“ nahe 50 %. Dazu die Wahl je Gabel und die gekauften Trophäen je Feld mit dem Experiment-Verhalten (75 % Richtung Trophäe).
+
+**Testumgebung:** MacBook (Apple Silicon), Node, Vitest; `EXPERIMENTS=brett pnpm exec vitest run packages/game-core/src/rules/experimentsBoard.test.ts --silent=false` (≈ 4 s). Branch `claude/chaos-196-wackelwald-gross`.
+
+**Ergebnisse (B4, alt zum Vergleich; 12 und 15 Runden liefert der Lauf zusätzlich):**
+
+Rundenlänge alt: 32–36 Felder (4 Wegkombinationen); neu: 37–47 Felder (12 Wegkombinationen)
+
+**EXP-037 Brettgröße (Standardregeln + Rotation, Seeds 1–200 je Zeile)**
+
+| Brett | Runden | Sp. | Partie min | Felder/Sp. | Runden ums Brett | Trophäen | Trophäen Sieger | ohne Trophäe | Partie ohne Trophäe | Münzen entscheiden |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Wackelwald alt (43 Felder) | 5 | 2 | 5,8 | 20 | 0,58 | 3,04 | 1,95 | 11 % | 1 % | 39 % |
+| Wackelwald alt (43 Felder) | 5 | 3 | 6,6 | 20 | 0,58 | 3,91 | 1,88 | 12 % | 1 % | 46 % |
+| Wackelwald alt (43 Felder) | 5 | 4 | 7,3 | 19 | 0,57 | 4,18 | 1,71 | 20 % | 0 % | 54 % |
+| Wackelwald alt (43 Felder) | 10 | 2 | 11,1 | 40 | 1,16 | 6,55 | 3,94 | 1 % | 0 % | 23 % |
+| Wackelwald alt (43 Felder) | 10 | 3 | 12,6 | 39 | 1,16 | 8,16 | 3,64 | 1 % | 0 % | 34 % |
+| Wackelwald alt (43 Felder) | 10 | 4 | 14,0 | 39 | 1,13 | 8,68 | 3,15 | 3 % | 0 % | 44 % |
+| Wackelwald alt (43 Felder) | 20 | 2 | 21,5 | 78 | 2,29 | 14,98 | 8,39 | 0 % | 0 % | 21 % |
+| Wackelwald alt (43 Felder) | 20 | 3 | 24,6 | 78 | 2,29 | 19,09 | 7,57 | 0 % | 0 % | 26 % |
+| Wackelwald alt (43 Felder) | 20 | 4 | 27,5 | 77 | 2,26 | 21,31 | 6,73 | 0 % | 0 % | 31 % |
+| Wackelwald neu (74 Felder) | 5 | 2 | 5,9 | 19 | 0,46 | 2,52 | 1,56 | 21 % | 12 % | 53 % |
+| Wackelwald neu (74 Felder) | 5 | 3 | 6,7 | 20 | 0,47 | 3,38 | 1,66 | 20 % | 6 % | 45 % |
+| Wackelwald neu (74 Felder) | 5 | 4 | 7,4 | 19 | 0,46 | 3,56 | 1,49 | 26 % | 2 % | 49 % |
+| Wackelwald neu (74 Felder) | 10 | 2 | 11,1 | 39 | 0,93 | 7,19 | 4,06 | 1 % | 0 % | 32 % |
+| Wackelwald neu (74 Felder) | 10 | 3 | 12,7 | 39 | 0,93 | 9,38 | 3,83 | 1 % | 0 % | 38 % |
+| Wackelwald neu (74 Felder) | 10 | 4 | 14,2 | 38 | 0,91 | 10,06 | 3,40 | 0 % | 0 % | 43 % |
+| Wackelwald neu (74 Felder) | 20 | 2 | 21,7 | 78 | 1,85 | 16,82 | 8,92 | 0 % | 0 % | 29 % |
+| Wackelwald neu (74 Felder) | 20 | 3 | 24,9 | 78 | 1,86 | 21,32 | 7,87 | 0 % | 0 % | 41 % |
+| Wackelwald neu (74 Felder) | 20 | 4 | 27,8 | 76 | 1,81 | 22,95 | 6,82 | 0 % | 0 % | 38 % |
+
+**EXP-037 Wegwahl: immer kurz gegen immer lang (Rollen getauscht, Seeds 1–200 je Zeile × 2)**
+
+| Brett | Runden | Sp. | Sieg kurz (fair ≈ 50 %) | Trophäen kurz / lang | Münzen kurz / lang |
+| --- | --- | --- | --- | --- | --- |
+| Wackelwald alt (43 Felder) | 5 | 2 | 45 % | 1,45 / 1,46 | 28,5 / 33,2 |
+| Wackelwald alt (43 Felder) | 5 | 4 | 50 % | 1,06 / 0,97 | 20,7 / 25,7 |
+| Wackelwald alt (43 Felder) | 10 | 2 | 69 % | 3,42 / 2,58 | 40,4 / 60,8 |
+| Wackelwald alt (43 Felder) | 10 | 4 | 66 % | 2,28 / 1,72 | 30,2 / 43,9 |
+| Wackelwald alt (43 Felder) | 20 | 2 | 75 % | 7,76 / 6,13 | 57,4 / 96,6 |
+| Wackelwald alt (43 Felder) | 20 | 4 | 64 % | 5,30 / 4,53 | 39,3 / 60,6 |
+| Wackelwald neu (74 Felder) | 5 | 2 | 41 % | 1,00 / 1,14 | 36,8 / 38,0 |
+| Wackelwald neu (74 Felder) | 5 | 4 | 44 % | 0,71 / 0,75 | 26,3 / 29,4 |
+| Wackelwald neu (74 Felder) | 10 | 2 | 49 % | 3,38 / 3,37 | 42,6 / 49,2 |
+| Wackelwald neu (74 Felder) | 10 | 4 | 47 % | 2,27 / 2,21 | 30,7 / 37,6 |
+| Wackelwald neu (74 Felder) | 20 | 2 | 51 % | 7,87 / 7,74 | 60,2 / 71,3 |
+| Wackelwald neu (74 Felder) | 20 | 4 | 51 % | 5,28 / 5,20 | 40,8 / 52,5 |
+
+**EXP-037 Wegwahl und Trophäenfelder (10 Runden, 2–4 Sp., Seeds 1–200 je Zeile)**
+
+| Gabel / Feld | Anteil |
+| --- | --- |
+| Gabel s07 | Klippenweg 26 % · Sumpfabkürzung 74 % |
+| Gabel s20 | Bachlauf 62 % · Lichtung 38 % |
+| Gabel s25 | Uferweg 30 % · Baumkronenweg 70 % |
+| Gabel s29 | Pilzpfad 23 % · Wackelbrücke 77 % |
+| Trophäen gekauft je Feld | s05 7 % · s12 5 % · s16 9 % · s18 8 % · s49 6 % · s24 10 % · s57 3 % · s62 3 % · s67 8 % · s73 16 % · s33 4 % · s36 12 % · s42 9 % |
+
+- Fairness je Entwurf (10 Runden, 2 / 4 Spieler, Siegquote „immer kurz“): A 69 / 66 %, B1 74 / 70 %, B2 30 / 35 %, B2 ohne s22 37 / 43 %, B3 47 / 47 % (20 Runden ebenfalls), B4 **49 / 47 %** (20 Runden 51 / 51 %). Schon das alte Brett bevorzugte kurze Wege: Die Trophäen-Kandidaten lagen dort, und auf der kürzeren Runde kommt man öfter an ihnen vorbei. Münzen allein gleichen das nicht aus, sie zählen erst bei gleich vielen Trophäen.
+- Wahl je Gabel mit Experiment-Verhalten: Kurze Wege werden häufiger genommen (Sumpf 74 %, Brücke 77 %, Baumkronen 70 %), weil Bots Richtung Trophäe laufen und der kurze Weg meist näher dran ist. Die Lichtung nehmen 38 %. Gekaufte Trophäen verteilen sich auf alle 13 Kandidaten (3–16 %).
+- Trophäen bei 10 Runden etwas mehr als auf dem alten Brett (7,2–10,1 statt 6,6–8,7 je Partie), kaum jemand ohne Trophäe (0–1 %). Nach 10 Runden ist man aber erst 0,93-mal ums Brett gelaufen, nach 12 Runden 1,1-mal.
+- Kurze Partien (5 Runden) leiden: 20–26 % der Spieler und 2–12 % der Partien ohne Trophäe (alt 11–20 % bzw. 0–1 %; B3 31–39 % bzw. 6–14 %). Am stärksten zu zweit.
+- Bild (Playwright, SwiftShader, Testmodus): Der Überblick zu Rundenbeginn ist 1,5-mal so weit weg wie die frühere Vollansicht, Felder und Wegweiser bleiben lesbar; nah an der Figur unverändert 17.
+
+**Kulisse (`apps/host/src/board/wackelwaldScenery.ts`):** Bach zwischen Uferweg und Baumkronenweg (Wasserband, Ufersteine), Teich im Wald unten zwischen Start-Reihe, Sumpf und Lichtung, Lichtung mit Hexenring, Hängebrücken-Bretter am Baumkronenweg wie an der Wackelbrücke. Bäume stehen nicht mehr in einer festen Liste, sondern locker im Inneren (Raster mit Zufall, Seed 62), mit Abstand zu Feldern, Wegen, Teich, Bach und Lichtung und nie knapp vor einem Feld (die Kamera schaut von vorn). Inselrand, Randbäume, Blumen und Laternen wachsen mit dem Brett. Grashalme bleiben bei 64 000 (Apple-TV-Budget, EXP-020), stehen also dünner.
+
+**Hosts:** PC-Host im Playwright-Lauf (alle 173 E2E-Tests grün im Playwright-Docker-Image, 14 Referenzbilder neu: Brett, Lobby mit „74 Felder“, Siegerbilder des Gesamtablaufs mit anderem Partieverlauf). Apple-Host: `pnpm build:apple-assets` grün (`check_usdz.py`, `check_realitykit.swift`: 74 von 74 Feld-Ankern), `brett.usdz` 32,5 statt 25,6 MB, Instanzen unverändert 64 338. tvOS-Simulator (Apple TV 4K, 3. Generation, eigenes Gerät), 4 Bots mit `--bunt`, 3 Runden: „Brett wackelwald geladen: 74 Felder … in 1946 ms“, drei Minispiel-Ergebnisse angenommen, Finale, keine `FEHLER`; Phase `board` im Simulator Median 56,6 fps (Simulator, kein Gerätewert). Die Minispiel-Kulisse des Apple-Hosts ist eine eigene Szene (`MinigameBackdrop.swift`) und bleibt unverändert. Mac-App (B4, Release-Build) mit 2 Bots, 2 Runden: „Brett wackelwald geladen: 74 Felder … in 1186 ms“, beide Minispiel-Ergebnisse angenommen, Finale, keine `FEHLER`. Swift-Harness `run.sh`: OK. E2E nach B4 erneut im Docker-Image: 173 grün, drei Siegerbilder des Gesamtablaufs neu.
+
+Bilder: [`chaos196-ueberblick.jpg`](screenshots/chaos196-ueberblick.jpg) (PC, Überblick zu Rundenbeginn), [`chaos196-zonen.jpg`](screenshots/chaos196-zonen.jpg) (Lichtung, Baumkronenweg, Uferweg, Wackelbrücke aus der Nähe), [`chaos196-apple-tv-ueberblick.jpg`](screenshots/chaos196-apple-tv-ueberblick.jpg) (tvOS-Simulator). Die Bilder entstanden mit B3; B4 ändert nur den Typ von s18.
+
+**Entscheidung:** **B4 behalten.** Empfohlene Rundenzahl im Brett-Register 12 statt 10 (`recommendedRounds`, nur Anzeige; der Server-Standard bleibt 10). Fünf-Runden-Partien bleiben möglich, haben aber öfter Spieler ohne Trophäe als auf dem alten Brett. **Offen für Ruben** (Abweichung vom Akzeptanzkriterium „erreichbare Trophäen in kurzen Partien“): akzeptieren, oder für den großen Wackelwald kürzere Partien als 8 Runden ausblenden bzw. mehr aktive Trophäen?
+
+**Offen für Playtest:** Ist die Lichtung als Abkürzung erkennbar und reizvoll? Fühlt sich der Baumkronenweg riskant an? Reicht der Überblick zu Rundenbeginn, um sich auf dem großen Brett zurechtzufinden? Sind 10 Runden zu kurz? Gerätecheckliste §45.
+
+## EXP-038: Münz-Regel für Spielformen mit Teams und Koop (2026-11-21, CHAOS-89)
+
+**Hypothese / gewünschtes Spielerlebnis:** Team-Spiele (2 gegen 2, 1 gegen 3) und Koop bringen Abwechslung, ohne die Münz-Ökonomie zu verschieben. Ein Team-Sieg fühlt sich lohnend an, Verlierer gehen nicht leer aus, ein Einzelsieg gegen alle ist ein besonderer Moment. Koop belohnt gemeinsames Gelingen, die eigene Leistung zählt trotzdem.
+
+**Varianten (Münzen je Person):**
+- **A** Bezug: nur jeder gegen jeden (`minigameRewards` 10/5/3/0).
+- **B** Startwert aus dem Konzept: Sieg 10, Niederlage 0, Unentschieden 3, Einzelsieg ×2, Koop 10/5/3/0 × Stufe/3. Erwartung: Teams blähen die Münzen auf (2 gegen 2: 20 statt 18), Koop drückt sie.
+- **C** ausgeglichen: Sieg 7, Niederlage 2, Unentschieden 4, Einzelsieg ×2, Koop 8/6/4/2. Erwartung: je Spiel etwa 18 Münzen wie bei A.
+- **D** wie C, Einzelsieg ×3.
+- **E** wie C, Koop 12/9/6/3 (Stufe 2 ≈ jeder gegen jeden, Stufe 3 mehr).
+
+Bei allen Varianten zahlt 1 gegen 1 (Ersatz zu zweit) wie jeder gegen jeden. Das ist ein Ergebnis der ersten Messung: Mit der Team-Regel bekam ein Duell 10 statt 15 Münzen, die Partie zu zweit lief deutlich ärmer.
+
+**Objektive Messgrößen:** Münzen aus Minispielen je Minispiel, Münzen am Ende, gekaufte Trophäen je Partie, Siegquote der zur Halbzeit Führenden und Letzten (eindeutige Plätze), Anteil Personen ohne Trophäe.
+
+**Testumgebung:** `simulateGame` mit `M4_RULES` (Standard ohne Trostpreis), Wackelwald in der Fassung vor CHAOS-196 (43 Felder), 10 Runden, Seeds 1–300 je Zeile, MacBook (Node 26). Rotation = fünf Spiele jeder gegen jeden plus drei Team-Spiele (Pump-Duell mit Zufalls-Teams, Pump-Solo „Letzter gegen alle“, Riesenballon Koop), also 3 von 8 Team-Spiele; im fertigen Katalog sind es eher 15 %. Bots: Punkte gleichverteilt, die Einzelperson gewinnt mit 45 %, Koop-Stufe aus den mittleren Punkten. Skript: `EXPERIMENTS=teams pnpm exec vitest run packages/game-core/src/rules/experimentsTeams.test.ts --silent=false` (`experimentsTeams.ts`).
+
+**Ergebnisse:**
+
+| Variante | Spieler | Münzen je Minispiel | Team-Anteil | Münzen am Ende | Trophäen/Partie | Halbzeit-Führende gewinnt | Halbzeit-Letzte gewinnt | ohne Trophäe |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| A nur jeder gegen jeden (Bezug) | 2 | 15,1 | 0 % | 48,0 | 6,14 | 65 % | 35 % | 1 % |
+| B Startwert: Sieg 10, Niederlage 0, allein ×2, Koop 10/5/3/0 | 2 | 14,2 | 38 % | 44,9 | 6,01 | 72 % | 28 % | 2 % |
+| C ausgeglichen: Sieg 7, Niederlage 2, allein ×2, Koop 8/6/4/2 | 2 | 14,1 | 38 % | 44,6 | 6,00 | 72 % | 28 % | 2 % |
+| D ausgeglichen, allein ×3 | 2 | 14,1 | 38 % | 44,6 | 6,00 | 72 % | 28 % | 2 % |
+| E ausgeglichen, Koop 12/9/6/3 | 2 | 14,6 | 38 % | 46,4 | 6,07 | 73 % | 27 % | 2 % |
+| A nur jeder gegen jeden (Bezug) | 3 | 18,3 | 0 % | 41,1 | 7,74 | 55 % | 15 % | 3 % |
+| B Startwert: Sieg 10, Niederlage 0, allein ×2, Koop 10/5/3/0 | 3 | 17,6 | 37 % | 41,5 | 7,27 | 61 % | 16 % | 3 % |
+| C ausgeglichen: Sieg 7, Niederlage 2, allein ×2, Koop 8/6/4/2 | 3 | 16,8 | 37 % | 38,7 | 7,28 | 56 % | 15 % | 3 % |
+| D ausgeglichen, allein ×3 | 3 | 17,6 | 37 % | 40,9 | 7,38 | 56 % | 17 % | 3 % |
+| E ausgeglichen, Koop 12/9/6/3 | 3 | 17,3 | 37 % | 40,1 | 7,35 | 56 % | 16 % | 3 % |
+| A nur jeder gegen jeden (Bezug) | 4 | 18,5 | 0 % | 34,1 | 8,44 | 55 % | 9 % | 4 % |
+| B Startwert: Sieg 10, Niederlage 0, allein ×2, Koop 10/5/3/0 | 4 | 18,3 | 38 % | 35,2 | 8,03 | 50 % | 12 % | 5 % |
+| C ausgeglichen: Sieg 7, Niederlage 2, allein ×2, Koop 8/6/4/2 | 4 | 17,8 | 38 % | 33,3 | 8,13 | 47 % | 11 % | 4 % |
+| D ausgeglichen, allein ×3 | 4 | 18,2 | 38 % | 34,1 | 8,21 | 47 % | 13 % | 4 % |
+| E ausgeglichen, Koop 12/9/6/3 | 4 | 18,4 | 38 % | 34,2 | 8,30 | 46 % | 12 % | 4 % |
+
+- Bei 3–4 Personen halten C, D und E die Münzmenge je Spiel auf dem Niveau von A (17,3–18,4 gegen 18,3–18,5). Der Startwert B liegt zu dritt ebenfalls nah, aber nur, weil Koop (≈ 1,5 Stufen) den Überschuss der Team-Siege auffrisst.
+- Zu viert helfen Teams beim Aufholen: Die zur Halbzeit Führende gewinnt 46–50 % statt 55 %, die Letzte 11–13 % statt 9 %. Zufällige Teams und „Letzter gegen alle“ mischen die Reihenfolge.
+- Zu zweit gibt es nur Duelle und Koop. Koop verteilt die Münzen gleichmäßiger als ein Duell, darum hält die Führende ihren Vorsprung etwas öfter (72–73 % statt 65 %). Bei 15 % Team-Spielen in der Rotation sinkt der Effekt auf etwa ein Drittel.
+- Einzelsieg ×3 (D) ändert kaum etwas gegen ×2 (C), weil die Einzelperson nur in 1 gegen 3 bzw. 1 gegen 2 vorkommt.
+
+**Entscheidung:** **E behalten** (`DEFAULT_TEAM_REWARDS`: Sieg 7, Niederlage 2, Unentschieden 4, Einzelsieg ×2, Koop 12/9/6/3 × Stufe/3; 1 gegen 1 wie jeder gegen jeden). Münzen wie bei A, zu viert der stärkste Aufholeffekt, und Koop lohnt sich bei gutem Gelingen. Minispiel-Siege zählen bei Teams für alle im Siegerteam, bei Koop für niemanden; den Trostpreis gibt es bei Teams nur, wenn eine Einzelperson verliert. Die Zahlen sind Bot-Simulation, kein Spieltest.
+
+**Offen für Playtest (Ruben, Gerätecheckliste §46):** Fühlt sich ein Team-Sieg mit 7 Münzen lohnend an, oder wirkt er kleiner als Platz 1 mit 10? Ist „Letzter gegen alle“ spannend oder demütigend? Lohnt sich im Koop das Mitmachen, auch für die Person auf dem letzten Einzelplatz?
+
+## EXP-041: Schnellfeuer – Auslöser, Wertung und Mikro-Fairness (2026-11-21, CHAOS-90)
 
 **Hypothese / gewünschtes Spielerlebnis:** Schnellfeuer (fünf Mikro-Spiele à 5–8 s am Stück, je mit Bildwort statt Anleitung) ist eine eigene Rundenart, die das Minispiel einer Runde ersetzt (Ruben, CHAOS-82). Es soll überraschen, in jeder Partie vorkommen, die Partie nicht spürbar verlängern und den Sieg nicht stärker entscheiden als ein normales Minispiel. Innerhalb der Kette soll Können zählen, aber auch ein Neuling manchmal gewinnen.
 
@@ -2696,4 +2852,4 @@ Feinabstimmung innerhalb von C:
 - Kette (Fairness, 60 Seeds wie in der CI): Gleichstand 12 %, Abstand 1/2 0,23, Führungswechsel 1,12, Profi gegen drei Normale 91 %, Neuling 0,8 %, Dauerdrücken Faktor 0 (zu früh beim Wecker, Soße beim Schlürfen). Der Profi gewinnt fast immer, weil sich in fünf kurzen Reaktions- und Takt-Spielen der Vorsprung summiert. Das ist die größte Unsicherheit für den Spieltest.
 - PC-Host (Chrome, SwiftShader, Testmodus): Bildwort im Banner, alle vier Figuren über dem Banner, Gegenstände groß darunter. E2E mit 2, 3 und 4 Personen bis zum angenommenen Ergebnis. Apple-Host: `bots --full` spielt Schnellfeuer in Runde 6 ohne Fehler, Bauschritte ohne JIT unter 4 ms.
 
-**Entscheidung:** **Behalten** als Standard am Server und im Apple-Host: (a) Ereignis mit 5 Losen, höchstens einmal je Partie, sonst im Finale (`RAPID_FIRE_RULE`, ADR-024), am Server mit `SCHNELLFEUER=aus|ereignis|halbzeit|finale` umstellbar. Wertung: Rang-Punkte je Mikro-Spiel, das letzte doppelt. Alles Bot-Simulation, kein Spieltest. Offen für Ruben (Zwischenabnahme CHAOS-92, Gerätecheckliste §46): Ist das Bildwort in 1,3 s lesbar? Ist das Tempo lustig oder hektisch? Gewinnt immer dieselbe Person?
+**Entscheidung:** **Behalten** als Standard am Server und im Apple-Host: (a) Ereignis mit 5 Losen, höchstens einmal je Partie, sonst im Finale (`RAPID_FIRE_RULE`, ADR-024), am Server mit `SCHNELLFEUER=aus|ereignis|halbzeit|finale` umstellbar. Wertung: Rang-Punkte je Mikro-Spiel, das letzte doppelt. Alles Bot-Simulation, kein Spieltest. Offen für Ruben (Zwischenabnahme CHAOS-92, Gerätecheckliste §48): Ist das Bildwort in 1,3 s lesbar? Ist das Tempo lustig oder hektisch? Gewinnt immer dieselbe Person?

@@ -93,21 +93,42 @@ describe('Brett „Wackelwald“', () => {
     }
   });
 
-  it('hat 36–44 Felder in der vorgesehenen Verteilung', () => {
+  it('hat 70–90 Felder in der vorgesehenen Verteilung (CHAOS-196)', () => {
     const counts = countKinds(WACKELWALD);
-    expect(WACKELWALD.spaces.length).toBeGreaterThanOrEqual(36);
-    expect(WACKELWALD.spaces.length).toBeLessThanOrEqual(44);
+    expect(WACKELWALD.spaces.length).toBeGreaterThanOrEqual(70);
+    expect(WACKELWALD.spaces.length).toBeLessThanOrEqual(90);
     expect(counts.start).toBe(1);
-    // Sechs Trophäen-Kandidaten und sechs Item-Felder (EXP-002/EXP-003, CHAOS-24).
-    expect(counts.trophy).toBe(6);
-    expect(counts.item).toBe(6);
-    expect(counts.event).toBeGreaterThanOrEqual(3);
+    // 13 Trophäen-Kandidaten und zehn Item-Felder (EXP-037).
+    expect(counts.trophy).toBe(13);
+    expect(counts.item).toBe(10);
+    expect(counts.event).toBeGreaterThanOrEqual(6);
     expect(counts['coins-minus']).toBeGreaterThan(0);
     // Plus-Felder deutlich häufiger als Minus-Felder; gute Felder (Plus, Item, Trophäe) überwiegen.
     expect(counts['coins-plus']).toBeGreaterThanOrEqual(2.5 * counts['coins-minus']);
     expect(counts['coins-plus'] + counts.item + counts.trophy).toBeGreaterThan(
       WACKELWALD.spaces.length / 2,
     );
+  });
+
+  it('hat vier Gabeln, jeder Zweig mit Trophäen-Kandidat', () => {
+    const forks = WACKELWALD.spaces.filter((s) => s.next.length >= 2);
+    expect(forks.map((s) => s.id)).toEqual(['s07', 's20', 's25', 's29']);
+    const byId = new Map(WACKELWALD.spaces.map((s) => [s.id, s]));
+    for (const fork of forks) {
+      for (const head of fork.next) {
+        const branch: string[] = [];
+        for (let id: string | undefined = head; id !== undefined && branch.length < 20;) {
+          const space = byId.get(id);
+          if (!space || space.next.length > 1 || (branch.length > 0 && space.label)) break;
+          const merged = WACKELWALD.spaces.filter((s) => s.next.includes(id ?? '')).length > 1;
+          if (merged) break;
+          branch.push(id);
+          id = space.next[0];
+        }
+        const trophies = branch.filter((id) => byId.get(id)?.kind === 'trophy');
+        expect(trophies.length, `Zweig ab ${head}`).toBeGreaterThanOrEqual(1);
+      }
+    }
   });
 
   it('hat mindestens zwei Verzweigungen mit unterschiedlich langen, beschrifteten Wegen', () => {
@@ -125,11 +146,19 @@ describe('Brett „Wackelwald“', () => {
     }
   });
 
-  it('liegt auf etwa 32 × 22 Einheiten mit IDs wie s01', () => {
+  it('liegt auf etwa 42 × 26 Einheiten mit IDs wie s01, Wege höchstens 3,4 lang', () => {
     for (const space of WACKELWALD.spaces) {
       expect(space.id).toMatch(/^s\d{2}$/);
-      expect(Math.abs(space.position.x)).toBeLessThanOrEqual(16);
-      expect(Math.abs(space.position.z)).toBeLessThanOrEqual(11);
+      expect(Math.abs(space.position.x)).toBeLessThanOrEqual(21);
+      expect(Math.abs(space.position.z)).toBeLessThanOrEqual(14);
+    }
+    const byId = new Map(WACKELWALD.spaces.map((s) => [s.id, s.position]));
+    for (const space of WACKELWALD.spaces) {
+      for (const next of space.next) {
+        const to = byId.get(next) ?? space.position;
+        const length = Math.hypot(to.x - space.position.x, to.z - space.position.z);
+        expect(length, `${space.id} → ${next}`).toBeLessThanOrEqual(3.4);
+      }
     }
   });
 });

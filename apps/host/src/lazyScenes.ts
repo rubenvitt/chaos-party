@@ -4,9 +4,12 @@
  *
  * - **Arena** (`createGameScene`): hinter der Lobby und im Arena-Modus; lädt sofort nach dem
  *   ersten Bild der Lobby.
- * - **Brett** (`BoardStage` mit Finale und Podest) und **Minispiele** (Bühne + alle Module):
+ * - **Brett** (`BoardStage` mit Finale und Podest) und **Minispiel-Bühne** (ohne Minispiele):
  *   lädt die App vorab, sobald die Arena steht ({@link prefetchGameScenes}), damit der
  *   Wechsel in die Partie nicht auf das Netz wartet.
+ * - **Je Minispiel** ein eigener Chunk (CHAOS-86, `@chaos-party/minigames/lazy`): lädt die App,
+ *   sobald der Stand das Minispiel der Runde nennt (ab der Anleitung). So wächst weder Start
+ *   noch Bühne mit dem Katalog.
  * - **Entwickler-Ansichten** (`?local=1&minigame=…`): nur bei Bedarf.
  *
  * Vite legt gemeinsam genutzte Babylon-Module in geteilte Chunks; jeder Import lädt also nur,

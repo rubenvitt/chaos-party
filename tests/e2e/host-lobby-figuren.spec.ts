@@ -117,7 +117,7 @@ test.describe('Lobby mit Figuren und Rundenzahl (Node-Server, Production-Build)'
       await expect(page.getByTestId('lobby-boards')).toBeVisible();
       await expect(board).toHaveAttribute('data-board', 'wackelwald');
       await expect(board).toContainText('Wackelwald');
-      await expect(board).toContainText('43 Felder');
+      await expect(board).toContainText('74 Felder');
       await expect(page.getByTestId('start-button-detail')).toHaveText('10 Runden · Wackelwald');
       expect(session.snapshot().board).toBe('wackelwald');
       await board.click();

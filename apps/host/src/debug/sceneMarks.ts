@@ -52,11 +52,17 @@ export function startSceneLog(): void {
   observer.observe({ type: 'longtask' });
 }
 
-/** Marke setzen (nur mit `?debug=1`). */
-export function markScene(scene: MarkedScene, point: ScenePoint): void {
+/**
+ * Marke setzen (nur mit `?debug=1`). `at` (Zeitbasis `performance.now()`) setzt sie
+ * nachträglich, z. B. `angefragt` auf den Empfang des Stands.
+ */
+export function markScene(
+  scene: MarkedScene,
+  point: ScenePoint,
+  at: number = performance.now(),
+): void {
   if (!isEnabled()) return;
   startSceneLog();
-  const at = performance.now();
   performance.mark(`chaos:${scene}:${point}`, { startTime: at });
   push(marks, { scene, point, at }, MAX_MARKS);
 }

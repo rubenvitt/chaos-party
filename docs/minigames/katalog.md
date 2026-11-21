@@ -1,12 +1,14 @@
-# Minispiel-Katalog (Skizzen MG-001 … MG-200)
+# Minispiel-Katalog (Skizzen MG-001 … MG-226)
 
-**Stand:** 2026-11-16 · Rahmen und Kürzel: [`README.md`](README.md)
+**Stand:** 2026-11-21 · Rahmen und Kürzel: [`README.md`](README.md) · Nachschub: `CHAOS-93`
 
 Alle Einträge haben den Status **Skizze**. Eine Skizze ist eine Idee mit Kniff, noch keine geprüfte Regel. Beim Schärfen dürfen Name, Regeln und Kategorie sich ändern; Dubletten werden zusammengelegt. Wer eine Skizze umsetzt, trägt hier Status, Zunder-Kennung und Kennzahlen nach.
 
+Verworfene Skizzen bleiben mit ✗ und durchgestrichenem Namen stehen, damit Nummern und Verweise gültig bleiben; ihre Nummer wird nicht neu vergeben. Neue Skizzen bekommen Nummern ab MG-201 und stehen in der Tabelle ihrer Familie. Die Familien-Wellen (`CHAOS-94` … `CHAOS-113`) umfassen auch diese Nachschub-Nummern.
+
 Kürzel: Kategorie `Ar` Arcade, `Ph` Physik, `Hy` Hybrid · Bedienung `A`, `AB`, `S` (Stick), `SA`, `SAB` · Spielform `FFA` jeder gegen jeden, `1v3`, `2v2`, `Koop`, `Mikro`.
 
-Schon vorhanden (nicht im Katalog gezählt): Sockenregen, Pudding-Gerangel, Wackelturm, Kuckucks-Klatsche (Rotation), Pump-Parade (Rückfall). Seit CHAOS-79 auch Krümel-Kehraus (Rotation, EXP-023). Kandidaten aus M3: Aufzieh-Takt (Abgleich mit MG-090 in CHAOS-102), Geysir-Gier (Abgleich in CHAOS-104). Hinweis für MG-008 „Laubbläser-Liga“: gleiche Grundform wie Krümel-Kehraus (Dinge in die eigene Ecke befördern) – bei der Umsetzung den Unterschied schärfen oder die Skizze ersetzen (§5.5).
+Schon vorhanden (nicht im Katalog gezählt): Sockenregen, Pudding-Gerangel, Wackelturm, Kuckucks-Klatsche (Rotation), Pump-Parade (Rückfall). Seit CHAOS-79 auch Krümel-Kehraus (Rotation, EXP-023). Kandidaten aus M3: Aufzieh-Takt (Abgleich mit MG-090 in CHAOS-102), Geysir-Gier (Abgleich in CHAOS-104). MG-008 „Laubbläser-Liga“ hatte dieselbe Grundform wie Krümel-Kehraus (Dinge in die eigene Ecke befördern) und ist deshalb verworfen (Nachschub-Runde 1, unten).
 
 **Gemeinsame Prüfungen (CHAOS-84):** Bot-Fairness, Vielfalts-Steckbrief und Screenshots je Spiel der Rotation, Regeln in [`pruefungen.md`](pruefungen.md), Messwerte in [`pruefbericht.md`](pruefbericht.md). Begründete Ausnahmen der vorhandenen Spiele: **Wackelturm** – Neuling gewinnt gegen drei Normale 32 % (Grenze 25 %), Profi 17 % (Grenze ≥ 25 %); schon in EXP-007 lag die Außenseiter-Quote über fair, Ruben hat das Spiel in M3 abgenommen, Klärung Bot oder Spiel in `CHAOS-215`.
 
@@ -25,9 +27,10 @@ Schon vorhanden (nicht im Katalog gezählt): Sockenregen, Pudding-Gerangel, Wack
 | MG-005 | Magnet-Mäuse | Ph | SA | Spielzeug-Roboter sammeln Schrauben mit einem Magneten. | A polt um: anziehen sammelt, abstoßen schleudert fremde Schrauben aus der Bahn. |
 | MG-006 | Beeren-Rally | Hy | SAB | Beeren in den Korb, Korb im Nest leeren. | Je voller der Korb, desto langsamer. B leert im Nest, A wirft eine Beere (Klecks = rutschen). |
 | MG-007 | Seifenblasen-Platzer | Ar | SA | Blasen in der eigenen Farbe platzen lassen. | Wer eine fremde Blase trifft, wird selbst eingeblasen und schwebt kurz hilflos. |
-| MG-008 | Laubbläser-Liga | Ph | SA | Blätter in die eigene Ecke pusten. | Pusten schiebt auch Gegner. Liegen alle Blätter auf einem Haufen, wirbelt ein Laubtornado sie neu. |
+| MG-008 ✗ | ~~Laubbläser-Liga~~ | Ph | SA | **Verworfen** (Dublette von Krümel-Kehraus, ersetzt durch MG-201). Blätter in die eigene Ecke pusten. | Pusten schiebt auch Gegner. Liegen alle Blätter auf einem Haufen, wirbelt ein Laubtornado sie neu. |
 | MG-009 | Goldfisch-Teich | Ar | SA | Goldfische springen aus dem Teich, mit dem Kescher schnappen. | Fische springen nur, wo niemand am Ufer steht. Wer drängelt, verscheucht sie. |
 | MG-010 | Sternschnuppen | Ar | S | Sternschnuppen schlagen ein, ein Schatten zeigt wo. | Große Sterne zerplatzen in kleine Funken, die quer durch die Arena hüpfen. |
+| MG-201 | Kirschbaum-Rütteln | Ph | AB | Alle stehen unter einem Kirschbaum; A rüttelt am eigenen Ast, die Kirschen kullern den Hang hinab. | B kippt deine Schüssel: Sie fängt dann auch Kirschen der Nachbarn, verschüttet aber bei zu viel Neigung. |
 
 ## 2. Ausweichen & Überleben (FFA)
 
@@ -43,6 +46,7 @@ Schon vorhanden (nicht im Katalog gezählt): Sockenregen, Pudding-Gerangel, Wack
 | MG-018 | Saugroboter-Sog | Ph | S | Ein Saugroboter zieht alles zu sich. | Gegen den Sog anlaufen; wenn er satt ist, pustet er alles in die Gegenrichtung. |
 | MG-019 | Eiszapfen-Tauwetter | Ar | S | Eiszapfen fallen von der Höhlendecke, Schatten warnen. | Liegende Zapfen bleiben als Hindernis und machen die Arena immer enger. |
 | MG-020 | Tortenschleuder | Ar | SA | Ein Clown-Roboter wirft Torten. | A hebt einen Deckel (hält 3 Torten). Abgewehrte Torten prallen zur Nachbarin. |
+| MG-202 | Hängematten-Sturm | Ph | A | Ein Mähroboter fährt unter vier Hängematten durch; A zieht den Po hoch. | Jedes Hochziehen bringt die Matte ins Schaukeln. Wer zu oft zieht, schwingt nach unten in den Mäher. |
 
 ## 3. Rempeln & Runterschubsen (FFA)
 
@@ -58,6 +62,7 @@ Schon vorhanden (nicht im Katalog gezählt): Sockenregen, Pudding-Gerangel, Wack
 | MG-028 | Wippen-Streit | Ph | SA | Eine Riesenwippe über dem Puddingsee. | Punkte gibt es am oberen Ende, doch dort rutscht man am leichtesten ab. |
 | MG-029 | Teppich-Zieher | Ph | SA | Alle stehen auf kleinen Teppichen. | A zieht an einem fremden Teppich. Wer zieht, steht selbst still und ist wehrlos. |
 | MG-030 | Badewannen-Wellen | Ph | SA | Gummienten auf eine Badewanne verteilt. | A macht einen Bauchklatscher mit Welle. Der Stöpsel wird gezogen: Strudel in der Mitte. |
+| MG-203 | Sitzsack-Schubsen | Ph | AB | Vier Sitzsäcke auf glattem Parkett. A plustert deinen Sack auf (groß, rempelt kräftig), B lässt Luft ab. | Die entweichende Luft schiebt dich in die Gegenrichtung: Ablassen ist zugleich die Lenkung. |
 
 ## 4. Timing & Rhythmus (FFA)
 
@@ -73,6 +78,7 @@ Schon vorhanden (nicht im Katalog gezählt): Sockenregen, Pudding-Gerangel, Wack
 | MG-038 | Glockenspiel-Kette | Ar | A | Licht wandert über die Glocken; schlag deine, wenn sie leuchtet. | Das Licht springt manchmal zurück oder überspringt eine Glocke. |
 | MG-039 | Kanu-Paddel | Hy | AB | Kanurennen: A links, B rechts paddeln. | Ein gleichmäßiger Wechsel ist schneller als Hämmern; Strudel verlangen Kurskorrektur. |
 | MG-040 | Eichhörnchen-Schanze | Ar | A | Skisprung: A am Schanzentisch abspringen. | Rückenwind verschiebt den perfekten Punkt. Zweites A bei der Landung gibt Haltungsbonus. |
+| MG-204 | Schaukel-Weitsprung | Ph | A | Auf der Schaukel Schwung holen und in den Sandkasten springen; Weite = Punkte. | Kurz tippen gibt Schwung, aber nur am hinteren Umkehrpunkt. Halten und Loslassen springt ab. Zu viel Schwung = Überschlag. |
 
 ## 5. Reflex & Reaktion (FFA)
 
@@ -88,12 +94,13 @@ Schon vorhanden (nicht im Katalog gezählt): Sockenregen, Pudding-Gerangel, Wack
 | MG-048 | Eulen-Starren | Ar | A | Nur drücken, wenn die Glühbirne angeht. | Die Ablenkungen werden immer lauter und bunter. |
 | MG-049 | Tierfoto | Ar | A | Tiere flitzen durchs Bild; auslösen, wenn deins im Rahmen ist. | Punkte nach Zentrierung; Fotobomber-Tiere verderben das Bild. |
 | MG-050 | Heiße Kartoffel | Hy | A | Eine heiße Kartoffel wandert reihum; A gibt sie weiter. | Weitergeben geht nur, wenn sie glüht. Wer sie beim Piep hält, verliert. |
+| MG-205 | Tischtuch-Ruck | Ph | A | Auf „Ruck!“ reißt A das Tischtuch unter dem Geschirr weg. | Je schneller die Reaktion, desto weniger fällt herunter. Stehen gebliebenes Geschirr bleibt für den nächsten Ruck, und der Kellner stellt jedes Mal mehr dazu. |
 
 ## 6. Pumpen, Kurbeln, Dosieren (FFA)
 
 | Nr | Name | Kat | Bed. | Idee | Kniff |
 |---|---|---|---|---|---|
-| MG-051 | Luftmatratze | Ar | AB | A und B abwechselnd drücken pumpt die Matratze auf. | Zu schnell = das Ventil pfeift und Luft entweicht. Tempo halten statt hämmern. |
+| MG-051 | Luftmatratze | Ar | AB | A pumpt die Matratze auf. | Ein Leck wandert über die Matratze; B hält es zu, solange B gedrückt ist. Pumpen und Zuhalten gehen nicht gleichzeitig. *(Geschärft 2026-11-21: alter Kniff „Tempo halten statt hämmern“ war derselbe wie bei MG-039.)* |
 | MG-052 | Kurbelradio | Ar | S | Mit dem Stick im Kreis kurbeln und das Radio aufladen. | Ab und zu wechselt der Sender: Dann muss man rückwärts kurbeln. |
 | MG-053 | Mühlrad-Mehl | Ar | A | A mahlt Mehl in den Sack. | Volle Säcke mit langem Drücken zubinden, sonst rieselt alles raus. |
 | MG-054 | Marshmallow-Feuer | Ar | A | Das Lagerfeuer anpusten, um den Marshmallow zu rösten. | Zu viel Pusten und er brennt. Ziel ist goldbraun, nicht schwarz. |
@@ -103,6 +110,7 @@ Schon vorhanden (nicht im Katalog gezählt): Sockenregen, Pudding-Gerangel, Wack
 | MG-058 | Heißluft-Korridor | Ar | A | A zündet den Brenner, der Ballon soll in seinem Korridor bleiben. | Windschichten und Vögel; je länger im Korridor, desto mehr Punkte. |
 | MG-059 | Wasserbomben-Füllen | Ar | A | A halten füllt den Ballon, loslassen wirft ihn. | Zu voll = er platzt in der Hand. Größe beim Wurf = Punkte. |
 | MG-060 | Kreisel-Kampf | Ph | S | Kreisel per Stick-Kreisen aufziehen, dann kämpfen sie in der Schüssel. | Mehr Schwung = mehr Wucht, aber wackliger und schneller müde. |
+| MG-206 | Wasserrakete | Ph | AB | A pumpt Luft in die Flaschenrakete, B startet sie. Höhe = Punkte. | Mehr Druck fliegt höher, dreht aber unruhiger ab. Gezählt wird nur, wenn sie im eigenen Beet landet. |
 
 ## 7. Zielen & Werfen (FFA)
 
@@ -118,6 +126,8 @@ Schon vorhanden (nicht im Katalog gezählt): Sockenregen, Pudding-Gerangel, Wack
 | MG-068 | Papierflieger-Post | Ar | SA | Papierflieger in Briefkästen werfen. | Der Wind dreht, die Briefkästen fahren auf einem Wagen. |
 | MG-069 | Kirschkern-Spucken | Ar | A | Weitspucken: Anlauf und Winkel per Timing. | Wind und Spatzen, die Kerne aus der Luft schnappen. |
 | MG-070 | Würstchenkanone | Ph | SA | Mit der Würstchenkanone einen Turm umschießen. | Gelandete Würstchen bleiben als Hindernis liegen. |
+| MG-207 | Kartoffel-Katapult | Ph | AB | Ein Löffelkatapult wippt von selbst hin und her. B halten spannt, A löst aus. | Jede Kartoffel ist anders schwer, und das merkt man erst beim Wurf: Schwere fliegen kürzer, rollen aber weiter. |
+| MG-208 | Bumerang-Picknick | Hy | A | A wirft den Bumerang, A fängt ihn wieder. | Auf dem Rückweg reißt er Würstchen vom fremden Grill mit. Wer nicht fängt, schickt ihn samt Beute zur Nachbarin. |
 
 ## 8. Balance & Stapeln (FFA)
 
@@ -127,12 +137,13 @@ Schon vorhanden (nicht im Katalog gezählt): Sockenregen, Pudding-Gerangel, Wack
 | MG-072 | Steinmännchen | Hy | AB | Steine stapeln: A fallen lassen, B drehen. | Höher = mehr Punkte, aber oben weht Wind. |
 | MG-073 | Seiltanz | Ph | SA | Über ein Seil balancieren. | A wackelt am Seil – trifft alle, auch dich ein bisschen. |
 | MG-074 | Kartenhaus | Hy | AB | Karten anlegen, wenn das Zittern ruhig ist. | B niest: Alle Häuser wackeln, deines am wenigsten. |
-| MG-075 | Eierlauf | Ph | S | Ei auf dem Löffel durch den Hühnerhof. | Hühner legen unterwegs neue Hindernisse. |
+| MG-075 ✗ | ~~Eierlauf~~ | Ph | S | **Verworfen** (Dublette von MG-071, ersetzt durch MG-209). Ei auf dem Löffel durch den Hühnerhof. | Hühner legen unterwegs neue Hindernisse. |
 | MG-076 | Vier-Arm-Waage | Hy | SA | Gewichte auf eine Waage mit vier Armen legen. | Deine Seite soll unten sein, doch jedes Gewicht verändert alle vier Arme. |
 | MG-077 | Neige-Labyrinth | Ph | S | Eigenes Holzlabyrinth neigen, Kugel ins Ziel. | Löcher öffnen sich, später rollen zwei Kugeln gleichzeitig. |
 | MG-078 | Jonglier-Robo | Ar | AB | Bälle mit links (A) und rechts (B) fangen und hochwerfen. | Jede Runde ein Ball mehr; manchmal fliegt eine Gummiente dazwischen. |
 | MG-079 | Stelzenlauf | Ph | AB | A und B setzen abwechselnd die Stelzen. | Eine Wackelanzeige verrät, wann man ausgleichen muss; Matschstellen. |
 | MG-080 | Spielzeugkran | Hy | SA | Mit einem Kran Kisten stapeln. | Gemeinsamer Stapel: Wer ihn umwirft, verliert alle eigenen Kisten darin. |
+| MG-209 | Katzenbrett | Ph | AB | Eine Katze schläft auf deinem Brett über dem Bach; A neigt links, B rechts. | Springen Fische, lehnt sich die Katze danach. Du musst gegenneigen, bevor sie ins Wasser rutscht. |
 
 ## 9. Rennen & Parcours (FFA)
 
@@ -148,6 +159,7 @@ Schon vorhanden (nicht im Katalog gezählt): Sockenregen, Pudding-Gerangel, Wack
 | MG-088 | Gartenparcours | Ar | SA | Parcours über Schlauch, Hecke und Beet. | Wer auf einen Rechen tritt, bekommt den Stiel ins Gesicht. |
 | MG-089 | Krebsgang | Ar | S | Krebse laufen nur seitwärts zum Ziel. | Wellen spülen alle ein Stück zurück. |
 | MG-090 | Aufzieh-Wettlauf | Hy | AB | B zieht die Figur auf (sie steht), A lässt los. | Aufziehen und Laufen schließen sich aus. Überdrehen = Feder springt. |
+| MG-210 | Fassläufer | Ph | AB | Rennen auf rollenden Regentonnen den Hang hinunter. A läuft auf dem Fass (bremst), B springt aufs nächste Fass. | Ohne Laufen rollt das Fass schneller, als du stehen kannst. Wer zu spät springt, landet im Bach. |
 
 ## 10. Gedächtnis & Muster (FFA)
 
@@ -162,7 +174,8 @@ Schon vorhanden (nicht im Katalog gezählt): Sockenregen, Pudding-Gerangel, Wack
 | MG-097 | Schattenraten | Hy | SA | Ein Schatten an der Wand: welche Figur ist es? | Der Schatten verzerrt sich, je länger man wartet – früh raten gibt mehr. |
 | MG-098 | Rezept-Reihenfolge | Hy | SA | Zutaten-Reihenfolge merken, in den Topf werfen. | Falsche Reihenfolge = der Topf kocht über und spritzt Nachbarn an. |
 | MG-099 | Farbraupe | Ar | SA | Die Raupe zeigt eine Farbfolge, Blätter in der Reihenfolge fressen. | Die Blätter verfärben sich langsam. |
-| MG-100 | Leuchtturm-Blinken | Hy | AB | Kurze und lange Lichtsignale nachgeben (A kurz, B lang). | Nebel zieht auf und verschluckt einzelne Signale. |
+| MG-100 | Leuchtturm-Blinken | Hy | AB | Der Leuchtturm blinkt eine Folge aus kurzen und langen Signalen, ihr gebt das **nächste** Zeichen (A kurz, B lang). | Fortsetzen statt Nachspielen: Die Folge hat eine Regel, die man erkennen muss. Nebel verschluckt einzelne Signale. *(Geschärft 2026-11-21: Nachspielen war schon MG-031.)* |
+| MG-211 | Murmelbahn-Merken | Ph | AB | Eine Murmelbahn mit Weichen wird kurz gezeigt, dann abgedeckt. A/B stellen jede Weiche links oder rechts, damit deine Murmel in dein Glas rollt. | Alle Murmeln laufen gleichzeitig. Fremde Murmeln stoßen deine in andere Rinnen. |
 
 ## 11. Zocken & Push-your-luck (FFA)
 
@@ -178,6 +191,8 @@ Schon vorhanden (nicht im Katalog gezählt): Sockenregen, Pudding-Gerangel, Wack
 | MG-108 | Brunnen-Eimer | Hy | AB | A kurbelt den Eimer hoch, B leert ihn. | Der Eimer leckt und das Seil kann reißen, je voller er ist. |
 | MG-109 | Piñata-Poker | Hy | AB | A haut auf die Piñata (Punkt je Treffer), B tritt zurück. | Wer sie zum Platzen bringt, bekommt den Inhalt – manchmal sind es Bienen. |
 | MG-110 | Nussknacker | Hy | AB | A knackt eine Nuss nach der anderen, B hört auf. | Eine Nuss ist ein Kiesel: Zahn wackelt, Runde verloren. |
+| MG-212 | Wackelsteg | Ph | A | Am Steg liegen Kürbisse; A legt einen weiteren auf deinen Steg (Punkt je Kürbis). | Gesichert ist erst, wenn du 3 s nichts drückst – und in dieser Zeit schwingt der Steg weiter. Bricht er, ist alles weg. |
+| MG-213 | Knopfkante | Ph | A | Knöpfe liegen auf dem Nähtisch; A schiebt deinen hinteren Knopf ein Stück vor. Nah an der Kante = viele Punkte. | Dein Knopf schiebt alle davor mit, auch fremde über die Kante. Runtergefallene sind weg. |
 
 ## 12. Bluff & geheime Wahl (FFA)
 
@@ -186,15 +201,17 @@ Nutzt die privaten Bildschirme der iPhones. Am geteilten iPad sieht die Nachbari
 | Nr | Name | Kat | Bed. | Idee | Kniff |
 |---|---|---|---|---|---|
 | MG-111 ★ | Drei Türen | Hy | SA | Alle wählen geheim eine Tür. | Nur Türen mit genau einer Person zahlen aus; volle Türen gehen leer aus. |
-| MG-112 | Brücke für zwei | Hy | SA | Geheim eine von drei Brücken wählen. | Mehr als zwei auf einer Brücke: Sie bricht und alle fallen in den Bach. |
+| MG-112 ✗ | ~~Brücke für zwei~~ | Hy | SA | **Verworfen** (Dublette von MG-111 ★, ersetzt durch MG-214). Geheim eine von drei Brücken wählen. | Mehr als zwei auf einer Brücke: Sie bricht und alle fallen in den Bach. |
 | MG-113 | Schere-Stein-Socke | Hy | SA | Vier Personen wählen gleichzeitig aus vier Zeichen. | Die Socke schlägt alles, verliert aber, wenn zwei sie wählen. |
 | MG-114 | Eichel-Auktion | Hy | SA | Geheim Eicheln auf einen Preis bieten. | Das höchste Gebot gewinnt, aber alle zahlen ihr Gebot. |
-| MG-115 | Fuchs und Baue | Hy | SA | In einem von fünf Bauen verstecken. | Der Fuchs gräbt die zwei vollsten Baue auf. |
+| MG-115 | Fuchs und Baue | Hy | SA | Geheim einen von fünf Bauen als Versteck wählen und dazu einen Tipp, wo der Fuchs gräbt. | Der Fuchs gräbt dort, wo die meisten getippt haben: Man muss raten, was die anderen raten. *(Geschärft 2026-11-21: „Volle Baue verlieren“ war derselbe Kniff wie MG-111.)* |
 | MG-116 | Kuchenmarkt | Hy | SA | Geheim einen Preis für den eigenen Kuchen wählen. | Die Kundschaft kauft immer beim Billigsten, zahlt aber nur, was der verlangt. |
 | MG-117 | Lügen-Kiste | Hy | AB | Nur du siehst, was in deiner Kiste ist; du behauptest „Gold!“. | Die anderen glauben (A) oder zweifeln (B). Erwischte Lügen kosten. |
 | MG-118 | Gleiche Antwort | Hy | SA | Eine Frage („Bestes Pausenbrot?“), alle wählen geheim. | Punkte gibt es für die Mehrheitsantwort. |
 | MG-119 | Kleinste Zahl | Hy | S | Geheim eine Zahl von 1 bis 9 wählen. | Die kleinste Zahl, die nur einmal gewählt wurde, gewinnt. |
-| MG-120 | Sitzplatz-Gerangel | Hy | SA | Geheim einen von drei Stühlen wählen (Reise nach Jerusalem). | Doppelt besetzte Stühle brechen zusammen. |
+| MG-120 ✗ | ~~Sitzplatz-Gerangel~~ | Hy | SA | **Verworfen** (Dublette von MG-111 ★, ersetzt durch MG-215). Geheim einen von drei Stühlen wählen (Reise nach Jerusalem). | Doppelt besetzte Stühle brechen zusammen. |
+| MG-214 | Kuchen-Schnapper | Hy | AB | Drei Runden: alle wählen gleichzeitig geheim „teilen“ (A) oder „schnappen“ (B). | Schnappt nur eine, bekommt sie alles; schnappen mehrere, fällt der Kuchen. Wer geschnappt hat, trägt danach Sahne im Gesicht, und alle sehen es. |
+| MG-215 | Floß-Fracht | Ph | AB | Jede Runde legt jede geheim einen Stein (A) oder eine Feder (B) in ihre Floß-Ecke. Steine an Bord = Punkte. | Erst beim Aufdecken neigt sich das Floß wirklich: Die tiefste Ecke geht baden und verliert ihre Fracht. |
 
 ## 13. Revier & Malen (FFA)
 
@@ -209,7 +226,9 @@ Nutzt die privaten Bildschirme der iPhones. Am geteilten iPad sieht die Nachbari
 | MG-127 | Laternen-Lichter | Ar | SA | Laternen in deiner Farbe anzünden. | Nachtfalter löschen Laternen, die zu lange brennen. |
 | MG-128 | Domino-Linien | Hy | SA | Dominosteine legen, am Ende stößt jede ihre Kette an. | Fallende Steine zählen; fremde Ketten können abzweigen. |
 | MG-129 | Beet und Gießkanne | Hy | SAB | A pflanzt, B gießt; nur Gegossenes wächst und zählt. | Kaninchen knabbern an großen Beeten. |
-| MG-130 | Sonnenflecken | Ar | S | Wo du in der Sonne stehst, färbt sich der Boden. | Wolkenschatten ziehen darüber und bleichen aus. |
+| MG-130 ✗ | ~~Sonnenflecken~~ | Ar | S | **Verworfen** (Dublette von MG-122/MG-125, ersetzt durch MG-217). Wo du in der Sonne stehst, färbt sich der Boden. | Wolkenschatten ziehen darüber und bleichen aus. |
+| MG-216 | Schneewalze | Ph | A | Ein Schlitten fährt oben am Hang hin und her; A lässt deinen Schneeball los. Er wächst beim Rollen und färbt seine Spur in deiner Farbe. | Große Kugeln rollen weiter, kippen aber in fremde Spuren ab und folgen ihnen. |
+| MG-217 | Lichterkette | Ar | AB | Ein Licht wandert über eine Lichterkette rund um den Garten; A färbt die Birne darunter in deiner Farbe, B dreht die Laufrichtung. | Wer dreht, zahlt: Deine Birnen in der neuen Laufrichtung blinken 1 s und lassen sich übermalen. |
 
 ## 14. Fahrzeuge & Schwung (FFA)
 
@@ -219,19 +238,21 @@ Nutzt die privaten Bildschirme der iPhones. Am geteilten iPad sieht die Nachbari
 | MG-132 | Einkaufswagen | Ph | SA | Einkaufswagen anschieben, mit A draufspringen und rollen. | Ohne Schieben verliert er Tempo; Kurven nur zu Fuß. |
 | MG-133 | Seifenkisten-Hang | Ph | S | Seifenkisten-Rennen bergab. | Strohballen verschieben sich bei jedem Aufprall. |
 | MG-134 | Autoscooter-Markt | Ph | SA | Autoscooter: Treffer von hinten geben Punkte. | Zwischendurch wird der Boden zu Eis. |
-| MG-135 | Schubkarre | Ph | S | Kürbisse in der Schubkarre ins Ziel bringen. | In Kurven rollen Kürbisse heraus. |
+| MG-135 | Schubkarre | Ph | S | Kürbisse unterwegs aufladen und in der Schubkarre ins Ziel bringen. | Jeder Kürbis macht die Karre schwerer und träger; sie kippt zur Seite, in die man lenkt. Wann lädt man noch einen? *(Geschärft 2026-11-21: „In Kurven fällt Ladung heraus“ war schon MG-071.)* |
 | MG-136 | Skateboard-Hund | Ph | SA | Tricks auf Rampen, A springt. | Schiefe Landung = Bauchklatscher. |
 | MG-137 | Mini-U-Boot | Ar | SA | Unter Wasser Perlen sammeln, die Luft ist knapp. | A schießt eine Blase, die andere nach oben treibt. |
 | MG-138 | Drachensteigen | Hy | S | Den Drachen im Wind halten; Höhe = Punkte. | Die Leinen verheddern sich mit den Nachbarn. |
 | MG-139 | Hamsterkugeln | Ph | S | In Hamsterkugeln Körner einsammeln. | Rampen und Schwung; Zusammenstöße schleudern weit. |
 | MG-140 | Kettenkarussell | Ph | SA | Das Karussell dreht, der Stick lenkt den Sitz, A greift Ringe. | Ketten verheddern sich, wenn zwei zu nah fliegen. |
+| MG-218 | Blasebalg-Boot | Ph | AB | Segelbootrennen auf dem Teich: A pustet mit dem Blasebalg links ins Segel, B rechts. Beide = geradeaus. | Wer neben einem anderen Boot fährt, pustet auch dessen Segel an, ob er will oder nicht. |
+| MG-219 | Tretauto-Schanze | Ph | A | A tritt in die Pedale, Loslassen rollt; am Ende springt das Tretauto über den Teich. | Gelandet wird auf einem Floß, das hin und her treibt. Zu schnell fliegt übers Floß hinaus. |
 
 ## 15. Schätzen & Wahrnehmung (FFA)
 
 | Nr | Name | Kat | Bed. | Idee | Kniff |
 |---|---|---|---|---|---|
 | MG-141 | Schafe zählen | Hy | SA | Schafe springen über den Zaun; Anzahl schätzen. | Wölfe im Schafspelz zählen nicht. |
-| MG-142 | Zehn Sekunden | Ar | A | Der Zähler blendet aus, nach genau 10 s drücken. | Ablenkungen auf dem Bildschirm. |
+| MG-142 ✗ | ~~Zehn Sekunden~~ | Ar | A | **Verworfen** (Dublette von MG-037/MG-149, ersetzt durch MG-221). Der Zähler blendet aus, nach genau 10 s drücken. | Ablenkungen auf dem Bildschirm. |
 | MG-143 | Absurde Waage | Hy | SA | Welche Seite ist schwerer? (Elefant gegen 1000 Federn) | Die Antworten werden immer schräger. |
 | MG-144 | Fehlerbild | Hy | SA | Zwei Waldbilder, Unterschiede mit dem Cursor finden. | Die Bilder bewegen sich leicht. |
 | MG-145 | Größter Kürbis | Hy | SA | Den größten Kürbis wählen. | Die Perspektive trickst. |
@@ -239,7 +260,9 @@ Nutzt die privaten Bildschirme der iPhones. Am geteilten iPad sieht die Nachbari
 | MG-147 | Pfeilwirrwarr | Ar | S | Der Pfeil zeigt die Richtung, Stick dorthin. | Rote Pfeile verlangen die Gegenrichtung. |
 | MG-148 | Gerade Linie | Ar | S | Eine Spur mit dem Stick nachfahren. | Die Spur zittert und wird schmaler. |
 | MG-149 | Ein Liter | Hy | A | A halten füllt ein Glas, genau einen Liter treffen. | Die Skala verschwindet zur Hälfte. |
-| MG-150 | Nebelbild | Hy | SA | Ein Bild wird langsam scharf; zuerst richtig raten. | Falsch geraten = 3 s Sperre. |
+| MG-150 ✗ | ~~Nebelbild~~ | Hy | SA | **Verworfen** (Dublette von MG-097, ersetzt durch MG-220). Ein Bild wird langsam scharf; zuerst richtig raten. | Falsch geraten = 3 s Sperre. |
+| MG-220 | Kipppunkt | Ph | A | Eine krumme Kartoffel liegt auf einem Lineal. A stoppt den wandernden Pfeil dort, wo sie balanciert. | Danach wird es echt ausprobiert: Die Kartoffel kippt oder bleibt liegen; knapp daneben wackelt sie lange. |
+| MG-221 | Schnecke im Busch | Hy | A | Eine Schnecke kriecht hinter einen Busch; A, wenn sie auf der anderen Seite herauskommt. | Hinter dem Busch wird sie mal schneller, mal langsamer. Nur ihre glänzende Schleimspur verrät es kurz. |
 
 ## 16. Hektik-Küche & Laden (FFA)
 
@@ -255,6 +278,8 @@ Nutzt die privaten Bildschirme der iPhones. Am geteilten iPad sieht die Nachbari
 | MG-158 | Fundbüro | Hy | SA | Kundschaft zeigt Symbole, das passende Ding bringen. | Der Fundstapel wird umgeräumt. |
 | MG-159 | Spielzeug-Waschstraße | Ar | SA | Schmutzige Spielzeugautos schrubben. | Ein Hund wälzt sich in Matsch und läuft durch. |
 | MG-160 | Zoofütterung | Hy | SA | Das richtige Futter zum richtigen Tier werfen. | Affen klauen Futter aus der Luft. |
+| MG-222 | Pizzateig-Wirbel | Ph | AB | A wirft den Teig hoch, B dreht ihn in der Luft; er wird größer und dünner. | Die Kundschaft will bestimmte Größen. Zu dünn reißt er Löcher. |
+| MG-223 | Senf oder Ketchup | Ar | AB | Würstchen fahren am Band vorbei, die Kundschaft ruft: A Senf, B Ketchup. | Die Tuben sind fast leer: Es spritzt erst nach einer Verzögerung, die mit jedem Drücken länger wird. Vorausdrücken. |
 
 ## 17. Einer gegen alle (`1v3`)
 
@@ -272,6 +297,7 @@ Braucht die Spielform „Teams“ (freigegeben, README §7, `CHAOS-89`). Bei 2 P
 | MG-168 | Dirigent | Ar | S | Einer gibt Takte vor, drei spielen nach. | Der Dirigent punktet bei jedem Fehler der anderen. |
 | MG-169 | Schneefestung | Hy | SA | Einer verteidigt das Fort, drei werfen. | Die Mauern lassen sich mit Schnee nachbessern. |
 | MG-170 | Busch-Versteck | Hy | SA | Drei tarnen sich als Büsche, einer sucht. | Bewegung raschelt; zu langes Stillstehen lässt Vögel landen. |
+| MG-224 | Hahn auf dem Mist | Ph | A | Einer ist der Hahn auf dem Misthaufen, drei klettern hoch. Hahn: A flattert (Windstoß). Kletternde: A krallt sich fest. | Flattern und Festkrallen kosten beide Kraft. Wer im Moment des Flatterns krallt, bleibt hängen; wer zu früh krallt, ist müde. |
 
 ## 18. Zwei gegen zwei (`2v2`)
 
@@ -289,6 +315,7 @@ Braucht die Spielform „Teams“. Bei 2 Personen 1 gegen 1, bei 3 Personen 1 ge
 | MG-178 | Karottenstaffel | Ar | SA | Staffellauf mit Karotte als Stab. | Ein Hase versucht, die Karotte unterwegs zu klauen. |
 | MG-179 | Leiter tragen | Ph | S | Eine lange Leiter zu zweit durch enge Gassen tragen. | Gegnerteams kreuzen den Weg. |
 | MG-180 | Eimerkette | Hy | SA | Eimerkette zum eigenen brennenden Baumhaus (Kerzen). | Die anderen dürfen Löcher in eure Eimer pieksen. |
+| MG-225 | Laken-Schleuder | Ph | A | Je zwei halten ein Bettlaken; A zieht straff und schleudert die Wasserbombe über die Hecke, das andere Team fängt mit seinem Laken. | Nur gleichzeitiges Ziehen schleudert gerade. Zu hart gefangen platzt sie. |
 
 ## 19. Gemeinsam gegen das Chaos (`Koop`)
 
@@ -306,6 +333,7 @@ Alle spielen gemeinsam gegen das Spiel, gewertet wird trotzdem einzeln (Anteil a
 | MG-188 | Gartenfest-Aufbau | Hy | SA | Tische und Bänke zu zweit tragen. | Der Gastgeber-Hund läuft immer im Weg. |
 | MG-189 | Wurm-Fütterung | Hy | SA | Ein Riesenwurm soll satt werden, bevor er die Insel anknabbert. | Er mag nur eine Farbe pro Runde. |
 | MG-190 | Raketenstart | Ar | AB | Jede Person hat einen Hebel, der im Countdown zum richtigen Moment muss. | Die Hebel tauschen zwischendurch die Plätze. |
+| MG-226 | Hängebrücke | Ph | AB | Alle stehen auf einer Hängebrücke, ein Melonenkarren rollt hinüber. A lehnt links, B rechts; die Brücke soll waagrecht bleiben. | Die Brücke schwingt nach. Wer gegen die Schwingung lehnt, dämpft (Punkte); wer mitlehnt, schaukelt alle auf. |
 
 ## 20. Mikro-Spiele (`Mikro`, 5–8 s, Schnellfeuer-Kette)
 
@@ -323,3 +351,47 @@ Eigene Mechanik (README §7): Fünf Mikro-Spiele am Stück ersetzen das Minispie
 | MG-198 | Butterseite | Ar | S | Das fallende Brot so drehen, dass die Butter oben landet. | Die Katze schnappt mit. |
 | MG-199 | Schleife binden | Ar | S | Mit Stick-Kreisen eine Schleife binden. | Die Schnürsenkel sind unterschiedlich lang. |
 | MG-200 | Cheese! | Ar | A | Beim Blitz lächeln (A). | Der Fotograf täuscht zweimal an. |
+
+---
+
+## Nachschub und Dubletten-Prüfung (`CHAOS-93`)
+
+Der Katalog ist ein Vorrat: Er hält stets **≥ 200 aktive volle Minispiele** (Skizze bis Rotation, ohne Mikro-Spiele und ohne ✗), davon **≥ 30 % ohne Stick** (`A`, `AB`) und **≥ 25 % Physik**. `packages/minigames/src/sketchCatalog.test.ts` zählt diese Datei bei jedem `pnpm test` nach und prüft dazu eindeutige Nummern und Namen. Nach jeder Welle werden verworfene Skizzen hier ersetzt.
+
+### Runde 1 (2026-11-21, vor der Pilotwelle)
+
+**Stand danach:** 209 aktive volle Minispiele (Arcade 74, Physik 59 = 28 %, Hybrid 76) · Bedienung `A` 34, `AB` 39, `S` 34, `SA` 98, `SAB` 4, also 73 ohne Stick (35 %) · dazu 10 Mikro-Spiele · 7 verworfen.
+
+Vorher: 190 volle Minispiele, Physik 40 (21 %), ohne Stick 48 (25 %). Die 26 neuen Skizzen MG-201 … MG-226 sind alle ohne Stick bedienbar, 21 davon Physik. Sie bringen Physik auch in Familien, die bisher keine hatten (Timing, Reflex, Gedächtnis, Zocken, Revier, Küche), und nutzen A/B nicht nur als „drücken im richtigen Moment“: Schwung holen (MG-204), Gewicht verlagern (MG-209, MG-226), Rückstoß als Lenkung (MG-203), zwei Knöpfe als Lenkpaar (MG-218), gleichzeitiges Ziehen im Team (MG-225), geheime Wahl mit echter Physik beim Aufdecken (MG-215).
+
+**Verworfen (Dubletten):**
+
+| Nr | Dublette von | Grund | Ersatz |
+|---|---|---|---|
+| MG-008 | Krümel-Kehraus | Dinge in die eigene Ecke befördern, schon in der Rotation | MG-201 |
+| MG-075 | MG-071 | Zerbrechliches durch Hindernisse tragen, beide `Ph`/`S` | MG-209 |
+| MG-112 | MG-111 ★ | „Volle Wahl verliert“ | MG-214 |
+| MG-120 | MG-111 ★ | „Volle Wahl verliert“ | MG-215 |
+| MG-130 | MG-122, MG-125 | Boden färben durch Drüberlaufen, alle `S` | MG-216, MG-217 |
+| MG-142 | MG-037, MG-149 | Blind auf den genauen Moment drücken | MG-221 |
+| MG-150 | MG-097 | Bild wird mit der Zeit klarer, früh raten zahlt mehr | MG-220 |
+
+Bei Dubletten-Gruppen mit einem Pilot-Spiel (★) bleibt das Pilot-Spiel.
+
+**Geschärft (Kniff kam doppelt vor, §5.5 „Eigener Kniff“):** MG-051 (wie MG-039), MG-100 (wie MG-031), MG-115 (wie MG-111), MG-135 (wie MG-071). Der alte Kniff steht im Eintrag.
+
+**Geprüft und bewusst behalten** (ähnliches Thema, aber anderes Kernverb oder andere Spielform; der Mindestabstand aus §5.5 wird bei der Umsetzung über den Steckbrief geprüft):
+
+| Paar | Warum es bleibt |
+|---|---|
+| MG-004 / MG-026 | Drehscheibe mit Fliehkraft, aber sammeln gegen rempeln |
+| MG-055 / MG-171 | Ziehen mit A/B, aber jeder gegen jeden gegen 2 gegen 2 im Takt |
+| MG-059 / MG-149 | A halten füllt, aber werfen nach Größe gegen genau treffen |
+| MG-037 / MG-149 | Genau stoppen, aber sichtbarer Zeiger gegen ausgeblendete Skala |
+| MG-122 / MG-125 | Revier durch Laufen, aber nachwachsendes Gras gegen sperrende Dreierreihen |
+| MG-143 / MG-145 | Vergleichen, aber Wissen gegen Wahrnehmungstäuschung |
+| MG-086 / MG-087 / MG-133 | Bergab, aber verschiedene Familien und Fahrweisen |
+
+Die Abgleiche der M3-Kandidaten (Aufzieh-Takt mit MG-090, Geysir-Gier mit MG-104) bleiben bei ihren Wellen (`CHAOS-102`, `CHAOS-104`).
+
+**Rubens Lieblinge und Streichungen:** Punkt 6 aus `CHAOS-82` (Katalog sichten) ist noch offen; bisher gibt es keine. Sie fließen in die nächste Runde ein.

@@ -21,7 +21,7 @@ import { formatStartupLines, renderTerminalQr } from './startup.ts';
  * - `ROUNDS`: Runden des Brettspiels (Standard 10, EXP-011), `SEED`: fester Seed (reproduzierbar)
  * - `RUECKENWIND=1`: Rückenwind-Münzen für Zurückliegende einschalten (CHAOS-125, EXP-022;
  *   Standard aus bis zum Playtest)
- * - `SCHNELLFEUER`: Schnellfeuer-Runde (CHAOS-90, EXP-038): `an` (Standard: Ereignis
+ * - `SCHNELLFEUER`: Schnellfeuer-Runde (CHAOS-90, EXP-041): `an` (Standard: Ereignis
  *   „Schnellfeuer!“, sonst im Finale), `aus`, oder nur `ereignis` | `halbzeit` | `finale`
  * - `BRETT`: Brett-Wahl zu Beginn, eine Brett-ID (`wackelwald`) oder `zufall` (CHAOS-197);
  *   in der Lobby umstellbar

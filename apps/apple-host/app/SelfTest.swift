@@ -33,6 +33,11 @@ enum SelfTest {
         hostLog("SELBSTTEST Sparkle \(Updates.sparkleVersion), Feed \(Updates.feed?.url ?? "aus")")
         if Updates.sparkleVersion == "?" { finish(false, "Sparkle.framework nicht geladen") }
         #endif
+        // CHAOS-223: Klang-Dateien liegen im Bündel und lassen sich dekodieren (sonst nur Rezepte, unbemerkt).
+        let (sounds, unreadable) = SoundBank.decodeAll()
+        hostLog("SELBSTTEST Klang-Dateien \(sounds.count)\(unreadable.isEmpty ? "" : ", nicht lesbar: \(unreadable.joined(separator: ", "))")")
+        if sounds.isEmpty { finish(false, "keine Klang-Dateien in payload/sounds") }
+        if !unreadable.isEmpty { finish(false, "Klang-Dateien nicht lesbar") }
         started = Date()
         runtime.start()
         let timer = Timer(timeInterval: 1.0 / 60, repeats: true) { _ in MainActor.assumeIsolated { step() } }

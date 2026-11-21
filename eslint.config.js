@@ -52,6 +52,25 @@ export default defineConfig(
     languageOptions: { globals: globals.browser },
   },
   {
+    // Host im Browser: Minispiel-Module nur je Spiel bei Bedarf laden (CHAOS-86), sonst wächst
+    // die Minispiel-Bühne mit dem Katalog. `pnpm check:bundle` prüft das zusätzlich am Build.
+    files: ['apps/host/src/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@chaos-party/minigames',
+              message:
+                'Steckbriefe aus `@chaos-party/minigames/catalog`, Module über `@chaos-party/minigames/lazy` (CHAOS-86).',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: [
       'apps/server/**/*.{ts,mjs}',
       'apps/apple-host/*.mjs',

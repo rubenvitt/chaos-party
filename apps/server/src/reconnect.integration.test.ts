@@ -153,9 +153,10 @@ function promptScenario(
 
 /**
  * Seed, bei dem in 3 Runden mit 3 Spielern jede Prompt-Art vorkommt (Klau, Reaktion, Trophäe).
- * Seit dem Trostpreis nach dem Minispiel (EXP-019, CHAOS-51) Seed 2 statt 1.
+ * Seit dem Trostpreis nach dem Minispiel (EXP-019, CHAOS-51) Seed 2 statt 1, seit dem großen
+ * Wackelwald (CHAOS-196) Seed 6.
  */
-const ALL_PROMPTS_SEED = 2;
+const ALL_PROMPTS_SEED = 6;
 
 const PROMPT_CASES: [PromptKind, { players: number; seed: number; rounds: number }][] = [
   ['roll', { players: 2, seed: INTEGRATION_SEEDS.two, rounds: 2 }],

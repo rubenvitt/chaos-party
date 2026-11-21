@@ -15,6 +15,7 @@ import type HavokPhysics from '@babylonjs/havok';
 import type { MinigameInput, MinigameResult, Slot } from '../info.ts';
 import { checkResult, rankByScore } from '../result.ts';
 import { createMinigameRng } from '../rng.ts';
+import { teamPlacements, type MinigameTeams } from '../teams.ts';
 import { markVisual } from './visual.ts';
 import {
   FIXED_STEP_SECONDS,
@@ -54,6 +55,11 @@ export interface RunnerOptions {
   readonly testMode?: boolean;
   /** Look des Hosts (CHAOS-62); fehlt in Tests. */
   readonly look?: MinigameLook;
+  /**
+   * Aufstellung vom Server bei Teams bzw. Koop (CHAOS-89); fehlt = jeder gegen jeden. Geht
+   * unverändert an das Minispiel (`MinigameContext.teams`) und in die Prüfung des Ergebnisses.
+   */
+  readonly teams?: MinigameTeams | null;
   /**
    * Höchstzahl fester Schritte je `advance` (Standard `MAX_STEPS_PER_ADVANCE`). Der Host hebt
    * sie bei Software-Rendering an (Bilder dauern dort ≥ 0,25 s), damit die Spielzeit mit der
@@ -175,7 +181,12 @@ export function createMinigameRunner(
     if (result) return;
     const overtime = elapsedMs() > timeLimitMs + OVERTIME_GRACE_MS;
     if (candidate) {
-      const check = checkResult(candidate, { minigameId: info.id, slots, scoring: info.scoring });
+      const check = checkResult(candidate, {
+        minigameId: info.id,
+        slots,
+        scoring: info.scoring,
+        teams: options.teams ?? null,
+      });
       if (check.ok) {
         finish({ result: candidate, forced: false, cut, elapsedMs: elapsedMs() });
         return;
@@ -195,12 +206,20 @@ export function createMinigameRunner(
       console.error(error);
     }
     const bySlot = new Map(scores.map((entry) => [entry.slot, entry.score]));
+    const own = slots.map((slot) => ({ slot, score: bySlot.get(slot) ?? 0 }));
+    const teams = options.teams ?? null;
+    // CHAOS-89: Ohne gültiges Ergebnis gibt es bei Teams ein Unentschieden, bei Koop Stufe 0.
+    if (teams && teams.layout !== 'koop') {
+      return {
+        minigameId: info.id,
+        placements: teamPlacements(teams, null, own, info.scoring),
+        outcome: { kind: 'teams', winner: null },
+      };
+    }
     return {
       minigameId: info.id,
-      placements: rankByScore(
-        slots.map((slot) => ({ slot, score: bySlot.get(slot) ?? 0 })),
-        info.scoring,
-      ),
+      placements: rankByScore(own, info.scoring),
+      ...(teams ? { outcome: { kind: 'koop', tier: 0 } as const } : {}),
     };
   };
 
@@ -273,6 +292,7 @@ export function createMinigameRunner(
         },
         testMode: options.testMode ?? false,
         ...(options.look ? { look: options.look } : {}),
+        ...(options.teams ? { teams: options.teams } : {}),
         pace,
       });
       // Während `prepare` entsorgt? Dann nicht wiederbeleben.

@@ -3,8 +3,8 @@
  * eigenes Ergebnis, gemeinsam für iPhone (`SlotController`) und iPad-Zone (`ZoneBoard`,
  * `compact`). Das Spiel-Layout selbst bleibt Joystick + Knöpfe (`PlayPanel`, Zonen).
  */
-import { useState, type ReactNode } from 'react';
-import type { ControllerMinigameInfo, Vote } from '@chaos-party/protocol';
+import { useState, type CSSProperties, type ReactNode } from 'react';
+import type { ControllerMinigameInfo, ControllerMinigameTeam, Vote } from '@chaos-party/protocol';
 import {
   controlLegend,
   describeResult,
@@ -22,6 +22,7 @@ import { ITEM_INFO } from '../board/items.ts';
 import { LOOK_AT_SCREEN } from '../board/status.ts';
 import type { SlotContext } from '../state/reducer.ts';
 import { Icon } from './icons.tsx';
+import { describeTeamResult, describeTeamRole } from './minigameTeam.ts';
 import { useArmed } from './useReadyGuard.ts';
 
 /** Kleines Abbild eines Bedienelements (Joystick-Ring bzw. Knopf A/B) für die Legende. */
@@ -86,6 +87,7 @@ export function MinigameIntro({
           </p>
         )}
       </div>
+      {minigame.team && <TeamRole team={minigame.team} />}
       <div className="minigame-howto">
         {!repeat && (
           <ol className="minigame-steps" data-testid="minigame-steps">
@@ -119,6 +121,27 @@ export function MinigameIntro({
           readyLine
         )}
       </div>
+    </div>
+  );
+}
+
+/** Eigene Rolle bei Teams bzw. Koop (CHAOS-89): Symbol, Name, mit wem und gegen wen. */
+function TeamRole({ team }: { team: ControllerMinigameTeam }) {
+  const text = describeTeamRole(team);
+  return (
+    <div
+      className="minigame-team-role"
+      data-testid="minigame-team-role"
+      data-role={team.role}
+      style={{ '--team-color': text.color } as CSSProperties}
+    >
+      <span className="minigame-team-role-mark" aria-hidden="true">
+        {text.symbol}
+      </span>
+      <span className="minigame-team-role-text">
+        <b className="ui-text">{text.title}</b>
+        <span className="ui-text">{text.detail}</span>
+      </span>
     </div>
   );
 }
@@ -164,6 +187,11 @@ export function MinigameResult({
             {view.place === 1 && <Icon name="trophy" size={compact ? 36 : 52} />}
             <b className="ui-text">{view.headline}</b>
           </div>
+          {minigame.team && describeTeamResult(minigame.team) !== null && (
+            <p className="result-team ui-text" data-testid="result-team">
+              {describeTeamResult(minigame.team)}
+            </p>
+          )}
           <p className="result-cheer ui-text">{view.cheer}</p>
           {view.score !== null && (
             <p className="result-score ui-text" data-testid="result-score">

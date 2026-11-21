@@ -1,19 +1,12 @@
 import { DEFAULT_BOARD } from '@chaos-party/game-core';
 import { describe, expect, it } from 'vitest';
-import { createTerrain } from '../nature/terrain.ts';
-import { boardEdges, boardIsland, KIND_STYLES } from './natureBoard.ts';
+import { boardEdges, boardTerrain, KIND_STYLES } from './natureBoard.ts';
 
 describe('Natur-Brett (CHAOS-62)', () => {
   const board = DEFAULT_BOARD;
-  const shape = boardIsland(board);
   const edges = boardEdges(board);
-  const terrain = createTerrain({
-    shape,
-    flats: [
-      ...board.spaces.map((s) => ({ x: s.position.x, z: s.position.z, radius: 0.95 })),
-      ...edges.map(([a, b]) => ({ x: (a.x + b.x) / 2, z: (a.z + b.z) / 2, radius: 0.5 })),
-    ],
-  });
+  // Mit Teich und Bach (CHAOS-196): Mulden dürfen keine Scheibe absenken.
+  const { terrain } = boardTerrain(board);
 
   it('jedes Feld liegt mit Abstand zum Abhang auf der Insel und genau auf Höhe 0', () => {
     for (const space of board.spaces) {

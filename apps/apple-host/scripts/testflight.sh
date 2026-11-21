@@ -42,7 +42,7 @@ fi
 
 # Ohne diese Dateien startet die App, hostet aber kein Spiel (HostRuntime lädt sie aus dem Bundle).
 missing=0
-for f in chaos-host.js HavokPhysics.wasm LICENSE.txt THIRD-PARTY-NOTICES.txt controller/index.html; do
+for f in chaos-host.js HavokPhysics.wasm LICENSE.txt THIRD-PARTY-NOTICES.txt controller/index.html sounds/tick-1.mp3; do
   [[ -s "payload/$f" ]] || { echo "Nutzlast unvollständig: payload/$f fehlt" >&2; missing=1; }
 done
 if [[ "$missing" == 1 ]]; then
@@ -92,7 +92,7 @@ xcodebuild -project ChaosHost.xcodeproj -scheme ChaosHost -configuration Release
 
 # Die Nutzlast muss im Archiv stecken; ein leerer Ordner fiele sonst erst auf der Apple TV auf.
 APP="$ARCHIVE/Products/Applications/ChaosHost.app"
-for f in payload/chaos-host.js payload/HavokPhysics.wasm payload/controller/index.html; do
+for f in payload/chaos-host.js payload/HavokPhysics.wasm payload/controller/index.html payload/sounds/tick-1.mp3; do
   [[ -s "$APP/$f" ]] || { echo "Archiv ohne $f: $APP" >&2; exit 1; }
 done
 

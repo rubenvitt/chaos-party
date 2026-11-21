@@ -30,7 +30,7 @@ import {
 } from '@chaos-party/protocol';
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { CoinIcon, ItemIcon } from '../board/icons.tsx';
-import { ITEM_NAMES } from '../board/texts.ts';
+import { ITEM_NAMES, playerName } from '../board/texts.ts';
 import { attachPerf } from '../debug/perf.ts';
 import { markFirstFrame, markScene } from '../debug/sceneMarks.ts';
 import { soundEngine } from '../fx/audio.ts';
@@ -52,6 +52,7 @@ import {
 import { introReadiness, readyProgress, waitsForReady, type Readiness } from './readiness.ts';
 import { PRACTICE_NOTE, resultPayload, resultsDisplay } from './results.ts';
 import { createMinigameStage, type MinigameStage, type StageStatus } from './stage.ts';
+import { teamLineup, type TeamLineup } from './teams.ts';
 import type { ChaosMinigameTestHook } from './testHook.ts';
 
 export interface MinigameScreenProps {
@@ -121,6 +122,8 @@ export function MinigameScreen(props: MinigameScreenProps) {
   const [setup] = useState(() => ({
     players: playersFromView(view),
     seed: minigame?.seed ?? 0,
+    // CHAOS-89: Aufstellung bei Teams bzw. Koop, fest ab der Anleitung.
+    teams: minigame?.teams ?? null,
     round: minigame?.round ?? view.round,
     lightRound:
       (props.lightByRound ?? true) && view.rounds > 0
@@ -160,6 +163,7 @@ export function MinigameScreen(props: MinigameScreenProps) {
       module,
       players: setup.players,
       seed: setup.seed,
+      teams: setup.teams,
       timeLimitMs: plan.kind === 'play' ? plan.timeLimitMs : module.info.durationMs,
       lightRound: setup.lightRound,
       testMode: test,
@@ -468,6 +472,8 @@ function IntroCard({
   const repeat = view.minigame?.repeat === true;
   // CHAOS-214: Wartet die Anleitung auf „Bereit“, ersetzt die Bereitschaft den Countdown.
   const readiness = introReadiness(view);
+  // CHAOS-89: Team-Ansage vor der Anleitung.
+  const lineup = teamLineup(view);
   return (
     <div
       className="minigame-overlay"
@@ -498,6 +504,7 @@ function IntroCard({
         <h2 className="minigame-title" data-testid="minigame-title">
           {info.title}
         </h2>
+        {lineup && <TeamLineupRow lineup={lineup} view={view} />}
         {!repeat && (
           <>
             <p className="minigame-tagline">{info.tagline}</p>
@@ -557,6 +564,45 @@ function IntroCard({
           </ul>
         )}
       </section>
+    </div>
+  );
+}
+
+/** Team-Ansage (CHAOS-89): je Gruppe Symbol, Name und Mitglieder, nie nur Farbe. */
+function TeamLineupRow({
+  lineup,
+  view,
+}: {
+  readonly lineup: TeamLineup;
+  readonly view: BoardView;
+}) {
+  return (
+    <div className="minigame-teams" data-testid="minigame-teams" data-layout={lineup.layout}>
+      <p className="minigame-teams-head">{lineup.headline}</p>
+      <ul className="minigame-teams-groups">
+        {lineup.groups.map((group, index) => (
+          <li
+            key={group.label}
+            className="minigame-team"
+            data-testid={`minigame-team-${String(index)}`}
+            style={{ '--team-color': group.color } as CSSProperties}
+          >
+            <span className="minigame-team-mark" aria-hidden="true">
+              {group.symbol}
+            </span>
+            <span className="minigame-team-label">{group.label}</span>
+            <span className="minigame-team-members">
+              {group.slots.map((slot) => (
+                <span key={slot} className="minigame-team-member" style={colorStyle(slot)}>
+                  <PlayerBadge slot={slot} />
+                  {playerName(view, slot)}
+                </span>
+              ))}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {lineup.note && <p className="minigame-teams-note">{lineup.note}</p>}
     </div>
   );
 }
