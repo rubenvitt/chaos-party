@@ -1,0 +1,52 @@
+{
+  "v": 4,
+  "type": "context",
+  "slot": 1,
+  "phase": "board",
+  "layout": "board",
+  "actions": [],
+  "board": {
+    "gamePhase": "minigame-intro",
+    "round": 2,
+    "rounds": 5,
+    "coins": 12,
+    "trophies": 1,
+    "items": [
+      "double-dice",
+      "shield"
+    ],
+    "activeSlot": null,
+    "paused": false,
+    "character": "cactus",
+    "minigameWins": 1
+  },
+  "minigame": {
+    "id": "pump-race",
+    "title": "Pump-Rennen",
+    "tagline": "Wer pumpt am schnellsten?",
+    "instructions": [
+      "Tippe A so schnell du kannst",
+      "Mit dem Stick lenken"
+    ],
+    "controls": {
+      "joystick": "Lenken",
+      "a": "Pumpen",
+      "b": null
+    },
+    "stage": "intro",
+    "scoreUnit": "Pumpstöße",
+    "tied": false,
+    "aborted": false,
+    "team": {
+      "layout": "1v2",
+      "role": "solo",
+      "index": 0,
+      "mates": [],
+      "opponents": [
+        2,
+        3
+      ],
+      "advantage": true
+    }
+  }
+}

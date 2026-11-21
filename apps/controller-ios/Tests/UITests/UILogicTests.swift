@@ -363,3 +363,69 @@ import Testing
         #expect(MinigameVoting.options.map(MinigameVoting.label) == ["Daumen hoch", "Daumen runter"])
     }
 }
+
+/// Team role and outcome like the web controller (`ui/minigameTeam.ts`, CHAOS-89/CHAOS-229).
+@Suite struct MinigameTeamTextTests {
+    private func team(
+        _ layout: MinigameTeamLayout, _ role: MinigameTeamRole, index: Int = 0, mates: [Int] = [],
+        opponents: [Int] = [], advantage: Bool = false, result: MinigameTeamResult? = nil, tier: Int? = nil
+    ) -> ControllerMinigameTeam {
+        ControllerMinigameTeam(
+            layout: layout, role: role, index: index, mates: mates, opponents: opponents,
+            advantage: advantage, result: result, tier: tier)
+    }
+
+    @Test func teamNamesMarkMatesAndOpponents() {
+        let text = TeamRoleText(team(.twoVsTwo, .team, index: 1, mates: [3], opponents: [1, 2]))
+        #expect(text.title == "Team Mond")
+        #expect(text.symbol == "☾")
+        #expect(text.detail == "Du und Grün gegen Blau und Orange.")
+        let sun = TeamRoleText(team(.twoVsTwo, .team, index: 0, mates: [1], opponents: [2, 4]))
+        #expect(sun.title == "Team Sonne")
+        #expect(sun.symbol == "☀")
+    }
+
+    @Test func soloMentionsTheAdvantage() {
+        let text = TeamRoleText(team(.oneVsTwo, .solo, opponents: [2, 3], advantage: true))
+        #expect(text.title == "Allein gegen alle")
+        #expect(text.detail == "Du gegen Orange und Grün. Du hast einen Vorteil.")
+        let duel = TeamRoleText(team(.oneVsOne, .solo, opponents: [2]))
+        #expect(duel.title == "Eins gegen eins")
+        #expect(duel.detail == "Du gegen Orange.")
+    }
+
+    @Test func pairAgainstOneAndKoop() {
+        let pair = TeamRoleText(team(.oneVsTwo, .team, index: 1, mates: [3], opponents: [1]))
+        #expect(pair.title == "Gemeinsam gegen eine Person")
+        #expect(pair.detail == "Du und Grün gegen Blau.")
+        let koop = TeamRoleText(team(.koop, .koop, mates: [2, 3, 4]))
+        #expect(koop.title == "Alle zusammen")
+        #expect(koop.symbol == "♥")
+        #expect(koop.detail == "Spielt gemeinsam – jede Hilfe zählt.")
+        #expect(TeamRoleText.names([1, 2, 3]) == "Blau, Orange und Grün")
+    }
+
+    @Test func outcomeFromOwnPointOfView() {
+        let solo = team(.oneVsThree, .solo, opponents: [2, 3, 4])
+        #expect(solo.resultText == nil)
+        var won = solo
+        won.result = .won
+        #expect(won.resultText == "Du hast allein gewonnen!")
+        var lost = solo
+        lost.result = .lost
+        #expect(lost.resultText == "Die anderen waren stärker.")
+        #expect(team(.twoVsTwo, .team, result: .won).resultText == "Dein Team hat gewonnen!")
+        #expect(team(.twoVsTwo, .team, result: .lost).resultText == "Dein Team hat verloren.")
+        #expect(team(.twoVsTwo, .team, result: .draw).resultText == "Unentschieden!")
+        #expect(team(.koop, .koop, tier: 2).resultText == "Gemeinsam geschafft: Stufe 2 von 3")
+        #expect(team(.koop, .koop, tier: 0).resultText == "Leider nicht geschafft (Stufe 0 von 3)")
+    }
+
+    @Test func samplesCarryTheRole() {
+        #expect(ControllerState.minigameTeamIntroSample.contexts[1]?.minigame?.team?.layout == .twoVsTwo)
+        #expect(ControllerState.minigameSoloIntroSample.contexts[1]?.minigame?.team?.advantage == true)
+        #expect(ControllerState.minigameKoopResultsSample.contexts[1]?.minigame?.team?.resultText
+            == "Gemeinsam geschafft: Stufe 2 von 3")
+        #expect(ControllerState.minigameIntroSample.contexts[1]?.minigame?.team == nil)
+    }
+}
