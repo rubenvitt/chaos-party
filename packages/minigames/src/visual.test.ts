@@ -20,7 +20,7 @@ const EXPECTED: Record<string, readonly string[]> = {
   sockenregen: ['waschmaschine', 'seifenblase', 'fangring', 'abzeichen', 'sterne', 'socke'],
   'pudding-gerangel': ['pudding', 'loeffel', 'kirschfleck', 'kirsche', 'krone', 'spielerring'],
   wackelturm: ['turm', 'krone', 'toertchen', 'toertchen-guss', 'spielerring', 'haufen'],
-  'kuckucks-klatsche': ['kuckucksuhr', 'zeiger', 'tuer', 'feder', 'kuckuck', 'klatsche'],
+  'kuckucks-klatsche': ['kuckucksuhr', 'zeiger', 'tuer', 'feder', 'kuckuck', 'klatsche', 'sterne'],
   'kruemel-kehraus': ['kruemel', 'spielerring', 'wimpel'],
 };
 

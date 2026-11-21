@@ -24,6 +24,7 @@ import type {
   MinigameHud,
   MinigameModule,
 } from '@chaos-party/minigame-sdk/babylon';
+import { markVisual } from '@chaos-party/minigame-sdk/babylon';
 import { PUMP_PARADE_INFO } from './info.ts';
 
 interface Pumper {
@@ -76,10 +77,11 @@ class PumpParade implements Minigame {
       character.play('idle');
       // Ohne JIT kostet eine Kugel mit Standard-Segmenten gut 10 ms: eigener Schritt, weniger Segmente (CHAOS-209).
       await ctx.pace();
-      const balloon = CreateSphere(
-        `pump-ballon-${player.slot}`,
-        { diameter: 1, segments: 20 },
-        scene,
+      // Rolle für native Hosts (CHAOS-154): Der Ballon wächst im Spiel.
+      const balloon = markVisual(
+        CreateSphere(`pump-ballon-${player.slot}`, { diameter: 1, segments: 20 }, scene),
+        'ballon',
+        player.slot,
       );
       balloon.position.set(x, 2.6, 0);
       const material =

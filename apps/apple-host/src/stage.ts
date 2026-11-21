@@ -171,6 +171,11 @@ export function prepareBudgetMs(tickIntervalMs: number, urgent = false): number 
 
 export interface HeadlessStage {
   readonly runner: MinigameRunner;
+  /**
+   * Die Babylon-Szene des Minispiels: nur für Prüfungen, etwa den Darstellungs-Vertrag
+   * (CHAOS-154, `test/darstellung.ts`). Der Kern liest sie nie an `bodies()` vorbei.
+   */
+  readonly scene: Scene;
   /** Aufbau fertig (Szene steht, Körper klassifiziert); vorher liefert `bodies()` nichts. */
   readonly ready: boolean;
   /** Spielzeit starten (idempotent; vor Ende von `prepare`: direkt danach). */
@@ -437,6 +442,10 @@ export function createHeadlessStage(options: HeadlessStageOptions): HeadlessStag
     .then(
       () => {
         if (flags.disposed) return;
+        // Neue Render-ID, bevor `bodies()` zum ersten Mal liefert (CHAOS-154): Meshes, deren
+        // Weltmatrix beim Anlegen in derselben Render-ID gerechnet wurde, stünden sonst im
+        // ersten Bild im Ursprung und ohne Skalierung (Babylon rechnet je ID nur einmal).
+        scene.incrementRenderId();
         flags.ready = true;
         if (flags.startRequested) startNow();
       },
@@ -451,6 +460,7 @@ export function createHeadlessStage(options: HeadlessStageOptions): HeadlessStag
 
   return {
     runner,
+    scene,
     get ready() {
       return flags.ready;
     },
