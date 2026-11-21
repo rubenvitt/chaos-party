@@ -198,6 +198,56 @@ private func jsonObject(_ data: Data) throws -> NSDictionary {
         #expect(Set(object.keys) == ["v", "type", "slot", "seq", "minigameId", "round", "vote"])
     }
 
+    /// v4 addendum (CHAOS-89, Swift: CHAOS-229): own role in team and koop minigames, shaped
+    /// like the server integration test (`minigameTeams.integration.test.ts`).
+    @Test func minigameTeamIsDecoded() throws {
+        func team(_ name: String) throws -> ControllerMinigameTeam? {
+            guard case .context(let context) = try ServerMessage.decode(try Fixtures.text("server-to-controller", name))
+            else { return nil }
+            return context.minigame?.team
+        }
+        let twoVsTwo = try #require(try team("context-minigame-team-2v2-intro.json"))
+        #expect(twoVsTwo.layout == .twoVsTwo)
+        #expect(twoVsTwo.role == .team)
+        #expect(twoVsTwo.index == 1)
+        #expect(twoVsTwo.mates == [3])
+        #expect(twoVsTwo.opponents == [2, 4])
+        #expect(!twoVsTwo.advantage)
+        #expect(twoVsTwo.result == nil)
+        #expect(twoVsTwo.tier == nil)
+
+        let solo = try #require(try team("context-minigame-team-1v2-advantage-intro.json"))
+        #expect(solo.layout == .oneVsTwo)
+        #expect(solo.role == .solo)
+        #expect(solo.mates.isEmpty)
+        #expect(solo.opponents == [2, 3])
+        #expect(solo.advantage)
+
+        let won = try #require(try team("context-minigame-team-2v2-results.json"))
+        #expect(won.result == .won)
+        #expect(won.tier == nil)
+
+        let koop = try #require(try team("context-minigame-koop-results.json"))
+        #expect(koop.layout == .koop)
+        #expect(koop.role == .koop)
+        #expect(koop.opponents.isEmpty)
+        #expect(koop.tier == 2)
+        #expect(koop.result == nil)
+    }
+
+    /// Older servers and every-player-for-themselves minigames send no `team`: nothing changes.
+    @Test func minigameWithoutTeamStaysPlain() throws {
+        for name in ["context-minigame-intro.json", "context-minigame-results.json"] {
+            guard case .context(let context) = try ServerMessage.decode(try Fixtures.text("server-to-controller", name))
+            else {
+                Issue.record("kein Kontext: \(name)")
+                continue
+            }
+            #expect(context.minigame != nil)
+            #expect(context.minigame?.team == nil)
+        }
+    }
+
     @Test func enumsMatchProtocolConstants() throws {
         let data = Data(try Fixtures.text(".", "protocol-constants.json").utf8)
         let constants = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
@@ -213,6 +263,7 @@ private func jsonObject(_ data: Data) throws -> NSDictionary {
             "promptKinds": PromptKind.known.map(\.rawValue),
             "characterIds": CharacterId.known.map(\.rawValue),
             "minigameStages": MinigameStage.known.map(\.rawValue),
+            "minigameTeamLayouts": MinigameTeamLayout.known.map(\.rawValue),
             "buttons": Button.allCases.map(\.rawValue),
             "gestureKinds": GestureKind.allCases.map(\.rawValue),
             "votes": Vote.known.map(\.rawValue),
@@ -226,6 +277,7 @@ private func jsonObject(_ data: Data) throws -> NSDictionary {
         #expect(limits["maxNameLength"] == Double(ProtocolConstants.maxNameLength))
         #expect(limits["maxPlayers"] == Double(ProtocolConstants.maxPlayers))
         #expect(limits["stickEpsilon"] == ProtocolConstants.stickEpsilon)
+        #expect(limits["minigameKoopMaxTier"] == Double(ProtocolConstants.minigameKoopMaxTier))
     }
 }
 
