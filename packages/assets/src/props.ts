@@ -1,6 +1,6 @@
 /**
- * Requisiten der Minispiele (CHAOS-88): Katalog der Sets je Familie und Zuordnung zu den
- * Minispielen. Die GLBs erzeugt `packages/assets/blender/props.py` (Liste `PROPS` in
+ * Requisiten der Minispiele (CHAOS-88): Katalog der Sets je Familie, Kulissen je Ort der
+ * Arena-Vorlagen (CHAOS-222) und Zuordnung zu den Minispielen. Die GLBs erzeugt `packages/assets/blender/props.py` (Liste `PROPS` in
  * `requisiten.py`); jede Datei steht im Manifest als Art `prop` mit der id `requisit-<id>`.
  * `pnpm check:assets` hält Katalog, Manifest und Dateien gleich und prüft die Budgets je
  * Requisit (`budgets.prop`) und je Minispiel (`budgets.minigame`).
@@ -63,6 +63,31 @@ export const PROP_SETS = {
     title: 'Kulisse Küche',
     props: ['kochtopf', 'milchkanne', 'holzloeffel'],
   },
+  'kulisse-bad': {
+    family: null,
+    title: 'Kulisse Bad',
+    props: ['badewanne', 'quietscheente', 'seifenstueck'],
+  },
+  'kulisse-teich': {
+    family: null,
+    title: 'Kulisse Teich',
+    props: ['seerose', 'schilf', 'steg'],
+  },
+  'kulisse-spielzimmer': {
+    family: null,
+    title: 'Kulisse Spielzimmer',
+    props: ['bauklotz', 'spielball', 'spielkiste'],
+  },
+  'kulisse-wald': {
+    family: null,
+    title: 'Kulisse Wald',
+    props: ['baumstumpf', 'fliegenpilz', 'ast'],
+  },
+  'kulisse-dachboden': {
+    family: null,
+    title: 'Kulisse Dachboden',
+    props: ['truhe', 'koffer', 'lampe'],
+  },
 } as const satisfies Record<string, PropSetInfo>;
 export type PropSetId = keyof typeof PROP_SETS;
 export type PropId = (typeof PROP_SETS)[PropSetId]['props'][number];
@@ -97,6 +122,27 @@ export const MINIGAME_PROP_SETS: Readonly<Record<string, readonly PropSetId[]>> 
   'MG-111': ['bluff', 'kulisse-garten'],
   'MG-121': ['revier', 'kulisse-garten'],
 };
+
+/**
+ * Orte der Arena-Vorlagen (`ORTE` in `@chaos-party/minigame-kit`, CHAOS-83) – je Ort ein
+ * Kulissen-Set `kulisse-<ort>` (CHAOS-222). Die Liste hier spiegelt `ORTE`, weil `assets` nicht
+ * vom Baukasten abhängt; `props.test.ts` hält beide gleich.
+ */
+export const PROP_PLACES = [
+  'garten',
+  'kueche',
+  'bad',
+  'teich',
+  'spielzimmer',
+  'wald',
+  'dachboden',
+] as const;
+export type PropPlace = (typeof PROP_PLACES)[number];
+
+/** Kulissen-Set eines Orts (Set-Dressing für die Arena-Vorlage dieses Orts). */
+export function placePropSet(place: PropPlace): PropSetId {
+  return `kulisse-${place}`;
+}
 
 /** Manifest-id eines Requisits. */
 export function propAssetId(id: PropId): string {
