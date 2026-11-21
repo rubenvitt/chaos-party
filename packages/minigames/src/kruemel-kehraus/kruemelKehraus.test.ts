@@ -13,11 +13,7 @@ import {
   type InputScript,
 } from '@chaos-party/minigame-sdk/testing';
 import { describe, expect, it } from 'vitest';
-import {
-  clampToTray,
-  kruemelDecision,
-  slideOnTray,
-} from '../prototypes/physics/kruemelKehrausBot.ts';
+import { clampToTray, kruemelDecision, slideOnTray } from './bot.ts';
 import { SKILLS } from '../prototypes/physics/shared.ts';
 import { KruemelKehraus, kruemelKehraus, type KruemelSnapshot } from './index.ts';
 import { KRUEMEL_KEHRAUS_INFO } from './info.ts';

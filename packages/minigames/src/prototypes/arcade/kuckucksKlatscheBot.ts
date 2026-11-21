@@ -1,6 +1,7 @@
 /**
- * EXP-016 (CHAOS-54): Bots für die **echte** Logik von Kuckucks-Klatsche
- * (`packages/minigames/src/kuckucks-klatsche/logic.ts`), fester Schritt 1/60 s.
+ * EXP-016 (CHAOS-54): Bot-Partien auf der **echten** Logik von Kuckucks-Klatsche
+ * (`packages/minigames/src/kuckucks-klatsche/logic.ts`), fester Schritt 1/60 s. Der Bot selbst
+ * liegt seit CHAOS-180 im Produktcode (`../../kuckucks-klatsche/bot.ts`).
  *
  * Bots sehen nur, was ein Mensch am Fernseher sieht: welche Tür rappelt, was herausspringt,
  * wann der Gong kommt, ob ein Kuckuck schon weg ist. Reaktionszeiten und Fehler stammen aus
@@ -12,7 +13,8 @@
  * - `raffzahn`: klaut jeden freigegebenen Kuckuck.
  * - `dauer`: drückt stur alle `spamS` Sekunden, egal was passiert („Dauerklatscher“).
  */
-import { createMinigameRng, type MinigameRng, type Slot } from '@chaos-party/minigame-sdk';
+import { createMinigameRng, type Slot } from '@chaos-party/minigame-sdk';
+import { KUCKUCK_SPAM_S, KuckuckBot, type KuckuckStrategy } from '../../kuckucks-klatsche/bot.ts';
 import {
   KUCKUCK_RULES,
   KuckucksKlatscheLogic,
@@ -22,127 +24,15 @@ import {
   BOT_PROFILES,
   LeadTracker,
   lineup,
-  reactionSample,
   type BotProfile,
   type GameRecord,
   type PlayerCount,
 } from './common.ts';
 
-export type KuckuckStrategy = 'normal' | 'brav' | 'raffzahn' | 'dauer';
+export type { KuckuckStrategy } from '../../kuckucks-klatsche/bot.ts';
 
 const STEP_S = 1 / 60;
 const SLOTS: readonly Slot[] = [1, 2, 3, 4];
-/** Anteil der Profi-Ungeduld (`falseStart`), mit der jemand eine rappelnde Tür vorab klatscht. */
-const EAGER_OWN = 0.12;
-/** Dasselbe bei einer fremden Tür, deren Kuckuck noch nicht freigegeben ist. */
-const EAGER_FOREIGN = 0.04;
-/** Wer den eigenen Kuckuck verpennt, merkt es am Gong mit dieser Wahrscheinlichkeit. */
-const LATE_NOTICE = 0.5;
-
-interface Plan {
-  readonly at: number;
-  /** Tür, für die der Druck gedacht ist (null = Ungeduld, Dauerklatscher). */
-  readonly door: Slot | null;
-  readonly kind: 'own' | 'steal' | 'eager' | 'spam' | 'finte';
-}
-
-class Bot {
-  private plans: Plan[] = [];
-  private nextSpam: number;
-
-  constructor(
-    readonly slot: Slot,
-    private readonly profile: BotProfile,
-    private readonly strategy: KuckuckStrategy,
-    private readonly rng: MinigameRng,
-    private readonly spamS: number,
-  ) {
-    this.nextSpam = rng.next() * spamS;
-  }
-
-  private reaction(): number {
-    return reactionSample(this.rng, this.profile.reactionMs) / 1000;
-  }
-
-  private stealWill(): number {
-    if (this.strategy === 'brav') return 0;
-    if (this.strategy === 'raffzahn') return 1;
-    return this.profile.judgement;
-  }
-
-  observe(
-    logic: KuckucksKlatscheLogic,
-    events: ReturnType<KuckucksKlatscheLogic['drainEvents']>,
-  ): void {
-    if (this.strategy === 'dauer') return;
-    const now = logic.t;
-    for (const event of events) {
-      if (event.type === 'rattle') {
-        const eager = event.door === this.slot ? EAGER_OWN : EAGER_FOREIGN;
-        if (this.rng.next() < this.profile.falseStart * eager) {
-          this.plans.push({ at: now + this.reaction() * 0.6, door: event.door, kind: 'eager' });
-        }
-      } else if (event.type === 'open' && event.door === this.slot) {
-        if (event.occupant === 'finte') {
-          if (this.rng.next() < this.profile.falseStart) {
-            this.plans.push({ at: now + this.reaction() * 0.9, door: this.slot, kind: 'finte' });
-          }
-        } else if (this.rng.next() >= this.profile.lapse) {
-          this.plans.push({ at: now + this.reaction(), door: this.slot, kind: 'own' });
-        }
-      } else if (event.type === 'gong') {
-        const own = event.door === this.slot;
-        const will = own ? LATE_NOTICE : this.stealWill();
-        if (this.rng.next() < will) {
-          this.plans.push({
-            at: now + this.reaction(),
-            door: event.door,
-            kind: own ? 'own' : 'steal',
-          });
-        }
-      }
-    }
-  }
-
-  act(logic: KuckucksKlatscheLogic): number {
-    const now = logic.t;
-    let presses = 0;
-    if (this.strategy === 'dauer') {
-      while (now >= this.nextSpam) {
-        logic.press(this.slot);
-        presses++;
-        this.nextSpam += this.spamS;
-      }
-      return presses;
-    }
-    const due = this.plans.filter((plan) => plan.at <= now);
-    if (due.length === 0) return 0;
-    this.plans = this.plans.filter((plan) => plan.at > now);
-    for (const plan of due) {
-      if (logic.isDizzy(this.slot)) {
-        // Benommen: der Mensch drückt meist gleich noch mal, sobald es geht.
-        const clapper = logic.clapper(this.slot);
-        if (clapper && plan.kind !== 'eager' && this.rng.next() < 0.7) {
-          this.plans.push({ ...plan, at: clapper.dizzyUntil + 0.08 });
-        }
-        continue;
-      }
-      if (plan.door !== null && plan.kind !== 'eager') {
-        // Ist das Ziel schon weg, bremst man oft noch rechtzeitig.
-        const door = logic.door(plan.door);
-        const stillThere =
-          door !== undefined &&
-          (plan.kind === 'finte'
-            ? door.phase === 'finte'
-            : door.phase === 'own' || door.phase === 'free');
-        if (!stillThere && this.rng.next() < this.profile.judgement) continue;
-      }
-      logic.press(this.slot);
-      presses++;
-    }
-    return presses;
-  }
-}
 
 export interface KuckuckSimOptions {
   readonly rules?: KuckuckRules;
@@ -176,12 +66,12 @@ export function simulateKuckucksKlatsche(
   );
   const bots = slots.map(
     (slot, index) =>
-      new Bot(
+      new KuckuckBot(
         slot,
         profiles[index] ?? BOT_PROFILES.normal,
         options.strategies?.[index] ?? 'normal',
         createMinigameRng((seed * 31 + slot * 977) ^ 0x6b75),
-        options.spamS ?? 0.22,
+        options.spamS ?? KUCKUCK_SPAM_S,
       ),
   );
   const lead = new LeadTracker((durationMs * 2) / 3);
@@ -190,8 +80,12 @@ export function simulateKuckucksKlatsche(
     logic.step(STEP_S);
     const events = logic.drainEvents();
     bots.forEach((bot, index) => {
-      bot.observe(logic, events);
-      actions[index] = (actions[index] ?? 0) + bot.act(logic);
+      bot.observe(logic.t, events);
+      actions[index] =
+        (actions[index] ?? 0) +
+        bot.act(logic, () => {
+          logic.press(bot.slot);
+        });
     });
     lead.update(
       logic.clappers.map((clapper) => clapper.score),
