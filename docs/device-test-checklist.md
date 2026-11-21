@@ -855,7 +855,7 @@ Automatisch geprüft: Brett-Validierung, Bot-Simulation (Trophäen, faire Wegwah
 
 **Stand:** 2026-11-21 · **Aufgabe:** CHAOS-89 · **Protokoll:** v4-Nachtrag CHAOS-89 (`teams`, `outcome`, Kontext `team`)
 
-Automatisch geprüft (Linux): Zuteilung, Ersatz zu zweit und zu dritt, Prüfung des Ausgangs und Münzen in game-core; Session mit Pump-Duell, Pump-Solo und Riesenballon für 2, 3 und 4 Personen; Headless-Läufe der drei Testspiele; E2E: Galerie → Pump-Duell mit vier iPhones (Chromium-Emulation) → Team-Ansage am PC, Rolle am Handy, Team-Ergebnis (Bilder `tests/e2e/__screenshots__/minispiel-spielformen.spec.ts/`). **Nicht** automatisch geprüft: Lesbarkeit am Fernseher, ob Teams Spaß machen. **Noch nicht umgesetzt:** Rolle in der nativen Controller-App (CHAOS-229), Team-Ansage am Apple-Host (CHAOS-230).
+Automatisch geprüft (Linux): Zuteilung, Ersatz zu zweit und zu dritt, Prüfung des Ausgangs und Münzen in game-core; Session mit Pump-Duell, Pump-Solo und Riesenballon für 2, 3 und 4 Personen; Headless-Läufe der drei Testspiele; E2E: Galerie → Pump-Duell mit vier iPhones (Chromium-Emulation) → Team-Ansage am PC, Rolle am Handy, Team-Ergebnis (Bilder `tests/e2e/__screenshots__/minispiel-spielformen.spec.ts/`). **Nicht** automatisch geprüft: Lesbarkeit am Fernseher, ob Teams Spaß machen. Native Controller-App (CHAOS-229): Dekodierung der Rolle (Fixtures 2 gegen 2, 1 gegen 2 mit Vorteil, Koop), Texte wie im Web-Controller und Beispielzustände `minigameTeamIntro`, `minigameSoloIntro`, `minigameKoopResults` als Simulator-Screenshots in der CI (Artefakt `controller-ios-screenshots`). **Noch nicht umgesetzt:** Team-Ansage am Apple-Host (CHAOS-230).
 
 | ID  | Schritt | Erwartung | Ergebnis | Nachweis |
 | --- | ------- | --------- | -------- | -------- |
@@ -863,4 +863,6 @@ Automatisch geprüft (Linux): Zuteilung, Ersatz zu zweit und zu dritt, Prüfung 
 | SF2 | Nur ein Team pumpt | PC: „☾ Team Mond gewinnt: …“; Handys: „Dein Team hat gewonnen!“ bzw. „verloren“ | | Foto |
 | SF3 | Pump-Solo mit drei Handys | „Einer gegen zwei“, Hinweis „… spielt allein und hat einen Vorteil“; Handy der Einzelperson „Allein gegen alle“ | | Foto |
 | SF4 | Riesenballon mit zwei Handys | „Alle zusammen“, Banner „Stufe … von 3“ im Spiel, Ergebnis „Gut geschafft – Stufe 2 von 3“ o. ä. | | Foto |
+| SF6 | Native App (TestFlight) auf zwei iPhones, zwei Browser-Handys: SF1 | Die App zeigt in der Anleitung die Rollenkarte mit ☀ bzw. ☾, „Team Sonne“/„Team Mond“ und „Du und … gegen …“; lesbar ohne Scrollen | | Foto |
+| SF7 | Native App: SF2–SF4 | Ergebnis zeigt „Dein Team hat gewonnen!“/„verloren“, bei Pump-Solo „Allein gegen alle“ mit Vorteil-Hinweis, bei Riesenballon „Gemeinsam geschafft: Stufe … von 3“ | | Foto |
 | SF5 | Ruben: Urteil | Team-Sieg mit 7 Münzen lohnend? „Letzter gegen alle“ spannend oder demütigend? Koop für alle lohnend? (EXP-038) | | Kommentar an CHAOS-89 |

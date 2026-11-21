@@ -28,6 +28,8 @@ extension ControllerState {
         "minigameIntroReady": .minigameIntroReadySample, "minigameIntroWaiting": .minigameIntroWaitingSample,
         "minigamePlay": .minigamePlaySample, "minigameResults": .minigameResultsSample,
         "minigameConsolation": .minigameConsolationSample, "minigameAborted": .minigameAbortedSample,
+        "minigameTeamIntro": .minigameTeamIntroSample, "minigameSoloIntro": .minigameSoloIntroSample,
+        "minigameKoopResults": .minigameKoopResultsSample,
         "paused": .pausedSample, "final": .finalSample, "reconnecting": .reconnectingSample,
         "toast": .toastSample, "sessionFull": .sessionFullSample,
         "versionMismatch": .versionMismatchSample, "badCode": .badCodeSample,
@@ -194,6 +196,9 @@ private struct SamplePreview: View {
 #Preview("minigameResults") { SamplePreview(.minigameResultsSample) }
 #Preview("minigameConsolation") { SamplePreview(.minigameConsolationSample) }
 #Preview("minigameAborted") { SamplePreview(.minigameAbortedSample) }
+#Preview("minigameTeamIntro") { SamplePreview(.minigameTeamIntroSample) }
+#Preview("minigameSoloIntro") { SamplePreview(.minigameSoloIntroSample) }
+#Preview("minigameKoopResults") { SamplePreview(.minigameKoopResultsSample) }
 #Preview("paused") { SamplePreview(.pausedSample) }
 #Preview("final") { SamplePreview(.finalSample) }
 #Preview("reconnecting") { SamplePreview(.reconnectingSample) }
