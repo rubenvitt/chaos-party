@@ -13,7 +13,10 @@
  *   `window.__chaosMinigame.step(n)`. Ergebnisanzeige verlängert, damit die Stimme in Ruhe
  *   fällt; die Rückkehr in die Lobby wartet trotzdem nicht auf Stimmen (Integrationstest).
  *
- * Was das **nicht** beweist: Daumen-Tippen auf echtem iOS, Lesbarkeit der Galerie am Fernseher –
+ * Zweiter Test (CHAOS-218): geteiltes iPad mit zwei Zonen übt dasselbe Spiel, beide Zonen
+ * stimmen per Touch unterschiedlich ab, der Server zählt beide Stimmen.
+ *
+ * Was das **nicht** beweist: Daumen-Tippen auf echtem iOS/iPadOS, Lesbarkeit der Galerie am Fernseher –
  * siehe `docs/device-test-checklist.md`.
  */
 import { withRules } from '../../packages/game-core/src/index.ts';
@@ -22,6 +25,7 @@ import type {} from '../../apps/host/src/minigame/testHook.ts';
 import { collectProblems, expectNoProblems } from './fixtures/pages.ts';
 import { startChaosServer, type RunningServer } from './fixtures/server.ts';
 import { expect, test as base } from './fixtures/test.ts';
+import { centerOf, TouchScreen } from './fixtures/touch.ts';
 
 /** Ein Spiel der Rotation, damit es sich im selben Dialog sperren lässt. */
 const ID = 'sockenregen';
@@ -201,5 +205,77 @@ test.describe('Minispiel-Galerie (CHAOS-87, CHAOS-228)', () => {
 
     expectNoProblems(hostProblems, 'Host');
     expectNoProblems(phoneProblems, 'Handy');
+  });
+
+  test('geteiltes iPad: zwei Zonen üben, stimmen unterschiedlich ab, der Server zählt beide', async ({
+    page: host,
+    openDevice,
+    chaosServer,
+  }) => {
+    const hostProblems = collectProblems(host);
+    await host.goto('/host/?test=1');
+    await expect(host.getByTestId('connection')).toHaveAttribute('data-status', 'connected');
+
+    // iPad mit zwei Zonen (wie der Join-Link „iPad“ der Lobby).
+    const ipad = await openDevice('iPad Pro 11 landscape');
+    const ipadProblems = collectProblems(ipad);
+    await ipad.goto(`${chaosServer.joinUrl}&seats=2`);
+    const zone = (slot: number) => ipad.getByTestId(`zone-${String(slot)}`);
+    for (const slot of [1, 2]) await expect(zone(slot)).toHaveAttribute('data-screen', 'lobby');
+    const touch = await TouchScreen.create(ipad);
+
+    await host.getByTestId('minigames-open').click();
+    await host.getByTestId(`gallery-practice-${ID}`).click();
+    await expect(host.getByTestId('minigame-screen')).toHaveAttribute('data-stage', 'intro');
+
+    // Anleitung: jede Zone drückt ihr „Bereit!“ (CHAOS-214).
+    for (const slot of [1, 2]) {
+      const ready = zone(slot).getByTestId('minigame-ready-button');
+      await expect(ready).toHaveAttribute('data-armed', 'true', { timeout: INTRO_MS + 5_000 });
+      await touch.tap(await centerOf(ready));
+    }
+    await expect(host.getByTestId('minigame-screen')).toHaveAttribute('data-stage', 'play', {
+      timeout: INTRO_MS + 15_000,
+    });
+    await host.waitForFunction(
+      () => window.__chaosMinigame?.ready === true && window.__chaosMinigame.state === 'running',
+    );
+    await host.evaluate((steps) => {
+      window.__chaosMinigame?.step(steps);
+    }, STEPS_TO_FINISH);
+    await expect(host.getByTestId('minigame-screen')).toHaveAttribute('data-stage', 'results');
+
+    // Ergebnis: beide Zonen zeigen Daumen; gleichzeitig 👍 in Zone 1, 👎 in Zone 2.
+    for (const slot of [1, 2]) await expect(zone(slot).getByTestId('minigame-vote')).toBeVisible();
+    await touch.down(1, await centerOf(zone(1).getByTestId('vote-up')));
+    await touch.down(2, await centerOf(zone(2).getByTestId('vote-down')));
+    await touch.upAll();
+    await expect(zone(1).getByTestId('vote-up')).toHaveAttribute('aria-pressed', 'true');
+    await expect(zone(2).getByTestId('vote-down')).toHaveAttribute('aria-pressed', 'true');
+
+    await expect.poll(() => chaosServer.server.session.ratingVotes().length).toBe(2);
+    const votes = chaosServer.server.session
+      .ratingVotes()
+      .map((v) => ({ slot: v.slot, vote: v.vote, minigameId: v.minigameId, practice: v.practice }))
+      .sort((a, b) => a.slot - b.slot);
+    expect(votes).toEqual([
+      { slot: 1, vote: 'up', minigameId: ID, practice: true },
+      { slot: 2, vote: 'down', minigameId: ID, practice: true },
+    ]);
+    // Bestätigung vom Server: die eigene Stimme steht im Kontext jeder Zone.
+    await expect(zone(1).getByTestId('minigame-vote')).toHaveAttribute('data-selected', 'up');
+    await expect(zone(2).getByTestId('minigame-vote')).toHaveAttribute('data-selected', 'down');
+
+    // Zurück in der Lobby zeigt die Galerie beide Stimmen.
+    await expect(host.locator('main.host')).toHaveAttribute('data-phase', 'lobby', {
+      timeout: RESULTS_MS + 10_000,
+    });
+    await host.getByTestId('minigames-open').click();
+    const tally = host.getByTestId(`gallery-votes-${ID}`);
+    await expect(tally).toHaveAttribute('data-up', '1');
+    await expect(tally).toHaveAttribute('data-down', '1');
+
+    expectNoProblems(hostProblems, 'Host');
+    expectNoProblems(ipadProblems, 'iPad');
   });
 });
