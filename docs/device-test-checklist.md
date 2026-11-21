@@ -869,7 +869,7 @@ Automatisch geprüft (Linux): Zuteilung, Ersatz zu zweit und zu dritt, Prüfung 
 
 **Stand:** 2026-11-21 · **Aufgabe:** CHAOS-90 · **Entscheidung:** ADR-024 · **Experiment:** EXP-039
 
-Automatisch geprüft (Mac): Mikro-Vertrag, Kette, Bots und Fairness-Vorlage (Unit-Tests), Auslöser im Regelkern samt Bot-Simulation, E2E mit 2, 3 und 4 Personen am PC-Host (SwiftShader, Testmodus) bis zum angenommenen Ergebnis, Apple-Host-Bot-Partie im Node-Kern mit Schnellfeuer in Runde 6. **Nicht** geprüft: echtes Spieltempo mit Menschen, Lesbarkeit des Bildworts am Fernseher, Apple-Host-App am Mac und auf der Apple TV, Spielspaß.
+Automatisch geprüft (Mac): Mikro-Vertrag, Kette, Bots und Fairness-Vorlage (Unit-Tests), Auslöser im Regelkern samt Bot-Simulation, E2E mit 2, 3 und 4 Personen am PC-Host (SwiftShader, Testmodus) bis zum angenommenen Ergebnis, Apple-Host-Bot-Partie im Node-Kern mit Schnellfeuer in Runde 6; Schalter `HostEnv.rapidFire` im Node-Kern mit `bots --full --schnellfeuer=aus|halbzeit|finale|ereignis` (CHAOS-232), Swift-Teil (`--schnellfeuer`) nur im macOS-CI gebaut. **Nicht** geprüft: echtes Spieltempo mit Menschen, Lesbarkeit des Bildworts am Fernseher, Apple-Host-App am Mac und auf der Apple TV, Spielspaß.
 
 | ID  | Schritt | Erwartung | Ergebnis | Nachweis |
 | --- | ------- | --------- | -------- | -------- |
@@ -880,5 +880,6 @@ Automatisch geprüft (Mac): Mikro-Vertrag, Kette, Bots und Fairness-Vorlage (Uni
 | SF5 | Auswertung nach jedem Mikro-Spiel | Banner „… holt’s!“, Gewinner jubeln, Punkte springen; letztes Mikro-Spiel mit „×2“ | | Video |
 | SF6 | Ergebnis | Münzen nach Platz über alle fünf wie nach jedem Minispiel | | Foto |
 | SF7 | Apple TV: dieselbe Partie | Gegenstände sichtbar, Bildwort im Banner, kein Ruckeln beim Wechsel der Mikro-Spiele | | Log |
+| SF7b | Nativer Host (Mac-App oder Apple TV) mit `--schnellfeuer=halbzeit`, dann `--schnellfeuer=aus` (Mac: `open -a "Chaos Party" --args --schnellfeuer=halbzeit`, CHAOS-232) | Log zeigt „Startparameter: Schnellfeuer halbzeit“ und „JS Schnellfeuer halbzeit“; Schnellfeuer kommt genau in Runde 5 von 10. Mit `aus` kommt es nie | | Log |
 | SF8 | Spieltest-Frage (CHAOS-92) | Ist das Tempo lustig oder zu hektisch? Versteht man das Bildwort ohne Anleitung? Gewinnt immer dieselbe Person? Lieber Ereignis, Halbzeit oder Finale (`SCHNELLFEUER=ereignis|halbzeit|finale`)? | | Notiz |
 
