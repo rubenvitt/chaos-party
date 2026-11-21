@@ -291,6 +291,11 @@ struct MinigameOverlayView: View {
                     ForEach(highlights, id: \.self) { Text("★ \($0)").font(.system(size: 24, weight: .semibold, design: .rounded)) }
                 }
             }
+            // Übungsrunde aus der Galerie (CHAOS-220): keine Münzen, Daumen am Handy, dann zurück zur Lobby.
+            if results?.practice == true, let note = results?.practiceNote {
+                Text(note).font(.system(size: 26, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Self.ink.opacity(0.75))
+            }
         }
     }
 

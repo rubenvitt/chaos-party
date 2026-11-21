@@ -6,6 +6,12 @@
 // `renderState` mit `app/RenderState.swift`, also genau dem Typ der App.
 //
 //   apps/apple-host/harness/run.sh [full] [hz=10]  (baut mit swiftc und startet; vorher `pnpm build`)
+//   apps/apple-host/harness/run.sh uebung stimmen=<datei> [vorher=N]
+//
+// `uebung` (CHAOS-220): statt einer Partie eine Übungsrunde aus der Minispiel-Galerie (`practice:<id>`).
+// Die Bots stimmen im Ergebnis ab, danach muss die Lobby wiederkommen. Die Stimmen gehen über
+// `RatingsStorage` (dieselbe Datei wie in der App) nach `stimmen=<datei>`; ein zweiter Lauf mit derselben
+// Datei lädt sie wieder (App-Neustart). `vorher=N`: so viele Stimmen müssen beim Start schon da sein.
 //
 // `hz=N` (CHAOS-205): nur N Ticks je Spielsekunde wie ein gedrosselter Takt; dann muss jede
 // Minispiel-Bühne vor dem Ende des Countdowns fertig sein, sonst Exit 1.
@@ -21,6 +27,16 @@ let harnessDir = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
 let dist = harnessDir.deletingLastPathComponent().appendingPathComponent("dist")
 let fixtures = harnessDir.appendingPathComponent("Fixtures/render-state")
 let full = CommandLine.arguments.contains("full")
+/// Übungsrunde aus der Galerie statt einer Partie (CHAOS-220).
+let practiceMode = CommandLine.arguments.contains("uebung")
+let ratingsStorage = RatingsStorage.standard(
+  arguments: CommandLine.arguments.map { $0.hasPrefix("stimmen=") ? "--\($0)" : $0 },
+  log: { print("  stimmen: \($0)"); fflush(stdout) })
+let votesBeforeArg = CommandLine.arguments.first { $0.hasPrefix("vorher=") }.flatMap { Int($0.dropFirst(7)) }
+// Nie die echten Stimmen des Macs anfassen (Application Support): `uebung` braucht eine eigene Datei.
+if practiceMode && !CommandLine.arguments.contains(where: { $0.hasPrefix("stimmen=") && $0.count > 8 }) {
+  print("FEHLER uebung braucht stimmen=<datei>"); exit(1)
+}
 /// Ticks je Spielsekunde (`hz=N`); ohne Angabe 60 wie die App.
 let hzArg = CommandLine.arguments.first { $0.hasPrefix("hz=") }.flatMap { Double($0.dropFirst(3)) }
 let hz = hzArg ?? 60
@@ -76,6 +92,14 @@ if let file = fixtureFiles.first(where: { $0.lastPathComponent == "minigame-resu
    let rows = try RenderState.decode(String(contentsOf: file, encoding: .utf8)).minigame?.results?.rows {
   if rows.count != 2 || rows[0].coins != 10 || rows[1].prizes != ["Schild"] { fail("minigame-results.json: Ergebnis falsch") }
 } else { fail("minigame-results.json: Ergebnis fehlt") }
+// CHAOS-220: Übungsergebnis ohne Münzen, mit Hinweis.
+if let file = fixtureFiles.first(where: { $0.lastPathComponent == "minigame-practice-results.json" }),
+   let state = try? RenderState.decode(String(contentsOf: file, encoding: .utf8)), let results = state.minigame?.results {
+  if results.practice != true || results.practiceNote?.isEmpty != false || results.rows?.contains(where: { $0.coins != nil }) != false
+    || state.lobby?.galleryRevision != 3 {
+    fail("minigame-practice-results.json: Übungsergebnis falsch")
+  }
+} else { fail("minigame-practice-results.json fehlt") }
 // CHAOS-190: Minispiel-Klänge kommen als fertige Rezepte an (Countdown-Tick bei 1 s um × 1,25 höher).
 if let file = fixtureFiles.first(where: { $0.lastPathComponent == "minigame-countdown.json" }),
    let sounds = try RenderState.decode(String(contentsOf: file, encoding: .utf8)).minigame?.sounds {
@@ -103,7 +127,19 @@ let randomBytes: @convention(block) (Int) -> [NSNumber] = { n in
   guard SecRandomCopyBytes(kSecRandomDefault, n, &bytes) == errSecSuccess else { fail("SecRandom") }
   return bytes.map { NSNumber(value: $0) }
 }
-for (name, value) in [("__send", send as Any), ("__close", close), ("__log", log), ("__randomBytes", randomBytes)] {
+// Daumen-Stimmen (CHAOS-220) wie in der App über `RatingsStorage`.
+var ratingsSaved = 0
+var ratingsUnreadableCount = 0
+let saveRatings: @convention(block) (String) -> Void = { json in
+  if ratingsStorage.save(json) { ratingsSaved += 1 }
+}
+let ratingsUnreadable: @convention(block) (String) -> Void = { reason in
+  ratingsUnreadableCount += 1
+  ratingsStorage.setAside(reason: reason)
+}
+let storedRatings = practiceMode ? ratingsStorage.load() : nil
+for (name, value) in [("__send", send as Any), ("__close", close), ("__log", log), ("__randomBytes", randomBytes),
+                      ("__saveRatings", saveRatings), ("__ratingsUnreadable", ratingsUnreadable)] {
   ctx.setObject(value, forKeyedSubscript: name as NSString)
 }
 
@@ -116,6 +152,7 @@ wasm.copyBytes(to: wasmPtr.assumingMemoryBound(to: UInt8.self), count: wasm.coun
 let wasmArray = JSObjectMakeTypedArrayWithBytesNoCopy(
   ctx.jsGlobalContextRef, kJSTypedArrayTypeUint8Array, wasmPtr, wasm.count, nil, nil, nil)
 ctx.setObject(JSValue(jsValueRef: wasmArray, in: ctx), forKeyedSubscript: "__havokWasm" as NSString)
+ctx.setObject(storedRatings.map { $0 as Any } ?? NSNull(), forKeyedSubscript: "__ratings" as NSString)
 
 guard let bundle = try? String(contentsOf: dist.appendingPathComponent("chaos-host.js"), encoding: .utf8)
 else { fail("dist/chaos-host.js fehlt – erst `pnpm --filter @chaos-party/apple-host build`") }
@@ -143,7 +180,8 @@ out("Rotation: \(rotation.joined(separator: ", "))")
 t0 = Date()
 let host = ctx.evaluateScript("""
   ChaosHost.create({ send: __send, close: __close, log: __log, randomBytes: __randomBytes,
-    havokWasm: __havokWasm, joinUrl: 'http://192.168.0.2:8080/?code=\(joinCode)', joinCode: '\(joinCode)' })
+    havokWasm: __havokWasm, joinUrl: 'http://192.168.0.2:8080/?code=\(joinCode)', joinCode: '\(joinCode)',
+    ratings: __ratings, saveRatings: __saveRatings, ratingsUnreadable: __ratingsUnreadable })
   """)!
 out("create in \(Int(Date().timeIntervalSince(t0) * 1000)) ms")
 if host.isUndefined { fail("ChaosHost.create lieferte nichts") }
@@ -161,6 +199,8 @@ final class Controller {
   var lastInput = 0.0
   var pressed = false
   var picked = false
+  /// Minispiel und Runde, zu denen der Bot schon abgestimmt hat (CHAOS-220).
+  var voted: String?
   init(id: Int, name: String, character: String) {
     self.id = id; self.name = name; self.character = character
   }
@@ -199,6 +239,13 @@ func handle(_ c: Controller, _ text: String) {
       sendTo(c, "pick-character", ["slot": slot, "seq": c.nextSeq(), "character": c.character])
     } else if c.actions.contains("ready") && c.picked {
       sendTo(c, "ready", ["slot": slot, "seq": c.nextSeq()])
+    }
+    // CHAOS-220: in der Übung stimmen die Bots im Ergebnis ab (Anna hoch, Ben runter) wie der Web-Controller.
+    if practiceMode, c.actions.contains("rate"), let minigame = m["minigame"] as? [String: Any],
+       let id = minigame["id"] as? String, let round = (m["board"] as? [String: Any])?["round"] as? Int,
+       c.voted != "\(id):\(round)" {
+      c.voted = "\(id):\(round)"
+      sendTo(c, "rate", ["slot": slot, "seq": c.nextSeq(), "minigameId": id, "round": round, "vote": c.id == 1 ? "up" : "down"])
     }
     if c.actions.contains("choose"), let prompt = m["prompt"] as? [String: Any],
        let promptId = prompt["id"] as? Int, !c.answered.contains(promptId),
@@ -284,6 +331,23 @@ for c in controllers {
 }
 drain()
 
+/// CHAOS-220: Galerie mit dem Typ der App holen.
+func fetchGallery(_ label: String) -> GalleryState {
+  let text = callHost("gallery", [])?.toString() ?? ""
+  do { return try GalleryState.decode(text) } catch { fail("\(label): gallery() nicht dekodierbar: \(error) – \(text.prefix(200))") }
+}
+/// Stimmen in einer gespeicherten Datei (`{ version, votes }`), ohne den Kern.
+func storedVoteCount(_ text: String?) -> Int {
+  guard let text, let data = try? JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any],
+        let votes = data["votes"] as? [Any] else { return 0 }
+  return votes.count
+}
+var practiceTarget: String?
+var practiceVotesBefore = 0
+var practiceTargetBefore = 0
+var practiceResultsOk = false
+var practiceBackInLobby = false
+
 var geometryDecoded = 0
 /// CHAOS-190: Klänge je Minispiel, jede ID einmal (wie die App sie spielt).
 var soundsByGame: [String: [String: Int]] = [:]
@@ -355,7 +419,46 @@ while now < limitMs {
     }
     lastPhase = phase; lastStage = stageName
   }
-  if !started, let lobby = state["lobby"] as? [String: Any], let players = lobby["players"] as? [[String: Any]],
+  // CHAOS-220: Übungsrunde aus der Galerie statt einer Partie.
+  if practiceMode, !started, let lobby = state["lobby"] as? [String: Any], let players = lobby["players"] as? [[String: Any]],
+     players.count == 2, players.allSatisfy({ $0["ready"] as? Bool == true }) {
+    started = true
+    configured = true
+    let gallery = fetchGallery("Lobby")
+    let stored = storedVoteCount(storedRatings)
+    out("[\(Int(now)) ms] Galerie: \(gallery.rows.count) Minispiele, \(gallery.votes ?? -1) Stimmen (Datei: \(stored), \(ratingsStorage.description))")
+    if gallery.rows.isEmpty { fail("Galerie leer") }
+    if gallery.votes != stored { fail("Galerie hat \(gallery.votes ?? -1) Stimmen, Datei \(stored)") }
+    if let expected = votesBeforeArg, stored != expected { fail("vorher \(stored) Stimmen, erwartet \(expected)") }
+    // Ein Spiel der Rotation (die Team-Testspiele der Galerie kann der Apple-Host erst mit CHAOS-230 werten).
+    guard let target = gallery.rows.first(where: { $0.status == "rotation" && rotation.contains($0.id) }) else {
+      fail("kein Spiel der Rotation in der Galerie")
+    }
+    practiceTarget = target.id
+    practiceVotesBefore = gallery.votes ?? 0
+    practiceTargetBefore = (target.up ?? 0) + (target.down ?? 0)
+    _ = callHost("hostCommand", ["practice:gibt-es-nicht"])
+    if !logLines.contains("Host-Befehl practice:gibt-es-nicht ignoriert: Minispiel nicht in der Galerie") {
+      fail("practice mit unbekanntem Spiel nicht abgewiesen")
+    }
+    out("[\(Int(now)) ms] Übe \(target.title) (\(target.id)), vorher \(practiceTargetBefore) Stimmen")
+    _ = callHost("hostCommand", ["practice:\(target.id)"])
+    drain()
+  }
+  if practiceMode, phase == "minigame", stageName == "results", !practiceResultsOk,
+     let results = try? RenderState.decode(stateText).minigame?.results, results.headline != nil {
+    let rows = results.rows ?? []
+    if results.practice != true || results.practiceNote?.isEmpty != false { fail("Übungsergebnis ohne practice/practiceNote") }
+    if rows.isEmpty || rows.contains(where: { $0.coins != nil }) { fail("Übungsergebnis mit Münzen oder ohne Plätze: \(rows)") }
+    practiceResultsOk = true
+    out("[\(Int(now)) ms] Übungsergebnis: \(results.headline ?? "") – \(results.practiceNote ?? "")")
+  }
+  if practiceMode, practiceResultsOk, phase == "lobby" {
+    practiceBackInLobby = true
+    out("[\(Int(now)) ms] zurück in der Lobby")
+    break
+  }
+  if !practiceMode, !started, let lobby = state["lobby"] as? [String: Any], let players = lobby["players"] as? [[String: Any]],
      players.count == 2, players.allSatisfy({ $0["ready"] as? Bool == true }) {
     started = true
     out("[\(Int(now)) ms] Lobby: \(json(["players": players]))")
@@ -386,10 +489,28 @@ while now < limitMs {
     for body in bodies.prefix(4) { out("    \(json(body))") }
     out("  renderState: \(stateText.utf8.count / 1024) KiB")
   }
-  if !full && resultsSeenAfterAccept { break }
+  if !full && !practiceMode && resultsSeenAfterAccept { break }
   if full && phase == "final" { out("[\(Int(now)) ms] Endstand erreicht"); break }
 }
 
+if practiceMode {
+  // CHAOS-220: Übungsrunde, Daumen gespeichert, zurück in der Lobby; die Datei überlebt den Prozess.
+  guard let target = practiceTarget else { fail("Übung nie gestartet") }
+  if !practiceResultsOk { fail("kein Übungsergebnis gesehen") }
+  if !practiceBackInLobby { fail("nach der Übung nicht zurück in der Lobby") }
+  let gallery = fetchGallery("nach der Übung")
+  let row = gallery.rows.first { $0.id == target }
+  let after = (row?.up ?? 0) + (row?.down ?? 0)
+  let stored = storedVoteCount(ratingsStorage.load())
+  out("Galerie nach der Übung: \(target) \(row?.up ?? 0)× hoch, \(row?.down ?? 0)× runter (\(row?.votesText ?? "")), insgesamt \(gallery.votes ?? 0) Stimmen, Datei \(stored), gespeichert \(ratingsSaved)×")
+  if after != practiceTargetBefore + 2 || gallery.votes != practiceVotesBefore + 2 { fail("Daumen der Bots fehlen in der Galerie") }
+  if stored != practiceVotesBefore + 2 || ratingsSaved != 2 { fail("Stimmen nicht gespeichert (Datei \(stored), gespeichert \(ratingsSaved)×)") }
+  let problems = logLines.filter { line in ["Fehler", "ERROR", "fehlgeschlagen", "abgelehnt", "noch nicht geladen"].contains { line.contains($0) } }
+  for line in problems.prefix(10) { out("  PROBLEM \(line.prefix(200))") }
+  let ok = problems.isEmpty && jsErrors == 0 && errorsFromServer == 0 && ratingsUnreadableCount == 0
+  out(ok ? "ERGEBNIS: OK" : "ERGEBNIS: NICHT OK (Probleme \(problems.count), JS-Ausnahmen \(jsErrors), Server-Fehler \(errorsFromServer))")
+  exit(ok ? 0 : 1)
+}
 if geometryDecoded == 0 { fail("keine Minispiel-Geometrie dekodiert") }
 // CHAOS-190: je Minispiel Start der Anleitung, „go“, „win“ und Jubel im Ergebnis. Ticks: In der
 // wartenden Anleitung (CHAOS-214) tickt jedes „Bereit“ statt des Countdowns, bei zwei Bots also 2×.

@@ -53,6 +53,23 @@ export interface HostEnv {
    * schnell wie möglich.
    */
   debugStageDelayMs?: number;
+  /**
+   * Gespeicherte Daumen-Stimmen (CHAOS-220): Inhalt der Stimmen-Datei (`minispiel-stimmen.json`,
+   * dasselbe Format wie am Node-Server, `parseRatingsFile`). Fehlt der Wert oder ist er `null`,
+   * beginnt der Kern ohne Stimmen.
+   */
+  ratings?: string | null;
+  /**
+   * Nach jeder Stimme der ganze neue Dateiinhalt (CHAOS-220); Swift schreibt ihn weg (Mac:
+   * Application Support, tvOS: UserDefaults). Fehlt die Funktion, bleiben die Stimmen nur im
+   * Speicher.
+   */
+  saveRatings?(json: string): void;
+  /**
+   * `ratings` war unlesbar (CHAOS-220): Swift legt die Datei beiseite, statt sie bei der nächsten
+   * Stimme zu überschreiben (wie `readRatingsFile` am Node-Server).
+   */
+  ratingsUnreadable?(reason: string): void;
 }
 
 /** Host-Befehle, die `hostCommand` versteht (wie die Knöpfe am PC-Host). */
@@ -75,6 +92,13 @@ export type LocalHostCommandName = (typeof LOCAL_HOST_COMMANDS)[number];
  * `renderState().lobby.settings`. Parser: `./hostCommand.ts`.
  */
 export const CONFIGURE_PREFIX = 'configure:';
+
+/**
+ * Übungsrunde aus der Minispiel-Galerie (CHAOS-220, wie „Üben“ am PC-Host, CHAOS-87):
+ * `practice:sockenregen` schickt `start` mit `practice` an den Server. Nur in der Lobby und nur
+ * mit einer Kennung aus der Galerie (`gallery()`); sonst loggt der Kern und sendet nichts.
+ */
+export const PRACTICE_PREFIX = 'practice:';
 
 export interface ChaosHostInstance {
   /** Neue WebSocket-Verbindung an `/ws`. IDs > 0 (negative nutzt der Kern selbst). */
@@ -99,6 +123,16 @@ export interface ChaosHostInstance {
   hostCommand(cmd: string): void;
   /** Szene geladen (nur mit `env.deferSceneReady`): schickt `host-ready` (CHAOS-142). */
   sceneReady(): void;
+  /**
+   * Minispiel-Galerie (CHAOS-220) als JSON nach `GalleryStateSchema`: alle startbaren Minispiele
+   * mit Daumen. Swift holt sie nur neu, wenn sich `renderState().lobby.galleryRevision` ändert.
+   */
+  gallery(): string;
+  /**
+   * Export der Stimmen (CHAOS-220) als JSON, dasselbe Format wie `/ratings.json` am Node-Server
+   * (`ratingsExport`): je Minispiel Daumen und Rauswurf-Vorschlag, dazu alle Stimmen.
+   */
+  ratingsExport(): string;
 }
 
 /** `globalThis.ChaosHost` im Bündel. */
@@ -605,6 +639,13 @@ export const MinigameResultsSchema = z.strictObject({
   headline: z.string(),
   rows: z.array(MinigameResultRowSchema),
   highlights: z.array(z.string()),
+  /**
+   * Übungsrunde aus der Galerie (CHAOS-220, `BoardView.practice`): keine Münzen (`coins` ist
+   * `null`), danach zurück in die Lobby. Swift zeigt dann `practiceNote` unter den Plätzen.
+   */
+  practice: z.boolean(),
+  /** Zeile unter dem Ergebnis einer Übungsrunde, sonst `null`. */
+  practiceNote: z.string().nullable(),
 });
 
 export const MinigameStateSchema = z.strictObject({
@@ -790,6 +831,40 @@ export const PauseStateSchema = z.strictObject({
   sounds: z.array(SoundCueSchema),
 });
 
+/** Eine Zeile der Minispiel-Galerie (`galleryRows` aus `apps/host/src/lobby/gallery.ts`). */
+export const GalleryRowSchema = z.strictObject({
+  id: z.string(),
+  title: z.string(),
+  tagline: z.string(),
+  /** `rotation` (kommt in Partien vor) oder `spielbar` (nur über die Galerie). */
+  status: z.enum(['rotation', 'spielbar']),
+  /** „Rotation“, „Spielbar“. */
+  statusLabel: z.string(),
+  /** „Arcade“, „Physik“, „Hybrid“. */
+  category: z.string(),
+  /** Familie aus dem Steckbrief („Fangen & Sammeln“) oder `null`. */
+  family: z.string().nullable(),
+  /** „Stick: Laufen · A: Springen“. */
+  controls: z.string(),
+  /** Spielzeit in ganzen Sekunden. */
+  seconds: z.number().int().min(0),
+  up: z.number().int().min(0),
+  down: z.number().int().min(0),
+  /** „Noch keine Stimmen“, „1 Stimme“, „7 Stimmen“ (`votesText`). */
+  votesText: z.string(),
+  /** Rotation, genug Stimmen, überwiegend runter: Rauswurf vorschlagen (Ruben entscheidet). */
+  suggestRemoval: z.boolean(),
+});
+
+/** `gallery()` (CHAOS-220): Liste der Galerie und Stand, zu dem sie gehört. */
+export const GalleryStateSchema = z.strictObject({
+  /** Gleich `renderState().lobby.galleryRevision` zum Zeitpunkt des Aufrufs. */
+  revision: z.number().int().min(0),
+  /** Alle gespeicherten Stimmen (auch zu Spielen, die es nicht mehr gibt). */
+  votes: z.number().int().min(0),
+  rows: z.array(GalleryRowSchema),
+});
+
 export const RenderStateSchema = z.strictObject({
   phase: z.enum(CONTRACT_PHASES),
   lobby: z.strictObject({
@@ -798,6 +873,12 @@ export const RenderStateSchema = z.strictObject({
     players: z.array(LobbyPlayerSchema),
     /** `null`, bis die Host-Rolle die erste `lobby`-Nachricht hat (CHAOS-166). */
     settings: LobbySettingsStateSchema.nullable(),
+    /**
+     * Stand der Minispiel-Galerie (CHAOS-220): steigt mit jeder gespeicherten Stimme. Ändert er
+     * sich, holt Swift `gallery()` (und am Mac den Export) neu; so geht die Liste nicht je Bild
+     * über die Brücke.
+     */
+    galleryRevision: z.number().int().min(0),
   }),
   board: BoardStateSchema.nullable(),
   minigame: MinigameStateSchema.nullable(),
@@ -836,3 +917,5 @@ export type PodiumEntry = z.infer<typeof PodiumEntrySchema>;
 export type FinaleState = z.infer<typeof FinaleStateSchema>;
 export type PauseState = z.infer<typeof PauseStateSchema>;
 export type RenderState = z.infer<typeof RenderStateSchema>;
+export type GalleryRow = z.infer<typeof GalleryRowSchema>;
+export type GalleryState = z.infer<typeof GalleryStateSchema>;

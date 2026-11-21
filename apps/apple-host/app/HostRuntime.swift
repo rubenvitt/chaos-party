@@ -39,6 +39,12 @@ struct Overlay: Equatable {
     var pause = PauseScreen()
     /// Trophäenzählung bzw. Siegerbildschirm (CHAOS-145); nur in der Phase `final`.
     var finale: FinaleScreen?
+    /// Minispiel-Galerie (CHAOS-220): alle startbaren Minispiele mit Daumen, aus `gallery()` des Kerns.
+    var gallery: [GalleryState.Row] = []
+    /// Gespeicherte Stimmen insgesamt.
+    var galleryVotes = 0
+    /// Export der Stimmen als Datei für das Teilen-Menü (nur macOS), Stand der letzten Stimme.
+    var ratingsExport: URL?
     var stats = ""
 }
 
@@ -61,6 +67,10 @@ final class HostRuntime: ObservableObject {
     private var windowStart = CACurrentMediaTime()
     private var lastState: RenderState?
     private var decodeFailed = false
+    /// Stimmen über Neustarts (CHAOS-220): Mac Application Support, tvOS UserDefaults.
+    private let ratings = RatingsStorage.standard(log: hostLog)
+    /// Stand der Galerie, den die App zuletzt geholt hat (queue only); -1 = noch nie.
+    private var galleryRevision = -1
     /// `--autostart`: start as soon as all lobby players are ready (no remote/keyboard needed for tests).
     private let autostart = CommandLine.arguments.contains("--autostart")
     /// `host-ready` erst nach `sceneReady()` (CHAOS-142); `--selftest` hat keine Szene.
@@ -134,6 +144,14 @@ final class HostRuntime: ObservableObject {
         env.setValue(unsafeBitCast(close, to: AnyObject.self), forProperty: "close")
         env.setValue(unsafeBitCast(log, to: AnyObject.self), forProperty: "log")
         env.setValue(unsafeBitCast(randomBytes, to: AnyObject.self), forProperty: "randomBytes")
+        // Daumen-Stimmen (CHAOS-220): laden, nach jeder Stimme speichern, Unlesbares beiseitelegen. Läuft auf der JS-Queue.
+        let storage = ratings
+        let saveRatings: @convention(block) (String) -> Void = { json in storage.save(json) }
+        let ratingsUnreadable: @convention(block) (String) -> Void = { reason in storage.setAside(reason: reason) }
+        env.setValue(unsafeBitCast(saveRatings, to: AnyObject.self), forProperty: "saveRatings")
+        env.setValue(unsafeBitCast(ratingsUnreadable, to: AnyObject.self), forProperty: "ratingsUnreadable")
+        if let stored = storage.load() { env.setValue(stored, forProperty: "ratings") }
+        hostLog("Stimmen: \(storage.description)")
         env.setValue(joinUrl, forProperty: "joinUrl")
         env.setValue(code, forProperty: "joinCode")
         env.setValue(deferScene, forProperty: "deferSceneReady")
@@ -186,7 +204,13 @@ final class HostRuntime: ObservableObject {
                 self.decodeFailed = true
             }
             let connections = self.server?.connectionCount ?? 0
+            let gallery = state.flatMap { self.refreshGallery($0) }
             DispatchQueue.main.async {
+                if let gallery {
+                    self.overlay.gallery = gallery.state.rows
+                    self.overlay.galleryVotes = gallery.state.votes ?? 0
+                    self.overlay.ratingsExport = gallery.export
+                }
                 self.busy = false
                 self.ticks += 1
                 self.jsMs.append(ms)
@@ -201,6 +225,38 @@ final class HostRuntime: ObservableObject {
             }
         }
     }
+
+    /// Galerie neu holen, wenn sich ihr Stand geändert hat (CHAOS-220; queue only). Am Mac dazu der Export als Datei.
+    private func refreshGallery(_ state: RenderState) -> (state: GalleryState, export: URL?)? {
+        guard let revision = state.lobby?.galleryRevision, revision != galleryRevision else { return nil }
+        galleryRevision = revision
+        let json = instance?.invokeMethod("gallery", withArguments: [])?.toString() ?? ""
+        let gallery: GalleryState
+        do { gallery = try GalleryState.decode(json) } catch {
+            hostLog("FEHLER gallery: \(error) – \(json.prefix(300))")
+            return nil
+        }
+        #if os(macOS)
+        return (gallery, writeRatingsExport())
+        #else
+        return (gallery, nil)
+        #endif
+    }
+
+    #if os(macOS)
+    /// Export wie `/ratings.json` am PC als Datei fürs Teilen-Menü (CHAOS-220; queue only).
+    private func writeRatingsExport() -> URL? {
+        guard let text = instance?.invokeMethod("ratingsExport", withArguments: [])?.toString() else { return nil }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("chaos-party-minispiel-stimmen.json")
+        do {
+            try Data(text.utf8).write(to: url, options: .atomic)
+            return url
+        } catch {
+            hostLog("WARN Stimmen-Export nicht geschrieben: \(error.localizedDescription)")
+            return nil
+        }
+    }
+    #endif
 
     private func publish(_ s: RenderState) {
         var o = overlay

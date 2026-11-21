@@ -7,12 +7,15 @@
  * - Die Host-Rolle ist `connectHost` aus `apps/host` an einem Socket im Prozess: `host-hello`,
  *   Herzschlag, `host-ready`, Start und Befehle wie am PC. Minispiele laufen headless
  *   (`./stage.ts`), Ergebnisse gehen über den `ResultSender` des Browser-Hosts zurück.
+ * - Daumen-Stimmen (CHAOS-220) liegen in der Session wie am Node-Server; Laden und Speichern
+ *   übernimmt Swift (`env.ratings`, `env.saveRatings`), die Galerie kommt über `gallery()`.
  */
 // Muss das erste Modul bleiben: setzt `setTimeout`, `performance` usw., bevor Babylon lädt.
 import { clock } from './install.ts';
 import HavokPhysics from '@babylonjs/havok';
 import { DEFAULT_BOARD, getBoard, withTailwind } from '@chaos-party/game-core';
 import { getMinigameModule } from '@chaos-party/minigames';
+import { galleryEntries } from '@chaos-party/minigames/gallery';
 import { ROTATION } from '@chaos-party/minigames/catalog';
 import type { HavokInstance, MinigameHud } from '@chaos-party/minigame-sdk/babylon';
 import {
@@ -27,6 +30,15 @@ import {
   type ConnectionId,
   type Outgoing,
 } from '../../server/src/session.ts';
+import {
+  createMemoryRatingStore,
+  parseRatingsFile,
+  ratingsExport,
+  serializeRatingsFile,
+  summarizeRatings,
+  type StoredRatingVote,
+} from '../../server/src/ratings.ts';
+import { galleryRows, votesText } from '../../host/src/lobby/gallery.ts';
 import { eventText, playerName } from '../../host/src/board/texts.ts';
 import {
   connectHost,
@@ -53,11 +65,12 @@ import type {
   ChaosHostInstance,
   ChaosHostInternals,
   ContractPhase,
+  GalleryState,
   HostEnv,
   MinigameState,
   RenderState,
 } from './contract.ts';
-import { CONFIGURE_PREFIX } from './contract.ts';
+import { CONFIGURE_PREFIX, PRACTICE_PREFIX } from './contract.ts';
 import { createBoardDirection } from './boardDirection.ts';
 import { createFinaleView } from './finaleView.ts';
 import { createSoundTrack } from './soundTrack.ts';
@@ -181,6 +194,34 @@ function create(env: HostEnv): ChaosHostInstance {
     },
   );
 
+  // --- Daumen-Stimmen (CHAOS-220) ----------------------------------------------------------------
+  let initialVotes: StoredRatingVote[] = [];
+  if (typeof env.ratings === 'string' && env.ratings.trim() !== '') {
+    try {
+      initialVotes = parseRatingsFile(env.ratings);
+      log(`Stimmen geladen: ${String(initialVotes.length)}`);
+    } catch (error) {
+      // Nicht überschreiben (wie `readRatingsFile` am Node-Server): Swift legt die Datei beiseite.
+      log(`WARN Stimmen-Datei unlesbar, wird beiseitegelegt: ${describe(error)}`);
+      env.ratingsUnreadable?.(describe(error));
+    }
+  }
+  /** Steigt mit jeder gespeicherten Stimme; Swift holt dann `gallery()` neu. */
+  let galleryRevision = 0;
+  const ratings = createMemoryRatingStore(initialVotes, {
+    onChange(votes) {
+      galleryRevision += 1;
+      try {
+        env.saveRatings?.(serializeRatingsFile(votes));
+      } catch (error) {
+        // Ein voller Speicher darf die Partie nicht stoppen; die Stimme bleibt im Speicher.
+        log(`WARN Stimmen nicht gespeichert: ${describe(error)}`);
+      }
+    },
+  });
+  /** Minispiele, die sich über die Galerie üben lassen. */
+  const galleryIds = new Set(galleryEntries().map((entry) => entry.info.id));
+
   // `joinUrl` bewusst nicht an die Session: zods URL-Prüfung braucht `URL`, das JSC fehlt. Der
   // QR-Code kommt ohnehin von Swift (`renderState().lobby.joinUrl`).
   const session = new Session({
@@ -188,6 +229,7 @@ function create(env: HostEnv): ChaosHostInstance {
     now,
     createToken: () => randomBytes(24).toString('base64url'),
     randomSeed: () => randomInt(0, 2 ** 31),
+    ratings,
     // Rückenwind wie `RUECKENWIND=1` am PC (CHAOS-188); sonst Standardregeln.
     ...(env.tailwind === true ? { game: { rules: withTailwind() } } : {}),
     logError: (error) => {
@@ -646,6 +688,7 @@ function create(env: HostEnv): ChaosHostInstance {
           joinUrl: env.joinUrl,
           joinCode: env.joinCode,
           players,
+          galleryRevision,
           settings: lobby
             ? {
                 rounds: lobby.settings.rounds,
@@ -701,11 +744,20 @@ function create(env: HostEnv): ChaosHostInstance {
       const command = parseHostCommand(cmd);
       if (command === null) {
         log(
-          `${cmd.startsWith(CONFIGURE_PREFIX) ? 'Ungültiger' : 'Unbekannter'} Host-Befehl: ${cmd}`,
+          `${cmd.startsWith(CONFIGURE_PREFIX) || cmd.startsWith(PRACTICE_PREFIX) ? 'Ungültiger' : 'Unbekannter'} Host-Befehl: ${cmd}`,
         );
       } else if (command.type === 'configure' && session.phase !== 'lobby') {
         // Der Server lehnte es außerhalb der Lobby ab (`out-of-phase`); gar nicht erst senden.
         log(`Host-Befehl ${cmd} ignoriert: nur in der Lobby`);
+      } else if (command.type === 'practice') {
+        // Übungsrunde aus der Galerie (CHAOS-220): nur in der Lobby, nur Spiele der Galerie.
+        if (session.phase !== 'lobby') {
+          log(`Host-Befehl ${cmd} ignoriert: nur in der Lobby`);
+        } else if (!galleryIds.has(command.minigameId)) {
+          log(`Host-Befehl ${cmd} ignoriert: Minispiel nicht in der Galerie`);
+        } else if (!connection.sendStart({ practice: command.minigameId })) {
+          log(`Host-Befehl ${cmd} nicht gesendet (nicht verbunden)`);
+        }
       } else if (command.type === 'skip-finale') {
         if (!finaleShown() || !finale.skip()) log(`Host-Befehl ${cmd} ignoriert: kein Finale`);
       } else if (!commandFits(command.type)) {
@@ -718,6 +770,21 @@ function create(env: HostEnv): ChaosHostInstance {
         if (!sent) log(`Host-Befehl ${cmd} nicht gesendet (nicht verbunden)`);
       }
       flush();
+    },
+    gallery() {
+      const votes = ratings.votes();
+      const state: GalleryState = {
+        revision: galleryRevision,
+        votes: votes.length,
+        rows: galleryRows(summarizeRatings(votes)).map((row) => ({
+          ...row,
+          votesText: votesText(row),
+        })),
+      };
+      return JSON.stringify(state);
+    },
+    ratingsExport() {
+      return `${JSON.stringify(ratingsExport(ratings.votes(), new Date()), null, 2)}\n`;
     },
   };
 }

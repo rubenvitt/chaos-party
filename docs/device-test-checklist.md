@@ -790,9 +790,11 @@ Automatisch geprüft (Mac): Regeln und Validierung (Unit- und Integrationstests,
 
 ## 42. Minispiel-Galerie und Daumen (für CHAOS-87)
 
-**Stand:** 2026-11-20 · **Aufgabe:** CHAOS-87 · **Protokoll:** v4-Nachtrag CHAOS-87 (`start.practice`, `rate`, `ratings`)
+**Stand:** 2026-11-21 · **Aufgabe:** CHAOS-87, Apple-Host CHAOS-220 · **Protokoll:** v4-Nachtrag CHAOS-87 (`start.practice`, `rate`, `ratings`)
 
-Automatisch geprüft (Linux): Übungsrunde in game-core (ohne Münzen, Siege, Items; Ende nach dem Ergebnis), Session (Übungsstart, Daumen nur in der Ergebnisanzeige, Umentscheiden ersetzt, Rückweg zum Brett bzw. in die Lobby genauso schnell mit und ohne Stimmen), Stimmen-Datei und Export `/ratings.json`, E2E: Galerie öffnen → Pump-Parade üben → Ergebnis → Daumen am iPhone (Chromium-Emulation) → Galerie zeigt die Stimme. **Nicht** automatisch geprüft: Tippen auf echtem iOS, Lesbarkeit am Fernseher, Datei nach Server-Neustart auf Rubens PC. **Noch nicht umgesetzt:** Daumen in den iPad-Zonen und in der nativen Controller-App, Galerie am Apple-Host (eigene Folgeaufgaben); dort fehlen die Knöpfe, alles andere läuft wie bisher.
+Automatisch geprüft (Linux): Übungsrunde in game-core (ohne Münzen, Siege, Items; Ende nach dem Ergebnis), Session (Übungsstart, Daumen nur in der Ergebnisanzeige, Umentscheiden ersetzt, Rückweg zum Brett bzw. in die Lobby genauso schnell mit und ohne Stimmen), Stimmen-Datei und Export `/ratings.json`, E2E: Galerie öffnen → Pump-Parade üben → Ergebnis → Daumen am iPhone (Chromium-Emulation) → Galerie zeigt die Stimme. **Nicht** automatisch geprüft: Tippen auf echtem iOS, Lesbarkeit am Fernseher, Datei nach Server-Neustart auf Rubens PC. **Noch nicht umgesetzt:** Daumen in den iPad-Zonen und in der nativen Controller-App (CHAOS-218, CHAOS-219); dort fehlen die Knöpfe, alles andere läuft wie bisher.
+
+**Mac und Apple TV (CHAOS-220, Stand 2026-11-21):** Galerie in der Lobby des nativen Hosts, Übungsrunde, Hinweis im Ergebnis, Stimmen über Neustarts (Mac: `~/Library/Application Support/Chaos Party/minispiel-stimmen.json`, App-Store-Build im Container der App; tvOS: `UserDefaults`, Pfad bzw. Ort steht beim Start im Log als „Stimmen: …“), Export am Mac über das Teilen-Menü. Automatisch geprüft (Linux): Bündel im nackten Kontext – `practice:<id>`, Ergebnis ohne Münzen, Daumen der Bots über `saveRatings`, zurück in die Lobby, zweiter Kern lädt die Stimmen (`apps/apple-host/test/practice.test.ts`); macOS-CI: Swift-Harness `run.sh uebung` zweimal mit derselben Datei über `RatingsStorage` (JavaScriptCore ohne JIT). **Nicht** automatisch geprüft: SwiftUI-Galerie (Layout, Fokus mit der Siri Remote, Teilen-Menü), echter App-Neustart auf Mac und Apple TV. **Bekannt:** Team-Testspiele (Pump-Duell, Pump-Solo, Riesenballon) werten am Apple-Host erst mit CHAOS-230; bis dahin lehnt der Server ihr Ergebnis ab („Team-Ausgang fehlt“), die Übung endet als abgebrochen.
 
 | ID  | Schritt | Erwartung | Ergebnis | Nachweis |
 | --- | ------- | --------- | -------- | -------- |
@@ -805,6 +807,15 @@ Automatisch geprüft (Linux): Übungsrunde in game-core (ohne Münzen, Siege, It
 | GA7 | „Stimmen exportieren“ | Browser lädt `minispiel-stimmen-<Datum>.json` mit allen Spielen und Einzelstimmen | | Datei |
 | GA8 | Server beenden und neu starten (`pnpm play`), Galerie öffnen | Stimmen sind noch da (Datei `~/.chaos-party/minispiel-stimmen.json`, Pfad steht beim Start im Terminal) | | |
 | GA9 | Ruben: Urteil | Sind die Daumen am Handy schnell genug erreichbar? Schwelle für den Rauswurf-Vorschlag (6 Stimmen, ≥ 60 % runter) sinnvoll? | | Kommentar an CHAOS-87 |
+| GA10 | Mac: App starten, ein iPhone verbinden, in der Lobby „Minispiele üben“ (Maus oder Taste G) | Galerie ersetzt die Lobby: alle Minispiele mit Status, Kategorie, Spielzeit, Bedienung, 👍/👎 und „Noch keine Stimmen“; Esc bzw. „Schließen“ führt zurück; ohne verbundenes Handy steht der Hinweis „Üben geht, sobald …“ und „Üben“ ist ausgegraut | | Foto |
+| GA11 | Mac: „Üben ▶“ bei Sockenregen, am Handy „Bereit!“, spielen | Anleitung, Spiel, Ergebnis ohne Münzen mit Hinweis „Übungsrunde – keine Münzen …“; iPhone zeigt 👍/👎; danach von selbst zurück in der Lobby (Galerie zu) | | Foto Ergebnis |
+| GA12 | Mac: 👍 am Handy, Galerie wieder öffnen | Sockenregen zeigt 👍 1 („1 Stimme“), oben „1 Stimme“ insgesamt | | |
+| GA13 | Mac: in der Galerie „Stimmen teilen“ | Teilen-Menü mit der Datei `chaos-party-minispiel-stimmen.json` (z. B. AirDrop, Mail, In Dateien sichern); Inhalt wie `/ratings.json` am PC | | Datei |
+| GA14 | Mac: App beenden (⌘Q), neu starten, Galerie öffnen | Stimme von GA12 ist noch da; im Log „Stimmen: …/Application Support/Chaos Party/minispiel-stimmen.json“ und JS „Stimmen geladen: 1“ | | |
+| GA15 | Apple TV: Lobby, mit der Siri Remote nach links zu „Minispiele üben“, Auswahl | Galerie mit Fokusrahmen; Wischen bewegt den Fokus von „Üben ▶“ zu „Üben ▶“, die Liste scrollt mit; Menü-Taste schließt die Galerie (nicht die App) | | Foto |
+| GA16 | Apple TV: ein Spiel üben, 👎 am Handy, zurück in der Lobby | wie GA11/GA12, Galerie zeigt 👎 1 | | |
+| GA17 | Apple TV: App ganz beenden (App-Umschalter, nach oben wischen), neu starten, Galerie öffnen | Stimme von GA16 ist noch da | | |
+| GA18 | Lobby am Fernseher (Mac im Vollbild oder Apple TV) | Linke Spalte mit kleinerem QR-Code und Galerie-Knopf passt ganz auf den Bildschirm; QR-Code lässt sich vom Sofa scannen | | Foto |
 
 ## 43. Frostgipfel: Eis, Seilbahn, Lawinen und Winterkulisse (für CHAOS-198)
 

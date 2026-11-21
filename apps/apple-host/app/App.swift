@@ -163,12 +163,16 @@ struct LobbyView: View {
     let start: () -> Void
     /// `hostCommand` für Rundenwahl und Schalter (`LobbySettingsView`, CHAOS-166) und Brett (`BoardChoiceView`, CHAOS-197).
     var command: (String) -> Void = { _ in }
+    /// Minispiel-Galerie offen (CHAOS-220); sie ersetzt die Lobby, damit der Fokus (tvOS) nicht dahinter landet.
+    @State private var galleryOpen = false
     #if os(tvOS)
     @Namespace private var focus
     #endif
 
     private var players: [RenderState.Player] { overlay.players.sorted { $0.slot < $1.slot } }
     private var canStart: Bool { overlay.sceneLoaded && !players.isEmpty && players.allSatisfy { $0.ready == true } }
+    /// Üben wie im Babylon-Host: ab einem verbundenen Controller, bereit muss niemand sein (CHAOS-220).
+    private var canPractice: Bool { overlay.sceneLoaded && players.contains { $0.connected != false } }
     private var hint: String {
         if !overlay.sceneLoaded { return overlay.status.hasPrefix("Fehler") ? overlay.status : "Brett lädt …" }
         if players.isEmpty { return "Warte auf Spieler …" }
@@ -177,17 +181,29 @@ struct LobbyView: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 56) {
-            VStack(spacing: 22) {
+        if galleryOpen {
+            MinigameGalleryView(rows: overlay.gallery, votes: overlay.galleryVotes, canPractice: canPractice,
+                                exportURL: overlay.ratingsExport,
+                                practice: { command("practice:\($0)") }, close: { galleryOpen = false })
+        } else {
+            lobby
+        }
+    }
+
+    private var lobby: some View {
+        // Mit dem Galerie-Knopf (CHAOS-220) wird der QR-Code etwas kleiner, damit die linke Spalte in 1080 passt.
+        let qrSize: CGFloat = overlay.gallery.isEmpty ? 400 : 360
+        return HStack(alignment: .top, spacing: 56) {
+            VStack(spacing: overlay.gallery.isEmpty ? 22 : 18) {
                 Text("Mitspielen!").font(.system(size: 52, weight: .heavy, design: .rounded))
                 Text("Handy-Kamera auf den Code – gleiches WLAN wie dieses Gerät.")
                     .font(.system(size: 22, weight: .medium, design: .rounded)).multilineTextAlignment(.center)
                     .foregroundStyle(.white.opacity(0.85))
                 if let qr = qrImage(overlay.joinUrl) {
                     Image(decorative: qr, scale: 1).interpolation(.none).resizable()
-                        .frame(width: 400, height: 400).padding(20).background(.white, in: .rect(cornerRadius: 24))
+                        .frame(width: qrSize, height: qrSize).padding(20).background(.white, in: .rect(cornerRadius: 24))
                 } else {
-                    RoundedRectangle(cornerRadius: 24).fill(.white.opacity(0.15)).frame(width: 440, height: 440)
+                    RoundedRectangle(cornerRadius: 24).fill(.white.opacity(0.15)).frame(width: qrSize + 40, height: qrSize + 40)
                         .overlay { Text(overlay.status).font(.title2) }
                 }
                 VStack(spacing: 2) {
@@ -196,6 +212,10 @@ struct LobbyView: View {
                         .font(.system(size: 76, weight: .black, design: .monospaced)).tracking(10)
                 }
                 Text(overlay.joinUrl).font(.system(size: 20, design: .monospaced)).foregroundStyle(.white.opacity(0.75))
+                // Galerie mit Übungsrunde und Daumen (CHAOS-220), wie der Galerie-Knopf am PC in der linken Spalte.
+                if !overlay.gallery.isEmpty {
+                    GalleryButton(count: overlay.gallery.count) { galleryOpen = true }
+                }
             }
             .padding(44)
             .frame(width: 620)

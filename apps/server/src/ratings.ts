@@ -1,14 +1,22 @@
 /**
  * Daumen-Stimmen nach Minispielen (CHAOS-87, README §5.4). Rein und ohne Dateisystem, damit die
  * Session auch im Apple-Host (JavaScriptCore) läuft; `ratingsFile.ts` speichert unter Node in
- * eine Datei.
+ * eine Datei, der Apple-Host über eine Brücke aus Swift (CHAOS-220). Das Dateiformat
+ * (`parseRatingsFile`, `serializeRatingsFile`) ist für beide dasselbe.
  *
  * Eine Stimme gehört zu einem Lauf (`play`: Partie + Runde) und einem Slot. Erneutes Abstimmen
  * im selben Lauf ersetzt die Stimme, statt eine zweite zu zählen.
  */
 import { getMinigameInfo } from '@chaos-party/minigames/catalog';
 import { galleryEntries, suggestsRemoval } from '@chaos-party/minigames/gallery';
-import type { MinigameRating, SlotNumber, Vote } from '@chaos-party/protocol';
+import {
+  MinigameIdSchema,
+  SlotSchema,
+  VoteSchema,
+  type MinigameRating,
+  type SlotNumber,
+  type Vote,
+} from '@chaos-party/protocol';
 
 export interface RatingVote {
   /** Kennung des Laufs (Partie und Runde); gleich für alle Stimmen desselben Minispiel-Laufs. */
@@ -126,4 +134,53 @@ export function ratingsExport(votes: readonly StoredRatingVote[], now: Date): Ra
     games,
     votes: [...votes],
   };
+}
+
+/** Version der Stimmen-Datei (`minispiel-stimmen.json`, Node-Server und Apple-Host). */
+export const RATINGS_FILE_VERSION = 1;
+
+function isText(value: unknown, max: number): value is string {
+  return typeof value === 'string' && value.length > 0 && value.length <= max;
+}
+
+/** Prüft eine Stimme aus der Datei (gleiche Grenzen wie im Protokoll). */
+function parseStoredVote(value: unknown): StoredRatingVote | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const entry = value as Record<string, unknown>;
+  const slot = SlotSchema.safeParse(entry.slot);
+  const minigameId = MinigameIdSchema.safeParse(entry.minigameId);
+  const vote = VoteSchema.safeParse(entry.vote);
+  if (!slot.success || !minigameId.success || !vote.success) return null;
+  if (!isText(entry.play, 128) || !isText(entry.at, 64) || typeof entry.practice !== 'boolean') {
+    return null;
+  }
+  return {
+    play: entry.play,
+    slot: slot.data,
+    minigameId: minigameId.data,
+    vote: vote.data,
+    practice: entry.practice,
+    at: entry.at,
+  };
+}
+
+/** Inhalt der Stimmen-Datei → Stimmen; wirft bei kaputtem oder unbekanntem Inhalt. */
+export function parseRatingsFile(raw: string): StoredRatingVote[] {
+  const data: unknown = JSON.parse(raw);
+  if (typeof data !== 'object' || data === null) throw new Error('kein Objekt');
+  const file = data as Record<string, unknown>;
+  if (file.version !== RATINGS_FILE_VERSION) {
+    throw new Error(`unbekannte Version ${String(file.version)}`);
+  }
+  if (!Array.isArray(file.votes)) throw new Error('votes fehlt');
+  return file.votes.map((entry: unknown, index) => {
+    const vote = parseStoredVote(entry);
+    if (!vote) throw new Error(`Stimme ${String(index)} ungültig`);
+    return vote;
+  });
+}
+
+/** Stimmen → Inhalt der Stimmen-Datei (eingerückt, mit Zeilenende). */
+export function serializeRatingsFile(votes: readonly StoredRatingVote[]): string {
+  return `${JSON.stringify({ version: RATINGS_FILE_VERSION, votes }, null, 2)}\n`;
 }

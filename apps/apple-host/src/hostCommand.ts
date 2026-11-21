@@ -7,23 +7,29 @@
  * - `configure:rounds=12`, `configure:moreReactionTime=1` (`0`/`1`/`true`/`false`),
  *   `configure:board=wackelwald` (Brett-ID oder `zufall`, CHAOS-197), mehreres mit Komma
  *   verbunden: `configure:rounds=12,moreReactionTime=1` (Lobby-Einstellungen, CHAOS-166)
+ * - `practice:sockenregen` (Übungsrunde aus der Galerie, CHAOS-220): `start` mit `practice`
  *
  * Alles andere ist ungültig (`null`): unbekannte oder doppelte Schlüssel, Runden außerhalb
- * 1–`MAX_ROUNDS`, Brett-IDs außerhalb von `BoardChoiceSchema`, leeres `configure:`. Ob es das
- * Brett gibt, prüft der Server (`bad-message`).
+ * 1–`MAX_ROUNDS`, Brett-IDs außerhalb von `BoardChoiceSchema`, leeres `configure:`, Kennungen
+ * außerhalb von `MinigameIdSchema`. Ob es Brett bzw. Minispiel gibt, prüft der Server
+ * (`bad-message`); der Kern prüft das Minispiel vorher gegen die Galerie.
  */
-import { BoardChoiceSchema, MAX_ROUNDS } from '@chaos-party/protocol';
+import { BoardChoiceSchema, MAX_ROUNDS, MinigameIdSchema } from '@chaos-party/protocol';
 import type { HostCommand } from '../../host/src/net/hostConnection.ts';
 import {
   CONFIGURE_PREFIX,
   HOST_COMMANDS,
   LOCAL_HOST_COMMANDS,
+  PRACTICE_PREFIX,
   type HostCommandName,
   type LocalHostCommandName,
 } from './contract.ts';
 
 export type ParsedHostCommand =
-  { readonly type: 'start' } | { readonly type: LocalHostCommandName } | HostCommand;
+  | { readonly type: 'start' }
+  | { readonly type: 'practice'; readonly minigameId: string }
+  | { readonly type: LocalHostCommandName }
+  | HostCommand;
 
 type ConfigureCommand = Extract<HostCommand, { type: 'configure' }>;
 
@@ -66,6 +72,10 @@ function parseConfigure(spec: string): ConfigureCommand | null {
 /** Zeichenkette → Befehl; `null` bei Unbekanntem oder Ungültigem. */
 export function parseHostCommand(cmd: string): ParsedHostCommand | null {
   if (cmd.startsWith(CONFIGURE_PREFIX)) return parseConfigure(cmd.slice(CONFIGURE_PREFIX.length));
+  if (cmd.startsWith(PRACTICE_PREFIX)) {
+    const id = MinigameIdSchema.safeParse(cmd.slice(PRACTICE_PREFIX.length));
+    return id.success ? { type: 'practice', minigameId: id.data } : null;
+  }
   if ((LOCAL_HOST_COMMANDS as readonly string[]).includes(cmd)) {
     return { type: cmd as LocalHostCommandName };
   }
