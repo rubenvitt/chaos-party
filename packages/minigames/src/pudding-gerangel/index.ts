@@ -28,6 +28,8 @@ import {
 import { PhysicsAggregate } from '@babylonjs/core/Physics/v2/physicsAggregate.js';
 import {
   rankByScore,
+  type MinigameBotDriver,
+  type MinigameBotOptions,
   type MinigameInput,
   type MinigameResult,
   type Slot,
@@ -42,6 +44,7 @@ import type {
   MinigamePlayer,
 } from '@chaos-party/minigame-sdk/babylon';
 import { markVisual } from '@chaos-party/minigame-sdk/babylon';
+import { createPuddingBot } from './bot.ts';
 import { PUDDING_GERANGEL_INFO } from './info.ts';
 import {
   approachAngle,
@@ -338,6 +341,15 @@ export class PuddingGerangel implements Minigame {
   start(): void {
     this.running = true;
     this.ctx?.fx.sound('go');
+  }
+
+  /** KI-Platz (CHAOS-180): Bot sieht Figuren, Neigung, Löffel und Fleck (`snapshot`). */
+  createBot(options: MinigameBotOptions): MinigameBotDriver {
+    return createPuddingBot(options, () => {
+      if (!this.running || this.result) return null;
+      const snap = this.snapshot();
+      return { ...snap, whiskAngle: snap.spoonAngle };
+    });
   }
 
   handleInput(slot: Slot, input: MinigameInput): void {
