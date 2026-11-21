@@ -281,6 +281,34 @@ export const MinigameControlsSchema = z.strictObject({
   b: displayText(16).nullable(),
 });
 
+/** Grenzen des Controller-Hinweises (gleich `MINIGAME_CUE_LIMITS` im minigame-sdk). */
+export const MAX_MINIGAME_CUE_STEPS = 16;
+export const MAX_MINIGAME_CUE_ICON_LENGTH = 8;
+export const MAX_MINIGAME_CUE_WORD_LENGTH = 16;
+
+/**
+ * v4-Nachtrag (CHAOS-231): Hinweis im laufenden Abschnitt eines Minispiels (Schnellfeuer:
+ * Mikro-Spiel `step` von `steps`): Bildwort, Piktogramm und nur die Bedienung des Abschnitts.
+ */
+export const MinigameCueSchema = z
+  .strictObject({
+    step: z
+      .int()
+      .min(0)
+      .max(MAX_MINIGAME_CUE_STEPS - 1),
+    steps: z.int().min(1).max(MAX_MINIGAME_CUE_STEPS),
+    icon: displayText(MAX_MINIGAME_CUE_ICON_LENGTH),
+    word: displayText(MAX_MINIGAME_CUE_WORD_LENGTH),
+    controls: MinigameControlsSchema,
+    /** Abschnitt zählt doppelt (Schnellfeuer-Finale). */
+    double: z.boolean(),
+  })
+  .refine((cue) => cue.step < cue.steps, 'Abschnitt außerhalb')
+  .refine(
+    (cue) => cue.controls.joystick !== null || cue.controls.a !== null || cue.controls.b !== null,
+    'Hinweis ohne Bedienung',
+  );
+
 /** v4-Nachtrag (CHAOS-89): Spielformen mit Teams bzw. Koop (gleich `TEAM_FORMS` im SDK). */
 export const MINIGAME_TEAM_FORMS = ['1v3', '2v2', 'koop'] as const;
 /** Tatsächliche Aufstellung; `1v2`/`1v1` sind die Ersatzformen zu dritt bzw. zu zweit. */
@@ -372,6 +400,12 @@ export const ControllerMinigameInfoSchema = z.strictObject({
    * Fehlt = noch nicht abgestimmt. Abstimmen geht, solange `actions` `rate` enthält.
    */
   vote: VoteSchema.optional(),
+  /**
+   * v4-Nachtrag (CHAOS-231, optional), nur in `play`: Hinweis des laufenden Abschnitts
+   * (Bildwort, nur dessen Bedienung). Fehlt = Minispiel ohne Abschnitte oder älterer Host; der
+   * Controller zeigt dann `controls`.
+   */
+  cue: MinigameCueSchema.optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -658,11 +692,25 @@ export const MinigameResultMessageSchema = z.strictObject({
   outcome: MinigameOutcomeSchema.optional(),
 });
 
+/**
+ * v4-Nachtrag (CHAOS-231): Der Host meldet den Hinweis des laufenden Abschnitts (nur bei einem
+ * Wechsel, `null` = keiner mehr). `minigameId` und `round` benennen den Lauf; passt er nicht
+ * oder läuft kein Spiel, verwirft der Server die Meldung still (kein Fehler, keine Antwort).
+ */
+export const MinigameCueMessageSchema = z.strictObject({
+  v: VersionSchema,
+  type: z.literal('minigame-cue'),
+  minigameId: MinigameIdSchema,
+  round: CountSchema,
+  cue: MinigameCueSchema.nullable(),
+});
+
 const hostOnlyMessageOptions = [
   HostHelloMessageSchema,
   HostReadyMessageSchema,
   StartMessageSchema,
   MinigameResultMessageSchema,
+  MinigameCueMessageSchema,
   ConfigureMessageSchema,
   PauseMessageSchema,
   ResumeMessageSchema,

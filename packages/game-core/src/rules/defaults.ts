@@ -146,7 +146,7 @@ export function withRules(overrides: RuleOverrides, base: RuleSet = DEFAULT_RULE
 
 /**
  * Münz-Regel für Teams und Koop (CHAOS-89), solange `economy.teamRewards` fehlt. Festgelegt in
- * EXP-041 (Variante E): Je Minispiel fließen bei 3–4 Personen etwa so viele Münzen wie bei jeder
+ * EXP-038 (Variante E): Je Minispiel fließen bei 3–4 Personen etwa so viele Münzen wie bei jeder
  * gegen jeden (17–18), zu viert gewinnt die zur Halbzeit führende Person seltener (46 statt 55 %).
  * Verlierer bekommen etwas, damit Teams nicht nur Münzen umverteilen; Einzelsieg doppelt; Koop
  * zahlt bei Stufe 2 von 3 etwa wie jeder gegen jeden, bei Stufe 3 mehr. 1 gegen 1 zahlt wie
@@ -160,7 +160,7 @@ export const DEFAULT_TEAM_REWARDS: TeamRewards = {
   koop: [12, 9, 6, 3],
 };
 
-/** Startwert aus dem Konzept (README §7 Nr. 2), Variante B in EXP-041. */
+/** Startwert aus dem Konzept (README §7 Nr. 2), Variante B in EXP-038. */
 export const START_TEAM_REWARDS: TeamRewards = {
   win: 10,
   lose: 0,

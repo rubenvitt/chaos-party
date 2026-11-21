@@ -257,6 +257,27 @@ const serverToController = {
       controls: { joystick: null, a: 'Pumpen', b: 'Bremsen' },
     }),
   }),
+  // v4-Nachtrag CHAOS-231: Hinweis des laufenden Abschnitts (Schnellfeuer-Mikro-Spiel).
+  'context-minigame-play-cue': context({
+    phase: 'board',
+    layout: 'joystick-buttons',
+    actions: ['move', 'button-a'],
+    board: board({ gamePhase: 'minigame-play', activeSlot: null }),
+    minigame: minigame({
+      id: 'schnellfeuer',
+      title: 'Schnellfeuer!',
+      stage: 'play',
+      controls: { joystick: 'Zielen', a: 'Los!', b: null },
+      cue: {
+        step: 1,
+        steps: 5,
+        icon: '🍝',
+        word: 'SCHLÜRFEN!',
+        controls: { joystick: null, a: 'Schlürfen', b: null },
+        double: false,
+      },
+    }),
+  }),
   'context-minigame-results': context({
     phase: 'board',
     layout: 'board',

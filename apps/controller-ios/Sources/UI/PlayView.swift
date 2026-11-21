@@ -70,10 +70,13 @@ struct PlayLayout: Equatable {
     let buttons: [(button: Button, label: String?)]
     /// Minigame title for the small header, `nil` outside minigames (M1 arena).
     let title: String?
+    /// Picture word of the running section (CHAOS-231, Schnellfeuer), `nil` otherwise.
+    let cue: MinigameCue?
 
+    /// Like `describePlay`: a cue's controls replace the minigame's (only what the section needs).
     init(actions: [Action], minigame: ControllerMinigameInfo?) {
         let playing = minigame?.stage == .play ? minigame : nil
-        let controls = playing?.controls
+        let controls = playing?.cue?.controls ?? playing?.controls
         stick = actions.contains(.move) && (controls == nil || controls?.joystick != nil)
         stickHint = controls?.joystick.map { "Ziehen: \($0)" } ?? "Ziehen zum Laufen"
         buttons = [(Button.a, Action.buttonA), (.b, .buttonB)].compactMap { button, action in
@@ -83,10 +86,12 @@ struct PlayLayout: Equatable {
             return label.map { (button, $0) }
         }
         title = playing?.title
+        cue = playing?.cue
     }
 
     static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.stick == rhs.stick && lhs.stickHint == rhs.stickHint && lhs.title == rhs.title
+            && lhs.cue == rhs.cue
             && lhs.buttons.map(\.button) == rhs.buttons.map(\.button)
             && lhs.buttons.map(\.label) == rhs.buttons.map(\.label)
     }
@@ -113,14 +118,16 @@ struct PlayPanel: View {
         }
         VStack(spacing: 12) {
             if let title = layout.title, !landscape {
-                MinigameHeader(title: title)
+                MinigameHeader(title: title, cue: layout.cue)
             }
             if landscape {
                 HStack(spacing: 16) {
                     if layout.stick || !labelled { stick.frame(maxWidth: .infinity) }
                     if !layout.buttons.isEmpty || !labelled {
                         VStack {
-                            if let title = layout.title { MinigameHeader(title: title).padding(.top, 52) }
+                            if let title = layout.title {
+                                MinigameHeader(title: title, cue: layout.cue).padding(.top, 52)
+                            }
                             buttons
                         }
                         .frame(maxWidth: .infinity)
@@ -134,19 +141,47 @@ struct PlayPanel: View {
     }
 }
 
+/// Small header of the play layout: the minigame title, or (CHAOS-231) the picture word of the
+/// running section with its progress („2/5“, „×2“ in the finale), like `MinigameHeader` on the web.
 struct MinigameHeader: View {
     let title: String
+    var cue: MinigameCue? = nil
 
     var body: some View {
-        HStack(spacing: 8) {
-            GameIcon(name: "star", size: 20)
-            Text(title).font(.title3.bold()).lineLimit(1)
+        Group {
+            if let cue {
+                HStack(spacing: 8) {
+                    Text(cue.icon).font(.title2)
+                    Text(cue.word).font(.title2.weight(.heavy)).lineLimit(1).minimumScaleFactor(0.6)
+                    Text(Self.progress(cue)).font(.footnote.bold()).opacity(0.75)
+                }
+                .id(cue.step)
+                .transition(.scale(scale: 0.6).combined(with: .opacity))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Self.spoken(title: title, cue: cue))
+            } else {
+                HStack(spacing: 8) {
+                    GameIcon(name: "star", size: 20)
+                    Text(title).font(.title3.bold()).lineLimit(1)
+                }
+                .accessibilityElement(children: .combine)
+            }
         }
         .padding(.horizontal, 16)
         .frame(minHeight: 40)
         .glass(20)
-        .accessibilityElement(children: .combine)
+        .animation(.easeOut(duration: 0.22), value: cue?.step)
         .accessibilityAddTraits(.isHeader)
+    }
+
+    /// „2/5“, in the finale „5/5 ×2“ (web: `describeCue`).
+    static func progress(_ cue: MinigameCue) -> String {
+        let base = "\(cue.step + 1)/\(cue.steps)"
+        return cue.double ? "\(base) ×2" : base
+    }
+
+    static func spoken(title: String, cue: MinigameCue) -> String {
+        "\(title): \(cue.word)\(cue.double ? " – zählt doppelt" : "")"
     }
 }
 

@@ -121,6 +121,20 @@ private func jsonObject(_ data: Data) throws -> NSDictionary {
         #expect(full.`repeat` == nil)
     }
 
+    /// v4 addendum (CHAOS-231): optional `cue` in `play` (Schnellfeuer micro game).
+    @Test func minigameCueIsDecoded() throws {
+        guard case .context(let context) = try ServerMessage.decode(
+            try Fixtures.text("server-to-controller", "context-minigame-play-cue.json"))
+        else { Issue.record("kein Kontext"); return }
+        let cue = try #require(context.minigame?.cue)
+        #expect(cue.word == "SCHLÜRFEN!" && cue.step == 1 && cue.steps == 5 && !cue.double)
+        #expect(cue.controls == MinigameControls(joystick: nil, a: "Schlürfen", b: nil))
+        guard case .context(let plain) = try ServerMessage.decode(
+            try Fixtures.text("server-to-controller", "context-minigame-play.json"))
+        else { Issue.record("kein Kontext"); return }
+        #expect(plain.minigame?.cue == nil)
+    }
+
     /// v4 addendum (CHAOS-214): optional `ready` in the intro plus the offered action `ready`;
     /// missing = intro with fixed timer.
     @Test func minigameIntroReadyIsDecoded() throws {

@@ -60,7 +60,7 @@ export const MINIGAME_LOADERS: ReadonlyMap<string, MinigameLoader> = new Map<
   [PUMP_DUELL_INFO.id, () => import('./pump-duell/index.ts').then((m) => m.pumpDuell)],
   [PUMP_SOLO_INFO.id, () => import('./pump-solo/index.ts').then((m) => m.pumpSolo)],
   [PUMP_RIESE_INFO.id, () => import('./pump-riese/index.ts').then((m) => m.pumpRiese)],
-  // Eigene Rundenart (CHAOS-90), nicht in der Rotation.
+  // Rundenart Schnellfeuer (CHAOS-90), nicht in der Rotation.
   [SCHNELLFEUER_INFO.id, () => import('./schnellfeuer/index.ts').then((m) => m.schnellfeuer)],
 ]);
 

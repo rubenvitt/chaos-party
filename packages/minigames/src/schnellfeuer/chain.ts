@@ -5,7 +5,12 @@
  * besseren Wert); die Summe über alle fünf ist das Ergebnis des Minispiels „Schnellfeuer“.
  * Münzen vergibt game-core daraus wie nach jedem Minispiel.
  */
-import { rankByScore, type MinigameRng, type Slot } from '@chaos-party/minigame-sdk';
+import {
+  rankByScore,
+  type MinigameCue,
+  type MinigameRng,
+  type Slot,
+} from '@chaos-party/minigame-sdk';
 import { Scoreboard } from '@chaos-party/minigame-kit';
 import { EPS, type MicroDefinition, type MicroGame } from './micro.ts';
 import { MICRO_POOL } from './micros.ts';
@@ -198,6 +203,25 @@ export class SchnellfeuerChain {
   private enter(phase: ChainPhase): void {
     this.phase = phase;
     this.phaseAt = this.time;
+  }
+
+  /**
+   * Hinweis für den Controller (CHAOS-231): Bildwort und Bedienung des laufenden Mikro-Spiels.
+   * Wechselt mit dem Bildwort (Phase `announce`) und bleibt über Spiel und Auswertung stehen;
+   * so hat der Controller die 1,3 s des Bildworts, um die Knöpfe umzustellen.
+   */
+  cue(): MinigameCue | null {
+    const micro = this.current;
+    if (this.done || !micro) return null;
+    const { icon, word, controls } = micro.info;
+    return {
+      step: this.index,
+      steps: this.order.length,
+      icon,
+      word,
+      controls,
+      double: this.isFinale,
+    };
   }
 
   /** Bildwort bzw. Auswertung als Banner (≤ 32 Zeichen). */

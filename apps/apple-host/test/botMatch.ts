@@ -9,6 +9,8 @@
  */
 import { setImmediate as nextMacrotask } from 'node:timers/promises';
 import { createContext, runInContext } from 'node:vm';
+import { RAPID_FIRE_RULE } from '@chaos-party/game-core';
+import { parseRapidFire } from '../../server/src/rapidFire.ts';
 import {
   RenderStateSchema,
   type ChaosHostApi,
@@ -121,6 +123,11 @@ export interface BotMatchOptions {
   readonly afterStart?: readonly string[];
   /** Regel Rückenwind an (`HostEnv.tailwind`, CHAOS-188). */
   readonly tailwind?: boolean;
+  /**
+   * Schnellfeuer-Auslöser (`HostEnv.rapidFire`, CHAOS-232): `an`, `aus`, `ereignis`, `halbzeit`,
+   * `finale`. Fehlt = Standard (`an`). Die Partie prüft, wann Schnellfeuer kommt.
+   */
+  readonly rapidFire?: string;
   /** Künstlich später Minispiel-Aufbau (`HostEnv.debugStageDelayMs`, CHAOS-206). */
   readonly stageDelayMs?: number;
   /**
@@ -161,6 +168,8 @@ export interface BotMatchResult {
   readonly noticeRounds: readonly number[];
   /** Runden, in denen die Rückenwind-Karte (`board.hud.tailwind`) zu sehen war (CHAOS-188). */
   readonly tailwindRounds: readonly number[];
+  /** Je aufgebautem Schnellfeuer Partie (ab 1) und Runde (CHAOS-232). */
+  readonly rapidFireRounds: readonly { readonly match: number; readonly round: number }[];
   readonly minigamesBuilt: readonly string[];
   readonly resultsAccepted: number;
   /**
@@ -231,6 +240,7 @@ export async function runBotMatch(options: BotMatchOptions): Promise<BotMatchRes
     joinCode: JOIN_CODE,
     ...(options.deferSceneReady === true ? { deferSceneReady: true } : {}),
     ...(options.tailwind === true ? { tailwind: true } : {}),
+    ...(options.rapidFire === undefined ? {} : { rapidFire: options.rapidFire }),
     ...(options.stageDelayMs === undefined ? {} : { debugStageDelayMs: options.stageDelayMs }),
   };
 
@@ -383,6 +393,9 @@ export async function runBotMatch(options: BotMatchOptions): Promise<BotMatchRes
   let roundsPlayed = 0;
   const noticeRounds: number[] = [];
   const tailwindRounds: number[] = [];
+  const rapidFireRounds: { match: number; round: number }[] = [];
+  /** Runden je Partie laut Brett (für Halbzeit und Finale). */
+  let totalRounds = 0;
   let firstResults = false;
   const resultAfterPlayMs: number[] = [];
   let playSeenAt: number | null = null;
@@ -465,9 +478,12 @@ export async function runBotMatch(options: BotMatchOptions): Promise<BotMatchRes
     }
     if (changed && key === 'minigame-play') playSeenAt = now;
     for (; logScanned < logLines.length; logScanned++) {
-      if (playSeenAt !== null && logLines[logScanned]?.includes('angenommen')) {
+      const line = logLines[logScanned] ?? '';
+      if (playSeenAt !== null && line.includes('angenommen')) {
         resultAfterPlayMs.push(Math.round(now - playSeenAt));
       }
+      const rapid = /^Minispiel schnellfeuer \(Runde (\d+)/.exec(line);
+      if (rapid) rapidFireRounds.push({ match: matchesPlayed + 1, round: Number(rapid[1]) });
     }
     if (changed) {
       phases.push(key);
@@ -476,6 +492,7 @@ export async function runBotMatch(options: BotMatchOptions): Promise<BotMatchRes
       lastKey = key;
     }
     roundsPlayed = Math.max(roundsPlayed, raw.board?.round ?? 0);
+    if (raw.board) totalRounds = raw.board.rounds;
     if (raw.board?.notice && !noticeRounds.includes(raw.board.round)) {
       noticeRounds.push(raw.board.round);
     }
@@ -744,6 +761,29 @@ export async function runBotMatch(options: BotMatchOptions): Promise<BotMatchRes
     else exerciseErrors.push(`final-guards: ${String(ignored)} ignoriert`);
   }
 
+  /**
+   * Schnellfeuer nach `options.rapidFire` (CHAOS-232): `aus` nie; sonst höchstens einmal je Partie,
+   * `halbzeit` nur in Runde ⌈Runden/2⌉, `finale` nur in der letzten. In einer ganzen Partie kommt
+   * es mit `an`, `halbzeit` und `finale` in der ersten Partie (die immer bis zum Ende läuft).
+   */
+  function rapidFireOk(): boolean {
+    // Unbekannt = Standard, wie im Kern.
+    const parsed = parseRapidFire(options.rapidFire);
+    const rule = parsed === undefined ? RAPID_FIRE_RULE : parsed;
+    if (rule === null) return rapidFireRounds.length === 0;
+    const matchesSeen = new Set(rapidFireRounds.map((r) => r.match));
+    if (matchesSeen.size !== rapidFireRounds.length) return false;
+    const roundOk = (round: number) =>
+      rule.trigger === 'halftime'
+        ? round === Math.ceil(totalRounds / 2)
+        : rule.trigger === 'finale'
+          ? round === totalRounds
+          : true;
+    if (!rapidFireRounds.every((r) => roundOk(r.round))) return false;
+    const guaranteed = rule.trigger !== 'event' || rule.finaleFallback === true;
+    return !options.full || !guaranteed || matchesSeen.has(1);
+  }
+
   function summary(): BotMatchResult {
     const problems = logLines.filter((line) => PROBLEM_MARKERS.some((m) => line.includes(m)));
     const minigamesBuilt = logLines
@@ -773,7 +813,8 @@ export async function runBotMatch(options: BotMatchOptions): Promise<BotMatchRes
       // Rückenwind-Karte nur mit der Regel; mit ihr in einer ganzen Partie mindestens einmal.
       (options.tailwind === true
         ? !options.full || tailwindRounds.length > 0
-        : tailwindRounds.length === 0);
+        : tailwindRounds.length === 0) &&
+      rapidFireOk();
     return {
       ok,
       virtualMs: Math.round(now),
@@ -782,6 +823,7 @@ export async function runBotMatch(options: BotMatchOptions): Promise<BotMatchRes
       roundsPlayed,
       noticeRounds,
       tailwindRounds,
+      rapidFireRounds,
       minigamesBuilt,
       resultsAccepted,
       resultAfterPlayMs,

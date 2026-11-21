@@ -100,6 +100,31 @@ import Testing
         #expect(layout.stickHint == "Ziehen zum Laufen")
     }
 
+    /// CHAOS-231: a cue (Schnellfeuer micro game) replaces the minigame's controls and shows its
+    /// picture word; without a cue (older host) the union of the minigame applies.
+    @Test func cueReplacesControlsAndShowsPictureWord() throws {
+        var minigame = try #require(ControllerState.minigamePlaySample.contexts[1]?.minigame)
+        minigame.controls = MinigameControls(joystick: "Zielen", a: "Los!", b: nil)
+        let union = PlayLayout(actions: [.move, .buttonA], minigame: minigame)
+        #expect(union.stick && union.cue == nil)
+        #expect(union.buttons.map(\.label) == ["Los!"])
+        minigame.cue = MinigameCue(
+            step: 0, steps: 5, icon: "⏰", word: "HAUEN!",
+            controls: MinigameControls(joystick: nil, a: "Hauen", b: nil), double: false)
+        let hauen = PlayLayout(actions: [.move, .buttonA], minigame: minigame)
+        #expect(!hauen.stick)
+        #expect(hauen.buttons.map(\.label) == ["Hauen"])
+        #expect(hauen.cue?.word == "HAUEN!")
+        #expect(MinigameHeader.progress(try #require(hauen.cue)) == "1/5")
+        minigame.cue = MinigameCue(
+            step: 4, steps: 5, icon: "🍰", word: "HALBIEREN!",
+            controls: MinigameControls(joystick: "Messer", a: "Schneiden", b: nil), double: true)
+        let finale = PlayLayout(actions: [.move, .buttonA], minigame: minigame)
+        #expect(finale.stick && finale.stickHint == "Ziehen: Messer")
+        #expect(MinigameHeader.progress(try #require(finale.cue)) == "5/5 ×2")
+        #expect(finale != hauen)
+    }
+
     @Test func controlsCanHideOfferedElements() throws {
         var minigame = try #require(ControllerState.minigamePlaySample.contexts[1]?.minigame)
         minigame.controls = MinigameControls(joystick: nil, a: "Springen", b: nil)

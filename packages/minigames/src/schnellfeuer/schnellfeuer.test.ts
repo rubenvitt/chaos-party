@@ -1,11 +1,19 @@
 import { lineup, matchMetrics, runBotMatch, type PlayerCount } from '@chaos-party/minigame-kit';
-import { checkInfo, checkResult, createMinigameRng, type Slot } from '@chaos-party/minigame-sdk';
+import {
+  checkCue,
+  checkInfo,
+  checkResult,
+  createMinigameRng,
+  type MinigameCue,
+  type Slot,
+} from '@chaos-party/minigame-sdk';
 import { EMPTY_RESIDUE, runMinigameHeadless } from '@chaos-party/minigame-sdk/testing';
 import { describe, expect, it } from 'vitest';
 import { getMinigameInfo, getSteckbrief, RAPID_FIRE_ID, ROTATION } from '../catalog.ts';
 import { getMinigameModule } from '../index.ts';
 import { checkFairness, measureFairness } from '../checks/fairness.ts';
 import { SCHNELLFEUER_BOT_ADAPTER, SCHNELLFEUER_FAIRNESS } from './bot.ts';
+import { SCHNELLFEUER_INFO } from './info.ts';
 import { ANNOUNCE_S, CHAIN_LENGTH, CHAIN_MAX_MS, drawChain, SchnellfeuerChain } from './chain.ts';
 import { checkMicroInfo, type MicroGame } from './micro.ts';
 import { KUCHEN, MICRO_POOL, SPAGHETTI, WECKER, WeckerGame } from './micros.ts';
@@ -129,6 +137,27 @@ describe('Schnellfeuer-Kette', () => {
     expect(chain.time * 1000).toBeLessThanOrEqual(CHAIN_MAX_MS);
   });
 
+  it('Controller-Hinweis wechselt mit dem Bildwort und bleibt bis zum nächsten (CHAOS-231)', () => {
+    const chain = new SchnellfeuerChain([1, 2], createMinigameRng(11), CHAIN_MAX_MS);
+    const seen: { step: number; phase: string }[] = [];
+    let last = -1;
+    while (!chain.finished) {
+      const cue = chain.cue();
+      expect(cue).not.toBeNull();
+      if (!cue) break;
+      expect(checkCue(cue, SCHNELLFEUER_INFO)).toEqual({ ok: true });
+      const micro = chain.order[cue.step];
+      expect(cue).toMatchObject({ word: micro?.info.word, controls: micro?.info.controls });
+      expect(cue.double).toBe(cue.step === CHAIN_LENGTH - 1);
+      if (cue.step !== last) seen.push({ step: cue.step, phase: chain.phase });
+      last = cue.step;
+      chain.step(STEP);
+    }
+    // Jeder Wechsel fällt auf das Bildwort, nie mitten ins Spiel.
+    expect(seen).toEqual([0, 1, 2, 3, 4].map((step) => ({ step, phase: 'announce' })));
+    expect(chain.cue()).toBeNull();
+  });
+
   it('endet mit der Restzeit des Minispiels und wertet das laufende Mikro-Spiel', () => {
     const chain = new SchnellfeuerChain([1, 2], createMinigameRng(1), 5_000);
     while (!chain.finished) chain.step(STEP);
@@ -176,9 +205,11 @@ describe('Schnellfeuer – Modul', () => {
     async (players) => {
       const module = getMinigameModule(RAPID_FIRE_ID);
       if (!module) throw new Error('Schnellfeuer fehlt');
+      const cues: (MinigameCue | null)[] = [];
       const run = await runMinigameHeadless(module, {
         players,
         seed: 21 + players,
+        onCue: (cue) => cues.push(cue),
         script: (elapsedMs, send) => {
           const frame = Math.round(elapsedMs / (1000 / 60));
           if (frame % 9 !== 0) return;
@@ -199,6 +230,8 @@ describe('Schnellfeuer – Modul', () => {
         checkResult(outcome.result, { minigameId: RAPID_FIRE_ID, slots, scoring: 'higher' }),
       ).toEqual({ ok: true });
       expect(outcome.result.placements.some((entry) => entry.score > 0)).toBe(true);
+      // Ein Hinweis je Mikro-Spiel, zum Schluss keiner mehr (CHAOS-231).
+      expect(cues.map((cue) => cue?.step ?? null)).toEqual([0, 1, 2, 3, 4, null]);
       expect(run.residue).toEqual(EMPTY_RESIDUE);
     },
   );

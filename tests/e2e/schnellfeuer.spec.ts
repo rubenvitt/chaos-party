@@ -8,7 +8,8 @@
  *
  * Abgedeckt: Anleitung von Schnellfeuer → Bildwort des ersten Mikro-Spiels → A vom iPhone kommt an
  * → alle fünf Mikro-Spiele durchgerechnet → Ergebnis vom Host gesendet und vom Server angenommen
- * (Plätze für alle, Münzen verteilt) → Finale.
+ * (Plätze für alle, Münzen verteilt) → Finale. CHAOS-231: Das iPhone zeigt dabei je Mikro-Spiel
+ * dasselbe Bildwort wie der Host und nur dessen Bedienung (Stick nur, wo das Mikro-Spiel ihn braucht).
  *
  * Nicht bewiesen: Lesbarkeit des Bildworts am Fernseher, Tempo im echten Spiel, Spaß – das
  * beurteilt Ruben bei der Zwischenabnahme (CHAOS-92), siehe `docs/device-test-checklist.md`.
@@ -16,6 +17,7 @@
 import type { Page } from '@playwright/test';
 import { withRules } from '../../packages/game-core/src/index.ts';
 import { getMinigameInfo, RAPID_FIRE_ID } from '../../packages/minigames/src/catalog.ts';
+import { MICRO_POOL } from '../../packages/minigames/src/schnellfeuer/micros.ts';
 import type {} from '../../apps/host/src/minigame/testHook.ts';
 import { LobbyBot } from './fixtures/lobbyBot.ts';
 import { collectProblems, expectNoProblems } from './fixtures/pages.ts';
@@ -77,6 +79,51 @@ async function step(host: Page, frames: number): Promise<void> {
   }, frames);
 }
 
+async function banner(host: Page): Promise<string> {
+  return (await host.evaluate(() => window.__chaosMinigame?.hud()?.banner)) ?? '';
+}
+
+/**
+ * CHAOS-231: Das iPhone zeigt dasselbe Bildwort wie der Host-Banner im Bildwort („2/5 🍝
+ * SCHLÜRFEN!“) und nur die Bedienung dieses Mikro-Spiels.
+ */
+async function expectPhoneCue(host: Page, phone: Page, index: number): Promise<void> {
+  const text = await banner(host);
+  expect(text.startsWith(`${String(index + 1)}/5 `)).toBe(true);
+  const word = /([A-ZÄÖÜ]+!)/.exec(text)?.[1];
+  const micro = MICRO_POOL.find((entry) => entry.info.word === word);
+  if (!micro) throw new Error(`Unbekanntes Bildwort im Banner: ${text}`);
+  const header = phone.getByTestId('minigame-header');
+  await expect(header).toHaveAttribute('data-cue-step', String(index));
+  await expect(phone.getByTestId('minigame-cue-word')).toHaveText(micro.info.word);
+  await expect(header).toHaveAttribute('data-double', index === 4 ? 'true' : 'false');
+  const panel = phone.getByTestId('play-panel');
+  await expect(panel).toHaveAttribute(
+    'data-stick',
+    micro.info.controls.joystick ? 'true' : 'false',
+  );
+  await expect(phone.getByTestId('button-a')).toContainText(micro.info.controls.a ?? '');
+}
+
+/**
+ * Bis zum Bildwort des Mikro-Spiels `index` rechnen (Banner „<index+1>/5 …“), in einem Aufruf
+ * im Host: Jedes `step` rendert ein Bild, viele kleine Aufrufe von außen kosten so viel echte
+ * Zeit, dass die Frist des Servers das Spiel vorher abschneidet. 70 Schritte (≈ 1,17 s) sind
+ * kürzer als das Bildwort (1,3 s = 78 Schritte) und überspringen es darum nicht.
+ */
+async function stepToAnnounce(host: Page, index: number): Promise<void> {
+  const prefix = `${String(index + 1)}/5 `;
+  const reached = await host.evaluate((wanted) => {
+    const hook = window.__chaosMinigame;
+    for (let tries = 0; tries < 30; tries++) {
+      if (hook?.hud()?.banner?.startsWith(wanted)) return true;
+      hook?.step(70);
+    }
+    return hook?.hud()?.banner?.startsWith(wanted) ?? false;
+  }, prefix);
+  expect(reached, `Bildwort ${prefix}erreicht`).toBe(true);
+}
+
 test.describe('Schnellfeuer: fünf Mikro-Spiele als eigene Rundenart', () => {
   test.setTimeout(180_000);
 
@@ -127,6 +174,7 @@ test.describe('Schnellfeuer: fünf Mikro-Spiele als eigene Rundenart', () => {
       expect(await host.evaluate(() => window.__chaosMinigame?.hud()?.banner)).toMatch(
         /^1\/5 \S+ [A-ZÄÖÜ]+!$/,
       );
+      await expectPhoneCue(host, phone, 0);
       await step(host, 100);
       expect(await host.evaluate(() => window.__chaosMinigame?.hud()?.banner)).toMatch(
         /^\S+ [A-ZÄÖÜ]+!/,
@@ -134,6 +182,12 @@ test.describe('Schnellfeuer: fünf Mikro-Spiele als eigene Rundenart', () => {
       await expect(phone.getByTestId('button-a')).toBeVisible();
       await phone.getByTestId('button-a').tap();
       await host.waitForFunction(() => (window.__chaosMinigame?.networkInputs?.[1] ?? 0) >= 2);
+
+      // Jedes weitere Bildwort erscheint auch am iPhone, mit nur seiner Bedienung (CHAOS-231).
+      for (const index of [1, 2, 3, 4]) {
+        await stepToAnnounce(host, index);
+        await expectPhoneCue(host, phone, index);
+      }
 
       // Alle fünf durchrechnen → Ergebnis vom Host, angenommen, Plätze und Münzen für alle.
       await step(host, STEPS_TO_FINISH);
