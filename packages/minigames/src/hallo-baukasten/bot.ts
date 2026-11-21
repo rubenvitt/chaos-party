@@ -2,16 +2,27 @@
  * Bot für „Hallo Baukasten“ über die gemeinsame Bot-Schnittstelle (ADR-021): läuft zum
  * erreichbaren Glühwürmchen, das er bemerkt hat, und hechtet bei Zeitnot. Der Störenfried
  * stellt sich manchmal der Führung in den Weg.
+ *
+ * Derselbe Bot spielt als KI-Platz in echten Partien (CHAOS-180): `createHalloBot` macht aus
+ * der Stärke ein Profil (`profileForStrength`) und aus seinen Aktionen Eingaben
+ * (`kitBotDriver`). Neue Spiele auf dem Baukasten übernehmen dieses Muster.
  */
 import {
   BotSenses,
+  kitBotDriver,
   noisyStick,
+  profileForStrength,
   type BotAction,
   type BotMatchAdapter,
   type BotProfile,
   type MinigameBot,
 } from '@chaos-party/minigame-kit';
-import type { MinigameRng, Slot } from '@chaos-party/minigame-sdk';
+import type {
+  MinigameBotDriver,
+  MinigameBotOptions,
+  MinigameRng,
+  Slot,
+} from '@chaos-party/minigame-sdk';
 import { HALLO_RULES, HalloLogic } from './logic.ts';
 
 /** Bots entscheiden etwa sechsmal je Sekunde, nicht in jedem Schritt. */
@@ -69,3 +80,12 @@ export const HALLO_BOT_ADAPTER: BotMatchAdapter<HalloLogic> = {
   scores: (game) => game.board.entries().map((entry) => entry.score),
   elapsedMs: (game) => game.clock.time * 1000,
 };
+
+/** Laufzeit-Bot für einen KI-Platz (`Minigame.createBot`). */
+export function createHalloBot(
+  options: MinigameBotOptions,
+  observe: () => HalloLogic | null,
+): MinigameBotDriver {
+  const bot = new HalloBot(options.slot, profileForStrength(options.strength), options.rng);
+  return kitBotDriver(bot, observe);
+}

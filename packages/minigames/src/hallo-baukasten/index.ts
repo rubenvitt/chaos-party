@@ -1,7 +1,7 @@
 /**
  * „Hallo Baukasten“ – Muster-Minispiel (CHAOS-83, ADR-021). Zeigt den Weg: Steckbrief in
- * `info.ts`, reine Logik in `logic.ts`, Bot in `bot.ts`, hier nur die Ansicht. Arena, Kamera,
- * Bühne, Figuren mit Abzeichen und Pool kommen aus `@chaos-party/minigame-kit/babylon`.
+ * `info.ts`, reine Logik in `logic.ts`, Bot in `bot.ts` (auch KI-Platz), hier die Ansicht. Arena,
+ * Kamera, Bühne, Figuren mit Abzeichen und Pool kommen aus `@chaos-party/minigame-kit/babylon`.
  */
 import { CreateSphere } from '@babylonjs/core/Meshes/Builders/sphereBuilder.js';
 import { CreateTorus } from '@babylonjs/core/Meshes/Builders/torusBuilder.js';
@@ -18,6 +18,7 @@ import {
 } from '@chaos-party/minigame-kit/babylon';
 import type { MinigameInput, MinigameResult, Slot } from '@chaos-party/minigame-sdk';
 import type * as Sdk from '@chaos-party/minigame-sdk/babylon';
+import { createHalloBot } from './bot.ts';
 import { HALLO_BAUKASTEN_INFO as INFO } from './info.ts';
 import { HALLO_ARENA, HALLO_RULES, HalloLogic, type HalloEvent } from './logic.ts';
 
@@ -57,6 +58,10 @@ class HalloBaukasten implements Sdk.Minigame {
     this.running = true;
     this.ctx?.fx.sound('go');
   }
+
+  /** KI-Platz (CHAOS-180): Pflicht für die Rotation, hier als Muster. */
+  createBot: NonNullable<Sdk.Minigame['createBot']> = (options) =>
+    createHalloBot(options, () => (this.running ? this.logic : null));
 
   handleInput(slot: Slot, input: MinigameInput): void {
     if (!this.running || !this.logic) return;

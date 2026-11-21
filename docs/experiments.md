@@ -2856,3 +2856,41 @@ Reaktionszeit, Lenk-Drehrate, Zielstreuung, Greiftempo, Ausweichen und Strategie
 **Entscheidung:** **K3 behalten** als Bot-Modell der Fairness-Prüfung (`KIPPGEFUEHL_BOT_MODEL`, Standard in `playWackelturm`). Die Ausnahmen `maxNoviceWins` und `minProWins` am Wackelturm-Harness sind entfernt: Wackelturm besteht die Prüfung ohne Ausnahme (Prüfbericht: Neuling 10 %, Profi 44 %). Das Konzept für die EXP-007-Tabellen spielt bewusst weiter mit K0 (`EXP007_BOT_MODEL`), damit die dortigen Zahlen reproduzierbar bleiben. **Keine Regeländerung:** Das Spiel belohnt Können, wenn man Können als Gefühl für die Kippgrenze versteht; Ruben hat Wackelturm in M3 abgenommen. Die Zahlen sind Bot-Simulation, kein Spieltest.
 
 **Offen für Playtest (Ruben, echte Controller):** Spüren Menschen die Kippgrenze so, wie K3 annimmt – lernen Geübte, schneller zu laufen und später zu bremsen? Oder wirkt das Kippen trotz „kippelt!“ zufällig? Lockt „gierig“ (7–10 Törtchen) am Sofa zu oft, oder wird es durch Rempler bestraft? Passt zu den offenen Fragen 1, 2 und 4 aus EXP-007.
+
+---
+
+## EXP-040: KI-Stärke in Minispielen – Eckwerte leicht/schwer (2026-11-21, CHAOS-180)
+
+**Hypothese / gewünschtes Spielerlebnis:** Die Stärke eines KI-Platzes (leicht, mittel, schwer) wirkt in jedem Minispiel der Rotation spürbar und stufenweise. Gegen „schwer“ spielt man gegen eine geschickte KI, gegen „leicht“ gegen eine, die oft danebenliegt. Ansatz: Die Bots der Fairness-Messung liefern die Eckwerte (leicht = Neuling, schwer = Profi), dazwischen wird linear interpoliert.
+
+**Varianten:**
+- **A** Bot-Modelle wie vor CHAOS-215. Sockenregen und Kuckucks-Klatsche: `BotProfile` Neuling/Profi. Pudding-Gerangel und Krümel-Kehraus: Figuren-Können Neuling/Profi. Wackelturm: Geschick 0,2/0,9 mit dem Kippgefühl aus EXP-007 (K0).
+- **B** nur Wackelturm, eigenes Raster unabhängig von CHAOS-215: Tempo (Anteil der Kippgrenze 0,74–1,0), Bremsschwelle (0,44–0,75) und Wunschhöhe (1–10, 4–6, 6–7, 5–8) für den geschickten Bot.
+- **C** gewählt: A, aber im Wackelturm das Kippgefühl K3 aus EXP-039 (CHAOS-215). Das ist dasselbe Bot-Modell wie in der Fairness-Prüfung.
+
+**Objektive Messgrößen:** Siegquote der stärkeren Hälfte und mittlere Punkte je Platz. Zwei KI spielen gegen zwei, die Sitze wechseln je Seed, geteilte Siege zählen anteilig, 0,5 heißt kein Unterschied. Paare: schwer/leicht, schwer/mittel, mittel/leicht.
+
+**Testumgebung:**
+- Echtes Minispiel-Modul headless über die Laufzeit mit KI-Plätzen (`runMinigameHeadless(…, { bots })`, `checks/botStrength.ts`).
+- Seeds 1–40 für Logik-Spiele, 1–8 für Havok-Spiele. Raster B auf der reinen Wackelturm-Logik (`playWackelturm`), Seeds 1–120.
+- Cloud-Container, Node 22.
+- CI: `checks/botStrength.test.ts` mit 16 bzw. 6 Seeds.
+
+**Ergebnisse:**
+
+| Minispiel | A schwer/leicht | C schwer/leicht | C schwer/mittel | C mittel/leicht | Punkte schwer/leicht (C) |
+| --- | --- | --- | --- | --- | --- |
+| Sockenregen | 1,00 | 0,97 | 0,83 | 0,91 | 18,1 / 8,9 |
+| Pudding-Gerangel | 1,00 | 1,00 | 0,75 | 0,88 | 43,4 / 30,3 |
+| Wackelturm | **0,19** | 0,79 | 0,59 | 0,69 | 43,5 / 33,2 |
+| Kuckucks-Klatsche | 0,79 | 0,84 | 0,74 | 0,63 | 20,6 / 13,5 |
+| Krümel-Kehraus | 1,00 | 1,00 | 0,69 | 0,69 | 7,6 / 3,9 |
+
+(A mit 24 bzw. 6 Seeds.)
+
+- In vier Spielen wirkt die Stärke schon mit den Fairness-Stufen, auch über „mittel“ hinweg stufenweise.
+- Im Wackelturm verliert der geschickte Bot mit dem alten Kippgefühl (K0) gegen den ungeschickten. Raster B hat den Befund aus EXP-039 unabhängig bestätigt: Den Ausschlag gibt die Bremsschwelle. Mit Bremsen ab 0,75 statt 0,44 gewinnt der Geschickte gegen leicht 82 %, mit Wunschhöhe am Turmbonus (5–8) bis 97 %. Eigene KI-Eckwerte dafür wären ein zweites Bot-Modell neben K3 gewesen. Das wurde verworfen, als CHAOS-215 (PR #143) K3 einführte.
+
+**Entscheidung:** **C behalten.** Die Eckwerte stehen in `profileForStrength` und `pawnSkillForStrength`. Im Wackelturm gilt `WACKELTURM_SKILL_CORNERS` mit `KIPPGEFUEHL_BOT_MODEL`. KI-Platz, Fairness-Prüfung und Bot-Partien nutzen damit je Spiel denselben Bot. Die Eckwerte sind Bot gegen Bot gemessen. Sie sind ein Startpunkt für CHAOS-183 (Messung gegen eine Mensch-Näherung) und kein Beweis, dass die KI Spaß macht.
+
+**Offen für Playtest (CHAOS-185):** Ist „leicht“ in Sockenregen und Krümel-Kehraus noch ein Gegner, oder steht es nur herum? Wirkt „schwer“ in Pudding-Gerangel (Siegquote 1,00) unfair?

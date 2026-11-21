@@ -14,6 +14,7 @@ import { createWackelturm, stepWackelturm, WACKELTURM_PARAMS } from '../../wacke
 import { botRng, gauss, num, pct, seedRange, slotsFor, STEP, type Table } from './common.ts';
 import {
   EXP007_BOT_MODEL,
+  directControls,
   KIPPGEFUEHL_BOT_MODEL,
   WackelturmBot,
   type WackelturmBotModel,
@@ -90,7 +91,7 @@ export function oddSeatStats(
     while (!state.finished) {
       bots.forEach((bot, seat) => {
         const runner = state.runners[seat];
-        if (runner) bot.act(state, runner);
+        if (runner) bot.act(state, runner, directControls(state, runner.slot));
       });
       for (const event of stepWackelturm(state, STEP, () => gameRng.next())) {
         if (event.type !== 'topple' && event.type !== 'deliver') continue;
