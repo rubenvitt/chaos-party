@@ -16,6 +16,7 @@ import {
   type CharacterId,
   type PlayerInfo,
   type SlotNumber,
+  type Vote,
 } from '@chaos-party/protocol';
 import { alertPromptId } from '../board/alertTone.ts';
 import { chooseIntent, choiceById, describePrompt, isLocked, ownPrompt } from '../board/prompt.ts';
@@ -24,9 +25,12 @@ import { createMoveSender, type MoveSender } from '../input/moveSender.ts';
 import { describeLobby, HINT_READY, type SiblingCharacter } from '../lobby/view.ts';
 import {
   describePlay,
+  describeVote,
   INTRO_READY_BUTTON,
   readyIntroToken,
   sameReadyIntro,
+  VOTE_LABELS,
+  VOTE_QUESTION,
 } from '../minigame/view.ts';
 import type { SlotIntent } from '../net/client.ts';
 import { ownCharacter } from '../state/character.ts';
@@ -38,12 +42,15 @@ import {
   buildZones,
   lobbyZoneFrames,
   MAX_ZONES,
+  minigameVoteFrames,
   minigameZoneFrames,
   parseChoiceControl,
   parsePickControl,
+  parseVoteControl,
   rectCenter,
   ZONE_PADDING,
   type ControlGeometry,
+  type Rect,
   type Size,
   type ZoneControlsInput,
   type ZoneGeometry,
@@ -96,6 +103,27 @@ function subscribeViewport(onChange: () => void): () => void {
 function viewportSnapshot(): string {
   const root = document.documentElement;
   return `${String(root.clientWidth)}x${String(root.clientHeight)}`;
+}
+
+/** Daumen, den eine Zone gesendet hat (CHAOS-218); gilt nur für genau diesen Minispiel-Lauf. */
+interface PendingVote {
+  readonly run: string;
+  readonly vote: Vote;
+}
+
+/** Ein Minispiel-Lauf: Spiel und Runde (wie der `key` der Ergebniskarte am iPhone). */
+function minigameRun(context: SlotContext | undefined): string | null {
+  const minigame = context?.minigame;
+  return minigame ? `${minigame.id}:${String(context.board?.round ?? 0)}` : null;
+}
+
+/**
+ * Gewählter Daumen einer Zone: gesendet (sofort sichtbar), sonst die Stimme vom Server.
+ * Eine Vormerkung aus einem früheren Lauf zählt nicht.
+ */
+function selectedVote(context: SlotContext, pending: PendingVote | undefined): Vote | null {
+  const own = pending?.run === minigameRun(context) ? pending.vote : null;
+  return describeVote(context, own).selected;
 }
 
 function parseSize(key: string): Size {
@@ -168,6 +196,10 @@ function syncView(board: HTMLElement | null, tracker: ZoneTracker) {
       const held = view.picksHeld.some((kind) => kind === pickEl.dataset.control);
       pickEl.dataset.pressed = held ? 'true' : 'false';
     }
+    for (const voteEl of zoneEl.querySelectorAll<HTMLElement>('[data-role="vote"]')) {
+      const held = view.votesHeld.some((kind) => kind === voteEl.dataset.control);
+      voteEl.dataset.pressed = held ? 'true' : 'false';
+    }
   }
 }
 
@@ -200,6 +232,8 @@ export function ZoneBoard({
    * einer Revanche kommt ein neuer Kontext und der Knopf erscheint wieder.
    */
   const [readySent, setReadySent] = useState<Partial<Record<SlotNumber, SlotContext>>>({});
+  /** Gesendete Daumen je Zone (CHAOS-218): leuchten sofort, bis der Server bestätigt. */
+  const [votes, setVotes] = useState<Partial<Record<SlotNumber, PendingVote>>>({});
 
   const seated = useMemo(() => players.slice(0, MAX_ZONES), [players]);
   /** Figuren aller Plätze dieses Geräts: Vergebene zeigen die Farbe des Nachbarn (CHAOS-38). */
@@ -299,6 +333,21 @@ export function ZoneBoard({
             sendIntent({ type: 'pick-character', slot: effect.slot, character: effect.character });
             break;
           }
+          case 'vote': {
+            // Nur in der Ergebnisanzeige, solange der Server `rate` anbietet (CHAOS-87/218).
+            const context = ctxs[effect.slot];
+            const run = minigameRun(context);
+            if (!context?.minigame || run === null || !describeVote(context).open) break;
+            sendIntent({
+              type: 'rate',
+              slot: effect.slot,
+              minigameId: context.minigame.id,
+              round: context.board?.round ?? 0,
+              vote: effect.vote,
+            });
+            setVotes((prev) => ({ ...prev, [effect.slot]: { run, vote: effect.vote } }));
+            break;
+          }
           case 'choose': {
             // Nur für den angezeigten Prompt dieser Zone; die Sitzung sperrt danach (CHAOS-22).
             const intent = chooseIntent(
@@ -370,6 +419,7 @@ export function ZoneBoard({
             pick={picks[zone.slot]}
             siblings={siblings}
             introReady={inputs.get(zone.slot)?.introReady}
+            vote={votes[zone.slot]}
             notice={notice?.slot === zone.slot ? notice : null}
             onDismissNotice={onDismissNotice}
           />
@@ -391,6 +441,8 @@ interface ZoneProps {
   siblings: readonly SiblingCharacter[];
   /** „Bereit“ in der Minispiel-Anleitung (CHAOS-214); fehlt = feste Anleitungszeit. */
   introReady: ZoneControlsInput['introReady'];
+  /** Gesendeter Daumen dieser Zone (CHAOS-218). */
+  vote: PendingVote | undefined;
   /** Hinweis nur für diese Zone (gedreht mit der Zone). */
   notice: Notice | null;
   onDismissNotice: (id: number) => void;
@@ -410,6 +462,7 @@ const Zone = memo(function Zone({
   pick,
   siblings,
   introReady,
+  vote,
   notice,
   onDismissNotice,
 }: ZoneProps) {
@@ -586,6 +639,7 @@ const Zone = memo(function Zone({
             context={context}
             pending={pending}
             introReady={introReady}
+            vote={vote}
           />
         )}
 
@@ -692,13 +746,24 @@ interface ZoneBoardContentProps {
   context: SlotContext;
   pending: PendingChoice | undefined;
   introReady: ZoneControlsInput['introReady'];
+  vote: PendingVote | undefined;
 }
 
 /**
  * Brettphase in einer Zone (CHAOS-22): kompakte Statuszeile, Titel, Countdown und die
  * Wahlknöpfe an genau den Rechtecken, die der Zonen-Tracker prüft (`zone.controls`).
  */
-function ZoneBoardContent({ zone, players, context, pending, introReady }: ZoneBoardContentProps) {
+function ZoneBoardContent({
+  zone,
+  players,
+  context,
+  pending,
+  introReady,
+  vote,
+}: ZoneBoardContentProps) {
+  if (context.minigame?.stage === 'results' && zone.controls.some(isVoteControl)) {
+    return <ZoneMinigameVote zone={zone} context={context} vote={vote} />;
+  }
   if (context.minigame) {
     // Minispiel-Intro/-Ergebnis (CHAOS-33): ganze Fläche unter der Plakette, ohne Stand.
     // Wartet die Anleitung auf „Bereit“ (CHAOS-214), liegt der Knopf in einer Fußzeile darunter –
@@ -806,6 +871,81 @@ function ZoneBoardContent({ zone, players, context, pending, introReady }: ZoneB
           <WaitingCard view={describeWaiting(context.board, zone.slot, players)} compact />
         </div>
       )}
+    </div>
+  );
+}
+
+function isVoteControl(control: ControlGeometry): boolean {
+  return parseVoteControl(control.kind) !== null;
+}
+
+/** Rechteck relativ zu einem anderen (Kinder einer absolut liegenden Fußzeile). */
+function within(rect: Rect, outer: Rect): Rect {
+  return { ...rect, x: rect.x - outer.x, y: rect.y - outer.y };
+}
+
+/**
+ * Minispiel-Ergebnis mit Daumen in einer Zone (CHAOS-218): Ergebniskarte oben, darunter Frage
+ * und 👍/👎 an genau den Rechtecken, die der Zonen-Tracker prüft. Die Wahl leuchtet sofort,
+ * erneutes Tippen ändert sie; die Bestätigung kommt mit dem nächsten Kontext (`minigame.vote`).
+ */
+function ZoneMinigameVote({
+  zone,
+  context,
+  vote,
+}: {
+  zone: ZoneGeometry;
+  context: SlotContext;
+  vote: PendingVote | undefined;
+}) {
+  const frames = minigameVoteFrames(zone.local);
+  const selected = selectedVote(context, vote);
+  const buttons = zone.controls.flatMap((control) => {
+    const kind = parseVoteControl(control.kind);
+    return kind === null ? [] : [{ control, kind }];
+  });
+  return (
+    <div
+      className="zone-board-phase"
+      data-testid="minigame-panel"
+      data-game-phase={context.board?.gamePhase ?? 'none'}
+    >
+      {context.minigame && (
+        <div className="zone-minigame" style={rectStyle(frames.card)}>
+          <MinigameCard minigame={context.minigame} compact />
+        </div>
+      )}
+      <div
+        className="zone-vote"
+        data-testid="minigame-vote"
+        data-minigame={context.minigame?.id ?? ''}
+        data-selected={selected ?? ''}
+        style={rectStyle(frames.foot)}
+      >
+        {frames.question.width > 0 && (
+          <p
+            className="zone-vote-question ui-text"
+            style={rectStyle(within(frames.question, frames.foot))}
+          >
+            {VOTE_QUESTION}
+          </p>
+        )}
+        {buttons.map(({ control, kind }) => (
+          <div
+            key={control.kind}
+            className={`vote-button vote-${kind} zone-vote-button`}
+            data-testid={`vote-${kind}`}
+            data-role="vote"
+            data-control={control.kind}
+            data-pressed="false"
+            aria-label={VOTE_LABELS[kind]}
+            aria-pressed={selected === kind}
+            style={rectStyle(within(control.rect, frames.foot))}
+          >
+            <span aria-hidden="true">{kind === 'up' ? '👍' : '👎'}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

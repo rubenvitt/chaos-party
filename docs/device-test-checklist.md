@@ -792,9 +792,11 @@ Automatisch geprüft (Mac): Regeln und Validierung (Unit- und Integrationstests,
 
 **Stand:** 2026-11-20 · **Aufgabe:** CHAOS-87 · **Protokoll:** v4-Nachtrag CHAOS-87 (`start.practice`, `rate`, `ratings`)
 
-Automatisch geprüft (Linux): Übungsrunde in game-core (ohne Münzen, Siege, Items; Ende nach dem Ergebnis), Session (Übungsstart, Daumen nur in der Ergebnisanzeige, Umentscheiden ersetzt, Rückweg zum Brett bzw. in die Lobby genauso schnell mit und ohne Stimmen), Stimmen-Datei und Export `/ratings.json`, E2E: Galerie öffnen → Pump-Parade üben → Ergebnis → Daumen am iPhone (Chromium-Emulation) → Galerie zeigt die Stimme. **Nicht** automatisch geprüft: Tippen auf echtem iOS, Lesbarkeit am Fernseher, Datei nach Server-Neustart auf Rubens PC. **Noch nicht umgesetzt:** Daumen in den iPad-Zonen (CHAOS-218), Galerie am Apple-Host (CHAOS-220); dort fehlen die Knöpfe, alles andere läuft wie bisher.
+Automatisch geprüft (Linux): Übungsrunde in game-core (ohne Münzen, Siege, Items; Ende nach dem Ergebnis), Session (Übungsstart, Daumen nur in der Ergebnisanzeige, Umentscheiden ersetzt, Rückweg zum Brett bzw. in die Lobby genauso schnell mit und ohne Stimmen), Stimmen-Datei und Export `/ratings.json`, E2E: Galerie öffnen → Pump-Parade üben → Ergebnis → Daumen am iPhone (Chromium-Emulation) → Galerie zeigt die Stimme. **Nicht** automatisch geprüft: Tippen auf echtem iOS, Lesbarkeit am Fernseher, Datei nach Server-Neustart auf Rubens PC. **Noch nicht umgesetzt:** Galerie am Apple-Host (CHAOS-220); dort fehlt sie, alles andere läuft wie bisher.
 
 **Nachtrag 2026-11-21 (CHAOS-219):** Die native Controller-App zeigt die Daumen jetzt auch (Schritte GA10–GA14). Automatisch geprüft nur in der macOS-CI („Native Apps“): Kodierung von `rate` gegen die Fixtures aus dem TS-Parser, Sitzung (nur gesendet, solange `rate` angeboten wird; Lauf aus `minigame.id` und `board.round`), Ergebnis-Logik (Übungsrunde ohne Münzzeile, Hinweis auf die Lobby) und Screenshots `minigameVote`/`minigamePractice`. **Nicht** geprüft: Tippen am echten iPhone, Haptik, Lesbarkeit.
+
+**Nachtrag 2026-11-21 (CHAOS-218):** Die iPad-Zonen zeigen die Daumen jetzt auch (Schritte GA15–GA18). Automatisch geprüft (Linux): Geometrie und Zonen-Tracker per Unit-Test, E2E mit iPad-Emulation (zwei Zonen tippen gleichzeitig 👍 bzw. 👎, der echte Server zählt beide; Umentscheiden, gedrehte Zone im Hochformat). **Nicht** geprüft: Tippen mit zwei Fingern auf echtem iPadOS-Safari, Erreichbarkeit vom Platz gegenüber.
 
 | ID  | Schritt | Erwartung | Ergebnis | Nachweis |
 | --- | ------- | --------- | -------- | -------- |
@@ -806,12 +808,16 @@ Automatisch geprüft (Linux): Übungsrunde in game-core (ohne Münzen, Siege, It
 | GA6 | Echte Partie, nach einem Minispiel 👍 am Handy | Stimme zählt in der Galerie dazu; das Brett geht nach dem Ergebnis genauso schnell weiter wie ohne Stimme | | |
 | GA7 | „Stimmen exportieren“ | Browser lädt `minispiel-stimmen-<Datum>.json` mit allen Spielen und Einzelstimmen | | Datei |
 | GA8 | Server beenden und neu starten (`pnpm play`), Galerie öffnen | Stimmen sind noch da (Datei `~/.chaos-party/minispiel-stimmen.json`, Pfad steht beim Start im Terminal) | | |
-| GA9 | Ruben: Urteil | Sind die Daumen am Handy schnell genug erreichbar? Schwelle für den Rauswurf-Vorschlag (6 Stimmen, ≥ 60 % runter) sinnvoll? | | Kommentar an CHAOS-87 |
+| GA9 | Ruben: Urteil | Sind die Daumen am Handy, in der App und in den iPad-Zonen schnell genug erreichbar? Schwelle für den Rauswurf-Vorschlag (6 Stimmen, ≥ 60 % runter) sinnvoll? | | Kommentar an CHAOS-87 bzw. CHAOS-218 |
 | GA10 | Native App (TestFlight-Build mit CHAOS-219) verbinden, in der Galerie „Üben“, Spiel zu Ende spielen | App zeigt Platz und Punkte, **keine** Münzzeile, „Übungsrunde ohne Münzen – gleich geht’s zurück in die Lobby.“, darunter „Hat’s Spaß gemacht?“ mit 👍/👎 | | Foto |
 | GA11 | In der App 👍 tippen, dann 👎 | Gewählter Daumen leuchtet sofort in Spielerfarbe und ist etwas größer, kurze Haptik; Umentscheiden geht; danach zurück in der Lobby | | |
 | GA12 | Galerie am PC öffnen | Stimme aus der App zählt mit (👎 für dieses Spiel) | | |
 | GA13 | Echte Partie mit App und Browser-Handy gemischt, nach einem Minispiel in beiden abstimmen | App zeigt Münzzeile und „Gleich geht’s auf dem Brett weiter.“ plus Daumen; beide Stimmen landen in der Galerie; das Brett geht ohne Warten weiter | | |
 | GA14 | Pause am Host während der Ergebnisanzeige | Daumen verschwinden, stattdessen „Schau auf den großen Bildschirm!“; nach dem Fortsetzen wieder da, die abgegebene Stimme bleibt markiert | | |
+| GA15 | Geteiltes iPad mit zwei Zonen (Querformat), Minispiel üben bis zum Ergebnis | Jede Zone zeigt unter dem Ergebnis „Hat’s Spaß gemacht?“ mit 👍/👎; nichts ragt über die Zone hinaus | | Foto |
+| GA16 | Beide gleichzeitig tippen: links 👍, rechts 👎 | Jeder gewählte Daumen leuchtet sofort in der Farbe seiner Zone, der andere wird blass; Tipp in einer Zone wirkt nicht in der anderen | | |
+| GA17 | Links umentscheiden (👎), dann Galerie öffnen | Galerie zählt 👍 0 · 👎 2 („2 Stimmen“) | | |
+| GA18 | iPad im Hochformat (obere Zone gedreht) | Daumen der oberen Zone zeigen zur Person gegenüber und reagieren dort; Finger, der vom Daumen wegrutscht, stimmt nicht ab | | |
 
 ## 43. Frostgipfel: Eis, Seilbahn, Lawinen und Winterkulisse (für CHAOS-198)
 

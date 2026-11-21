@@ -42,6 +42,12 @@ export const RESULTS_LEAD = 'Gleich geht’s auf dem Brett weiter.';
 export const PRACTICE_LEAD = 'Übungsrunde ohne Münzen – gleich geht’s zurück in die Lobby.';
 /** Frage über den Daumen-Knöpfen (CHAOS-87). */
 export const VOTE_QUESTION = 'Hat’s Spaß gemacht?';
+
+/** Vorlesetext der Daumen-Knöpfe (iPhone und iPad-Zone). */
+export const VOTE_LABELS: Readonly<Record<Vote, string>> = {
+  up: 'Daumen hoch',
+  down: 'Daumen runter',
+};
 export const ABORTED_HEADLINE = 'Minispiel abgebrochen';
 export const ABORTED_LEAD = 'Keine Wertung – gleich geht’s auf dem Brett weiter.';
 /** Joystick-Hinweis ohne Minispiel (M1-Arena). */
