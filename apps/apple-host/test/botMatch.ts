@@ -124,6 +124,18 @@ export interface BotMatchOptions {
   /** Künstlich später Minispiel-Aufbau (`HostEnv.debugStageDelayMs`, CHAOS-206). */
   readonly stageDelayMs?: number;
   /**
+   * Eigene Rotation (`HostEnv.debugMinigames`, CHAOS-230), etwa mit den Team-Testspielen. Mit
+   * `full` muss jede davon gebaut werden (statt der Rotation des Katalogs).
+   */
+  readonly minigames?: readonly string[];
+  /**
+   * Rotation nur aus `TEAM_TEST_MINIGAMES` (CHAOS-230), wenn `minigames` fehlt: Jede Spielform
+   * kommt in einer ganzen Partie sicher vor. Die Rotation des Katalogs prüft der Lauf ohne.
+   */
+  readonly teamGames?: boolean;
+  /** So viele Bot-Controller (2–4, Standard 2): Team-Formen hängen an der Personenzahl. */
+  readonly players?: 2 | 3 | 4;
+  /**
    * CHAOS-145 (nur mit `full`): In der ersten Partie Pause im Brett und im Minispiel, Ben
    * trennt sich sauber und kommt zurück, dann verliert er das Netz (Funkstille, der Server wirft
    * ihn nach 15 s raus) und kommt wieder; das Finale läuft bis zum Siegerbildschirm. In jeder
@@ -132,6 +144,17 @@ export interface BotMatchOptions {
    */
   readonly exercise?: boolean;
 }
+
+/** Bot-Controller in Beitrittsreihenfolge; `BotMatchOptions.players` nimmt die ersten. */
+const BOTS = [
+  { id: 1, name: 'Anna', character: 'raccoon' },
+  { id: 2, name: 'Ben', character: 'sock' },
+  { id: 3, name: 'Cleo', character: 'robot' },
+  { id: 4, name: 'Dana', character: 'cactus' },
+] as const;
+
+/** Team-Testspiele aus CHAOS-89: 2 gegen 2, Einer gegen alle, Koop (CHAOS-230). */
+export const TEAM_TEST_MINIGAMES = ['pump-duell', 'pump-solo', 'pump-riese'] as const;
 
 /** Prüfungen von `exercise` in einer ganzen Partie (CHAOS-145). */
 export const EXERCISE_CHECKS = [
@@ -201,6 +224,8 @@ export const PROBLEM_MARKERS = [
 
 export async function runBotMatch(options: BotMatchOptions): Promise<BotMatchResult> {
   const { api, internals } = loadBundle(options.code);
+  const minigames =
+    options.minigames ?? (options.teamGames === true ? [...TEAM_TEST_MINIGAMES] : undefined);
   const outbox: [number, string][] = [];
   const logLines: string[] = [];
   const exceptions: string[] = [];
@@ -232,6 +257,7 @@ export async function runBotMatch(options: BotMatchOptions): Promise<BotMatchRes
     ...(options.deferSceneReady === true ? { deferSceneReady: true } : {}),
     ...(options.tailwind === true ? { tailwind: true } : {}),
     ...(options.stageDelayMs === undefined ? {} : { debugStageDelayMs: options.stageDelayMs }),
+    ...(minigames === undefined ? {} : { debugMinigames: minigames }),
   };
 
   const guard = <T>(label: string, run: () => T): T | undefined => {
@@ -263,10 +289,7 @@ export async function runBotMatch(options: BotMatchOptions): Promise<BotMatchRes
     await settle();
   }
 
-  const controllers: Controller[] = [
-    { id: 1, name: 'Anna', character: 'raccoon' },
-    { id: 2, name: 'Ben', character: 'sock' },
-  ].map((c) => ({
+  const controllers: Controller[] = BOTS.slice(0, options.players ?? 2).map((c) => ({
     ...c,
     seq: 0,
     slot: null,
@@ -482,7 +505,11 @@ export async function runBotMatch(options: BotMatchOptions): Promise<BotMatchRes
     if (raw.board?.hud?.tailwind && !tailwindRounds.includes(raw.board.round)) {
       tailwindRounds.push(raw.board.round);
     }
-    if (!started && raw.lobby.players.length === 2 && raw.lobby.players.every((p) => p.ready)) {
+    if (
+      !started &&
+      raw.lobby.players.length === controllers.length &&
+      raw.lobby.players.every((p) => p.ready)
+    ) {
       started = true;
       guard('hostCommand', () => {
         for (const cmd of options.beforeStart ?? []) instance.hostCommand(cmd);
@@ -750,7 +777,7 @@ export async function runBotMatch(options: BotMatchOptions): Promise<BotMatchRes
       .map((line) => /^Minispiel (\S+) \(Runde/.exec(line)?.[1])
       .filter((id): id is string => id !== undefined);
     const resultsAccepted = logLines.filter((line) => line.includes('angenommen')).length;
-    const rotation = [...internals.rotation];
+    const rotation = [...(minigames ?? internals.rotation)];
     const allRotation = rotation.every((id) => minigamesBuilt.includes(id));
     const ok =
       exceptions.length === 0 &&
