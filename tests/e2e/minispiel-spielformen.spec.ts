@@ -89,7 +89,7 @@ test.describe('Spielformen mit Teams (CHAOS-89)', () => {
     await expect(host.getByTestId('minigame-team-0')).toContainText('Team Sonne');
     await expect(host.getByTestId('minigame-team-1')).toContainText('Team Mond');
     // Erst die fertige Bühne (Pause-Knopf da, Karte an ihrem Platz), dann ohne 3D-Fläche:
-    // Das Bild hängt so weder am Ladezeitpunkt noch am Frame der Arena (CHAOS-215, CHAOS-233).
+    // Das Bild hängt so weder am Ladezeitpunkt noch am Frame der Arena (CHAOS-215, CHAOS-229, CHAOS-233).
     await expect(host.getByTestId('minigame-screen')).toHaveAttribute('data-status', 'ready', {
       timeout: 30_000,
     });
