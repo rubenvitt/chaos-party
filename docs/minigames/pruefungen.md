@@ -49,15 +49,15 @@ Die Schwellen sollen die **angenommenen** Spiele (Sockenregen A4, Pudding-Gerang
 | Gleichstand Platz 1 | ≤ 25 % | 7–21 % | B (EXP-005) bis 32 %, Krümel B (EXP-006) 28–31 % | Geteilte Siege sind ein schwaches Ende; jede vierte Partie ist die Grenze. |
 | Abstand Platz 1–2 | ≤ 45 % | 8–19 % | B1 67–98 %, B2 32–62 %, C1 16–57 % | Einseitige Partien ohne Spannung. |
 | Führungswechsel | ≥ 1,0 | 2,2–6,9 | B1/B2 0,0–0,3, C1 0,1–0,9 | Ohne Wechsel steht der Sieger früh fest. |
-| Siege Neuling | 2–25 % | 6–8 % (Wackelturm 32 %, Ausnahme) | B1/B2/C1 0 % | Untergrenze: Neulinge gewinnen manchmal. Obergrenze fair: Können muss zählen (EXP-007: Außenseiter über fair = „Geschick zählt kaum“). |
-| Siege Profi | ≥ 25 % | 34–72 % (Wackelturm 17 %, Ausnahme) | – | Gegenstück: Wer besser spielt, gewinnt mindestens den fairen Anteil. |
-| Eindringling | ≤ 1,50 | höchstens 1,28 (Wackelturm „gierig“) | EXP-007 B2 „gierig“ 1,97–2,75, A4 Raufbold ≥ 1,04 gegen alle | Eine Strategie, die die normale Spielweise um die Hälfte übertrifft, ist dominant. Leichte Vorteile (1,1–1,3) sind gewollte Taktik. |
+| Siege Neuling | 2–25 % | 6–10 % | B1/B2/C1 0 % | Untergrenze: Neulinge gewinnen manchmal. Obergrenze fair: Können muss zählen (EXP-007: Außenseiter über fair = „Geschick zählt kaum“). |
+| Siege Profi | ≥ 25 % | 34–72 % | – | Gegenstück: Wer besser spielt, gewinnt mindestens den fairen Anteil. |
+| Eindringling | ≤ 1,50 | höchstens 1,54 (Wackelturm „gierig“; Quote im 95-%-Bereich der Grenze, keine Strategie gewinnt gegen alle, EXP-039) | EXP-007 B2 „gierig“ 1,97–2,75, A4 Raufbold ≥ 1,04 gegen alle | Eine Strategie, die die normale Spielweise um die Hälfte übertrifft, ist dominant. Leichte Vorteile (1,1–1,3) sind gewollte Taktik. |
 
 **Stichprobe und Rauschen:** In CI misst jedes Spiel nur eine Stichprobe (`ciSeeds`: 60 bei reiner Logik, 12 bzw. 8 bei Havok-Spielen), damit die Prüfung unter 10 s je Spiel bleibt. Quoten (Gleichstand, Siege, Eindringling) gelten deshalb erst als verletzt, wenn ihr ganzer 95-%-Vertrauensbereich (Wilson) jenseits der Schwelle liegt; Mittelwerte (Abstand, Führungswechsel) werden direkt verglichen. Bei den Havok-Spielen findet die Stichprobe nur grobe Verstöße; maßgeblich ist der Prüfbericht mit 200 Seeds je Tisch, der dieselbe Regel nutzt.
 
-**Ausnahmen** stehen am Harness (`exceptions` mit Kennzahl, Wert und Begründung ≥ 40 Zeichen) und gehören in den Katalog-Eintrag des Spiels. Aktuell eine:
+**Ausnahmen** stehen am Harness (`exceptions` mit Kennzahl, Wert und Begründung ≥ 40 Zeichen) und gehören in den Katalog-Eintrag des Spiels. Aktuell keine.
 
-- **Wackelturm** – `maxNoviceWins` (32 %) und `minProWins` (17 %). EXP-007 maß für die gewählte Fassung A6 schon 31 % Außenseiter-Siege bei 4 Spielern, Ruben hat das Spiel in M3 abgenommen. Ob die Bots (Geschick = Tempo und Lenkung, kein besseres Gefühl für die Kippgrenze) oder das Spiel die Ursache sind, klärt `CHAOS-215`.
+- **Wackelturm** hatte bis 2026-11-21 Ausnahmen für `maxNoviceWins` (32 %) und `minProWins` (17 %). `CHAOS-215` (EXP-039) hat gezeigt, dass es ein Bot-Artefakt war: Im Bot-Modell aus EXP-007 liefen Geschickte mit mehr Abstand zur Kippgrenze und bremsten früher, also langsamer statt sicherer. Mit dem Modell „Kippgefühl wächst mit Geschick“ gewinnt der Neuling 10 %, der Profi 44 %; die Ausnahmen sind entfernt.
 
 ### Bots je Spiel
 
@@ -67,7 +67,7 @@ Die Schwellen sollen die **angenommenen** Spiele (Sockenregen A4, Pudding-Gerang
 |---|---|---|---|
 | Sockenregen | `SockenregenBot` (EXP-005) auf der echten Logik | Profile aus EXP-005 | Dauerdrücken (Hechtsprung, sobald bereit) |
 | Kuckucks-Klatsche | `simulateKuckucksKlatsche` (EXP-016) | Profile aus EXP-005 | Dauerklatscher, Raffzahn, brav |
-| Wackelturm | `playWackelturm` (EXP-007), normale Spielweise „zufällig“ | Geschick 0,9 / 0,6 / 0,2 | Raufbold (rempelt immer), gierig, vorsichtig |
+| Wackelturm | `playWackelturm` (EXP-007) mit Bot-Modell `KIPPGEFUEHL_BOT_MODEL` (EXP-039), normale Spielweise „zufällig“ | Geschick 0,9 / 0,6 / 0,2 | Raufbold (rempelt immer), gierig, vorsichtig |
 | Pudding-Gerangel | `wackelBot` (EXP-006) auf dem echten Modul (Havok, headless) | `SKILLS` aus EXP-006 + Profi (plant alle 6 Schritte, Streuung 0,12) | Dauerrempler |
 | Krümel-Kehraus | `simulateKruemel` R3 (EXP-023, Havok, headless) | wie Pudding-Gerangel | Dauerrempler, Torsteher, Raufbold |
 
