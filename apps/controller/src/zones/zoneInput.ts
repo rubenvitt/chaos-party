@@ -4,7 +4,7 @@
 import type { CharacterId, SlotNumber } from '@chaos-party/protocol';
 import { describePrompt, isLocked, ownPrompt } from '../board/prompt.ts';
 import { describeLobby, type SiblingCharacter } from '../lobby/view.ts';
-import { introReadyState, offeredActions } from '../minigame/view.ts';
+import { describeVote, introReadyState, offeredActions } from '../minigame/view.ts';
 import type { PendingChoice, SlotContext } from '../state/reducer.ts';
 import type { ZoneChoicesInput, ZoneControlsInput, ZoneLobbyInput } from './geometry.ts';
 
@@ -75,6 +75,8 @@ export function zoneControlsInput(
     context.layout === 'board'
       ? introReadyState(context, { sent: readySent, armed: extras.introArmed === true })
       : 'timer';
+  // Daumen nach dem Minispiel (CHAOS-218), nur solange der Server `rate` anbietet.
+  const vote = context.layout === 'board' && describeVote(context).open;
   return {
     layout: context.layout,
     // Minispiel (CHAOS-33): nur Elemente, die der Steckbrief auch beschriftet.
@@ -83,5 +85,6 @@ export function zoneControlsInput(
     ...(choices !== undefined && { choices }),
     ...(lobby !== undefined && { lobby }),
     ...(introReady !== 'timer' && { introReady }),
+    ...(vote && { vote: true as const }),
   };
 }
