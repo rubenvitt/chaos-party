@@ -32,5 +32,19 @@ Randbedingungen: PC-Host (Babylon) und nativer Apple-Host (TS-Kern in JavaScript
 
 - PC- und Apple-Host brauchen keinen eigenen Code: Bot-Partie im Apple-Host (`bots --full`) spielt Schnellfeuer mit, Bauschritte < 4 ms ohne JIT.
 - Neue Mikro-Spiele (CHAOS-113) brauchen Eintrag in `MICRO_POOL`, Ansicht in `MICRO_VIEWS`, Bot und Mikro-Vertrag. `CHAIN_MAX_MS` (Spielzeit des Steckbriefs) folgt den fünf längsten im Vorrat; mit mehr als fünf im Vorrat endet ein Leerlauf früher als die Spielzeit und der Vertragstest „Leerlauf endet am Zeitlimit“ muss angepasst werden.
-- Das Bildwort steht nur am Host, nicht am Controller (Folgeaufgabe).
+- Das Bildwort steht nur am Host, nicht am Controller (Folgeaufgabe) – erledigt mit Nachtrag 1.
 - Wie sich Tempo und Bildwort anfühlen, beurteilt Ruben bei der Zwischenabnahme CHAOS-92 (Gerätecheckliste §46).
+
+## Nachtrag 1 (2026-11-21, CHAOS-231): Bildwort und Bedienung am Controller
+
+**Kontext.** Am iPhone, in der iPad-Zone und in der nativen Controller-App stand während der ganzen Kette nur die Vereinigung der Bedienung (Stick „Zielen“, A „Los!“). Wer aufs Handy schaut, sieht nicht, was gerade zu tun ist.
+
+**Entscheidung.** Abweichend von Punkt 3 bekommt der Controller einen schlanken **Hinweis** je Abschnitt:
+
+1. **SDK (additiv):** `MinigameCue` (Abschnitt, Anzahl, Piktogramm, Bildwort, Bedienung des Abschnitts, `double`) und optional `Minigame.getCue()`. Die Laufzeit fragt nach jedem festen Schritt, prüft (`checkCue`: Bedienung ist Teilmenge des Steckbriefs) und meldet nur Wechsel (`RunnerOptions.onCue`). Schnellfeuer liefert den Hinweis aus der Kette; er wechselt mit dem Bildwort und bleibt über Spiel und Auswertung stehen.
+2. **Protokoll (v4-Nachtrag):** Host-Nachricht `minigame-cue` mit `minigameId`, `round`, `cue | null`; `ControllerMinigameInfo.cue` (optional, nur in `play`). Der Server übernimmt einen Hinweis nur für den laufenden Lauf in `minigame-play` und nur mit Bedienung aus dem Steckbrief (er bietet nur dessen Aktionen an), sonst verwirft er ihn still. Der Host merkt sich den letzten Hinweis und sendet ihn nach einem Neuverbinden erneut.
+3. **Controller:** Web (iPhone und iPad-Zone, `describePlay`) und native App (`PlayLayout`) zeigen im Kopf groß Piktogramm, Bildwort und „2/5“ (Finale „5/5 ×2“) und nur die Knöpfe des Abschnitts. Ohne Hinweis (älterer Host) bleibt alles wie bisher.
+
+**Warum ein Host-Hinweis statt Reihenfolge aus dem Seed?** Die Reihenfolge der Kette ließe sich aus dem Seed nachrechnen, der Zeitpunkt des Wechsels aber nicht: Ein Mikro-Spiel endet vorzeitig, sobald alle fertig sind (Wecker gehauen, Teller leer). Ein Controller, der nur die Uhr kennt, läge dann bis zu mehrere Sekunden daneben. Ein Hinweis kostet fünf kleine Host-Nachrichten je Kette und kommt im Bildwort an, also 1,3 s bevor die Knöpfe wirken.
+
+**Folgen.** Ältere Controller zeigen weiter die Vereinigung; ein älterer Server lehnt `minigame-cue` mit `bad-message` ab, das Spiel läuft trotzdem. Weitere Minispiele mit Abschnitten können `getCue` nutzen, ohne Protokoll oder Controller zu ändern. Ob das Bildwort am Handy beim Spielen hilft oder ablenkt, gehört zur Zwischenabnahme CHAOS-92 (Gerätecheckliste §46, SF9–SF10).

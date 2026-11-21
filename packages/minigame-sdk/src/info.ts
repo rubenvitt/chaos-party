@@ -38,6 +38,35 @@ export interface MinigameControls {
   readonly b: string | null;
 }
 
+/** Grenzen eines Controller-Hinweises ({@link MinigameCue}, gleich im zod-Schema). */
+export const MINIGAME_CUE_LIMITS = {
+  /** Höchstzahl Abschnitte (Schnellfeuer: fünf Mikro-Spiele). */
+  steps: 16,
+  /** Piktogramm: ein Emoji (einige UTF-16-Einheiten). */
+  icon: 8,
+  /** Bildwort („HAUEN!“). */
+  word: 16,
+} as const;
+
+/**
+ * Hinweis für den Controller mitten im Spiel (CHAOS-231, optional): Ein Minispiel aus
+ * Abschnitten (Schnellfeuer: ein Mikro-Spiel je Abschnitt) zeigt am Controller das Bildwort und
+ * nur die Bedienung des laufenden Abschnitts. Die Bedienung ist eine Teilmenge von
+ * `info.controls` (der Server bietet nur an, was der Steckbrief nennt). Ein neuer Abschnitt
+ * (`step`) heißt neuer Hinweis; die Laufzeit meldet nur Wechsel.
+ */
+export interface MinigameCue {
+  /** Abschnitt, 0-basiert. */
+  readonly step: number;
+  /** Abschnitte insgesamt (1 … `MINIGAME_CUE_LIMITS.steps`). */
+  readonly steps: number;
+  readonly icon: string;
+  readonly word: string;
+  readonly controls: MinigameControls;
+  /** Abschnitt zählt doppelt (Schnellfeuer-Finale „×2“). */
+  readonly double: boolean;
+}
+
 /**
  * Steckbrief eines Minispiels. Wird vom Server für Auswahl, Fristen und Controller-Kontext
  * genutzt und vom Host für Anleitung und Ergebnis – darum rein und serialisierbar.

@@ -17,6 +17,7 @@ import {
   REPEAT_KICKER,
   VOTE_QUESTION,
   type ControlLegendItem,
+  type CueView,
 } from '../minigame/view.ts';
 import { ITEM_INFO } from '../board/items.ts';
 import { LOOK_AT_SCREEN } from '../board/status.ts';
@@ -347,8 +348,43 @@ export function MinigameCard({
   return <MinigameIntro minigame={minigame} compact={compact} readyLine={readyLine} />;
 }
 
-/** Kleiner Kopf im Spiel-Layout: Minispiel-Titel. */
-export function MinigameHeader({ title, className }: { title: string; className?: string }) {
+/**
+ * Kleiner Kopf im Spiel-Layout: Minispiel-Titel. Meldet das Minispiel einen Abschnitt
+ * (CHAOS-231, Schnellfeuer), steht dort stattdessen groß das Bildwort mit Fortschritt; jeder
+ * neue Abschnitt spielt die Einblendung neu ab (`key`).
+ */
+export function MinigameHeader({
+  title,
+  cue = null,
+  className,
+}: {
+  title: string;
+  cue?: CueView | null;
+  className?: string;
+}) {
+  if (cue) {
+    return (
+      <div
+        key={cue.step}
+        className={`minigame-header minigame-cue ${className ?? ''}`}
+        data-testid="minigame-header"
+        data-cue-step={cue.step}
+        data-double={cue.double ? 'true' : 'false'}
+        role="status"
+        aria-label={`${title}: ${cue.word}${cue.double ? ' – zählt doppelt' : ''}`}
+      >
+        <span className="minigame-cue-icon" aria-hidden="true">
+          {cue.icon}
+        </span>
+        <span className="minigame-cue-word ui-text" data-testid="minigame-cue-word">
+          {cue.word}
+        </span>
+        <span className="minigame-cue-step ui-text" aria-hidden="true">
+          {cue.double ? `${cue.progress} ×2` : cue.progress}
+        </span>
+      </div>
+    );
+  }
   return (
     <div className={`minigame-header ${className ?? ''}`} data-testid="minigame-header">
       <Icon name="star" size={18} />

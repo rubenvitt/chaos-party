@@ -254,6 +254,18 @@ struct MinigameControls: Codable, Equatable, Sendable {
     var b: String?
 }
 
+/// `MinigameCueSchema` (v4 addendum CHAOS-231): cue of the running section of a minigame
+/// (Schnellfeuer: micro game `step` of `steps`) with its picture word and only its controls.
+struct MinigameCue: Codable, Equatable, Sendable {
+    var step: Int
+    var steps: Int
+    var icon: String
+    var word: String
+    var controls: MinigameControls
+    /// The section counts double (Schnellfeuer finale, „×2“).
+    var double: Bool
+}
+
 /// `ControllerMinigameInfoSchema`
 struct ControllerMinigameInfo: Codable, Equatable, Sendable {
     var id: String
@@ -278,6 +290,9 @@ struct ControllerMinigameInfo: Codable, Equatable, Sendable {
     /// `true` = this slot already pressed it. Missing = the intro does not wait (fixed timer,
     /// older servers): no button.
     var ready: Bool?
+    /// v4 addendum (CHAOS-231, optional), only in `play`: picture word and controls of the running
+    /// section. Missing = no sections or an older host; then `controls` apply.
+    var cue: MinigameCue?
 }
 
 /// Element of `ControllerLobbyInfoSchema.takenBy`.

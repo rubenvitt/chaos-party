@@ -6,8 +6,10 @@
  * Eingabe von außen) und erst game-core verteilt Münzen.
  */
 import {
+  MINIGAME_CUE_LIMITS,
   MINIGAME_ID_PATTERN,
   MINIGAME_TEXT_LIMITS,
+  type MinigameCue,
   type MinigameInfo,
   type MinigamePlacement,
   type MinigameResult,
@@ -133,6 +135,37 @@ export function checkInfo(info: MinigameInfo): ResultCheck {
     return fail('Spielzeit 5–90 s');
   }
   if (info.scoreUnit.length === 0 || info.scoreUnit.length > 16) return fail('Punkte-Einheit');
+  return { ok: true };
+}
+
+/** Anzeigetext wie im Protokoll: nicht leer, höchstens `max`, ohne Rand-Leerraum. */
+function shownText(text: string, max: number): boolean {
+  return text.length > 0 && text.length <= max && text.trim() === text;
+}
+
+/**
+ * Prüft einen Controller-Hinweis (CHAOS-231) gegen den Steckbrief: Abschnitt in Grenzen,
+ * Piktogramm und Bildwort kurz, Bedienung nicht leer und nur, was `info.controls` anbietet.
+ * Die Laufzeit meldet ungültige Hinweise nicht weiter (der Server würde sie ablehnen).
+ */
+export function checkCue(cue: MinigameCue, info: Pick<MinigameInfo, 'controls'>): ResultCheck {
+  const limits = MINIGAME_CUE_LIMITS;
+  if (!Number.isInteger(cue.steps) || cue.steps < 1 || cue.steps > limits.steps) {
+    return fail('Abschnitte 1–16');
+  }
+  if (!Number.isInteger(cue.step) || cue.step < 0 || cue.step >= cue.steps) {
+    return fail('Abschnitt außerhalb');
+  }
+  if (!shownText(cue.icon, limits.icon)) return fail('Piktogramm');
+  if (!shownText(cue.word, limits.word)) return fail('Bildwort');
+  const keys = ['joystick', 'a', 'b'] as const;
+  if (keys.every((key) => cue.controls[key] === null)) return fail('Keine Bedienung');
+  for (const key of keys) {
+    const label = cue.controls[key];
+    if (label === null) continue;
+    if (info.controls[key] === null) return fail(`Bedienung ${key} fehlt im Steckbrief`);
+    if (!shownText(label, MINIGAME_TEXT_LIMITS.controlLabel)) return fail('Bedien-Text');
+  }
   return { ok: true };
 }
 

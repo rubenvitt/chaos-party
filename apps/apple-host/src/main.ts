@@ -372,6 +372,10 @@ function create(env: HostEnv): ChaosHostInstance {
             );
             resultSender.submit(resultPayload(result.result, round));
           },
+          // CHAOS-231: Bildwort und Bedienung des laufenden Abschnitts an die Controller.
+          onCue: (cue) => {
+            connection.sendMinigameCue({ minigameId: module.info.id, round, cue });
+          },
         });
         stage = { key, headless };
         log(`Minispiel ${module.info.id} (Runde ${round}, Seed ${view.minigame.seed}) aufgebaut`);

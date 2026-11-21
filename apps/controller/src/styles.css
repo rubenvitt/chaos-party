@@ -1958,6 +1958,48 @@ button {
   white-space: nowrap;
 }
 
+/* Schnellfeuer (CHAOS-231): Bildwort des laufenden Mikro-Spiels statt des Titels. */
+.minigame-cue {
+  gap: 8px;
+  padding: 4px 14px 4px 10px;
+  font-size: 22px;
+  font-weight: 800;
+  animation: minigame-pop 220ms ease-out both;
+}
+
+.minigame-cue[data-double='true'] {
+  border-color: var(--player);
+  box-shadow:
+    var(--shadow-small),
+    0 0 0 2px var(--player);
+}
+
+.minigame-cue-icon {
+  font-size: 1.15em;
+  line-height: 1;
+}
+
+.minigame-cue-word {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.minigame-cue-step {
+  font-size: 13px;
+  font-weight: 700;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .minigame-cue {
+    animation: none;
+  }
+}
+
 .play-panel.play-minigame {
   grid-template-rows: auto minmax(0, 1fr) minmax(0, 1.25fr);
   grid-template-areas:

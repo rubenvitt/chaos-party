@@ -25,7 +25,7 @@ import {
   type RuleSet,
   type Slot,
 } from '@chaos-party/game-core';
-import type { MinigameInfo } from '@chaos-party/minigame-sdk';
+import { checkCue, type MinigameInfo } from '@chaos-party/minigame-sdk';
 import {
   getMinigameInfo,
   getSteckbrief,
@@ -41,6 +41,7 @@ import {
   type ControllerBoardInfo,
   type ControllerMinigameInfo,
   type MinigameControlsInfo,
+  type MinigameCueInfo,
   type PromptInfo,
 } from '@chaos-party/protocol';
 
@@ -215,6 +216,12 @@ export class BoardGame {
   private eventCount = 0;
   /** Sichtbarer Stand der letzten `board`-Nachricht (ohne Restzeiten). */
   private lastViewKey = '';
+  /** Hinweis des laufenden Abschnitts vom Host (CHAOS-231), an seinen Lauf gebunden. */
+  private cueValue: {
+    readonly minigameId: string;
+    readonly round: number;
+    readonly cue: MinigameCueInfo;
+  } | null = null;
 
   readonly seed: number;
   /** Figur je Slot (kosmetisch, nicht Teil der Regeln). */
@@ -407,6 +414,7 @@ export class BoardGame {
     const ownReward = minigame.rewards?.find((entry) => entry.slot === slot);
     const reward = ownReward?.coins;
     const prizes = ownReward?.items;
+    const cue = stage === 'play' ? this.currentCue() : undefined;
     return {
       id: info.id,
       title: info.title,
@@ -425,6 +433,8 @@ export class BoardGame {
       ...(this.practice ? { practice: true } : {}),
       // CHAOS-214: Anleitung wartet auf „Bereit“ – eigener Stand.
       ...(stage === 'intro' && minigame.ready ? { ready: minigame.ready.includes(slot) } : {}),
+      // CHAOS-231: Bildwort und Bedienung des laufenden Abschnitts (Schnellfeuer).
+      ...(cue === undefined ? {} : { cue }),
     };
   }
 
@@ -455,6 +465,41 @@ export class BoardGame {
     if (info.controls.a !== null) actions.push('button-a');
     if (info.controls.b !== null) actions.push('button-b');
     return actions;
+  }
+
+  /**
+   * Hinweis des laufenden Abschnitts vom Host übernehmen (CHAOS-231). Nur in `minigame-play`
+   * des genannten Laufs (Minispiel und Runde) und nur mit Bedienung, die der Steckbrief
+   * anbietet (`checkCue`); sonst verworfen. `true` = übernommen.
+   */
+  setCue(minigameId: string, round: number, cue: MinigameCueInfo | null): boolean {
+    const state = this.stateValue;
+    const minigame = state.minigame;
+    if (
+      state.phase !== 'minigame-play' ||
+      minigame?.id !== minigameId ||
+      minigame.round !== round
+    ) {
+      return false;
+    }
+    if (cue === null) {
+      this.cueValue = null;
+      return true;
+    }
+    const info = getMinigameInfo(minigameId);
+    if (!info || !checkCue(cue, info).ok) return false;
+    this.cueValue = { minigameId, round, cue };
+    return true;
+  }
+
+  /** Hinweis für den Controller, solange sein Lauf spielt (CHAOS-231), sonst `undefined`. */
+  private currentCue(): MinigameCueInfo | undefined {
+    const state = this.stateValue;
+    const cue = this.cueValue;
+    if (state.phase !== 'minigame-play' || !cue) return undefined;
+    return state.minigame?.id === cue.minigameId && state.minigame.round === cue.round
+      ? cue.cue
+      : undefined;
   }
 
   /** Prompt dieses Slots (oder `undefined`) für den Controller-Kontext. */
