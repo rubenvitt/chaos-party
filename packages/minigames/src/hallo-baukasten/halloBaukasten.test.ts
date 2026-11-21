@@ -87,7 +87,25 @@ describe('Hallo Baukasten – Modul', () => {
     expect(run.residue).toEqual(EMPTY_RESIDUE);
   });
 
-  it('bleibt ein kurzes Muster: Steckbrief, Logik und Ansicht zusammen ≤ 300 Zeilen', () => {
+  it('spielt als KI-Platz mit (CHAOS-180): schwer punktet besser als leicht', async () => {
+    const run = await runMinigameHeadless(halloBaukasten, {
+      players: 2,
+      seed: 5,
+      bots: [
+        { slot: 1, strength: 1 },
+        { slot: 2, strength: 0 },
+      ],
+    });
+    const score = (slot: number) =>
+      run.outcome?.result.placements.find((p) => p.slot === slot)?.score ?? 0;
+    expect(run.outcome?.forced).toBe(false);
+    expect(score(1)).toBeGreaterThan(0);
+    expect(score(1)).toBeGreaterThanOrEqual(score(2));
+    expect(run.residue).toEqual(EMPTY_RESIDUE);
+  });
+
+  // 300 Zeilen bis CHAOS-180; der KI-Platz (`createBot`, Pflicht für die Rotation) kostet 5.
+  it('bleibt ein kurzes Muster: Steckbrief, Logik und Ansicht zusammen ≤ 305 Zeilen', () => {
     const lines = ['info.ts', 'logic.ts', 'index.ts']
       .map((file) =>
         readFileSync(new URL(file, import.meta.url), 'utf8')
@@ -95,6 +113,6 @@ describe('Hallo Baukasten – Modul', () => {
           .split('\n'),
       )
       .reduce((sum, file) => sum + file.length, 0);
-    expect(lines).toBeLessThanOrEqual(300);
+    expect(lines).toBeLessThanOrEqual(305);
   });
 });
