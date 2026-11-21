@@ -5,8 +5,10 @@
 import type {
   GamePhase,
   ItemKind,
+  MinigameOutcome,
   MinigamePlacement,
   MinigameReward,
+  MinigameTeams,
   PlayerStats,
   PromptKind,
   PromptOption,
@@ -68,6 +70,10 @@ export interface PublicMinigame {
   readonly repeat: boolean;
   /** CHAOS-214: in der Anleitung schon bereite Slots; fehlt = Anleitung wartet nicht darauf. */
   readonly ready?: readonly Slot[];
+  /** CHAOS-89: Aufstellung bei Teams bzw. Koop; fehlt = jeder gegen jeden. */
+  readonly teams?: MinigameTeams;
+  /** CHAOS-89: Ausgang bei Teams bzw. Koop, sobald das Ergebnis feststeht. */
+  readonly outcome?: MinigameOutcome;
   /** Seit Beginn von `minigame-play` vergangene Zeit (ms) oder `null` davor. */
   readonly elapsedMs: number | null;
   readonly placements: readonly MinigamePlacement[] | null;
@@ -134,6 +140,8 @@ export function toPublicView(state: GameState, now: number = state.now): PublicG
           playMs: state.minigame.playMs,
           repeat: state.minigame.repeat,
           ...(state.minigame.ready ? { ready: [...state.minigame.ready] } : {}),
+          ...(state.minigame.teams ? { teams: copyTeams(state.minigame.teams) } : {}),
+          ...(state.minigame.outcome ? { outcome: { ...state.minigame.outcome } } : {}),
           elapsedMs:
             state.minigame.playStartedAt === null
               ? null
@@ -153,4 +161,9 @@ export function toPublicView(state: GameState, now: number = state.now): PublicG
     paused: state.paused,
     endedEarly: state.endedEarly,
   };
+}
+
+/** Tiefe Kopie einer Aufstellung (CHAOS-89). */
+export function copyTeams(teams: MinigameTeams): MinigameTeams {
+  return { ...teams, teams: teams.teams.map((team) => [...team]) };
 }

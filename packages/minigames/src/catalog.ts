@@ -14,7 +14,10 @@ import { HALLO_BAUKASTEN_INFO } from './hallo-baukasten/info.ts';
 import { KRUEMEL_KEHRAUS_INFO } from './kruemel-kehraus/info.ts';
 import { KUCKUCKS_KLATSCHE_INFO } from './kuckucks-klatsche/info.ts';
 import { PUDDING_GERANGEL_INFO } from './pudding-gerangel/info.ts';
+import { PUMP_DUELL_INFO } from './pump-duell/info.ts';
 import { PUMP_PARADE_INFO } from './pump-parade/info.ts';
+import { PUMP_RIESE_INFO } from './pump-riese/info.ts';
+import { PUMP_SOLO_INFO } from './pump-solo/info.ts';
 import { SOCKENREGEN_INFO } from './sockenregen/info.ts';
 import { WACKELTURM_INFO } from './wackelturm/info.ts';
 
@@ -29,6 +32,10 @@ export const MINIGAME_INFOS: readonly MinigameInfo[] = [
   KUCKUCKS_KLATSCHE_INFO,
   KRUEMEL_KEHRAUS_INFO,
   HALLO_BAUKASTEN_INFO,
+  // Testspiele der Spielformen (CHAOS-89), nicht in der Rotation.
+  PUMP_DUELL_INFO,
+  PUMP_SOLO_INFO,
+  PUMP_RIESE_INFO,
 ];
 
 /**

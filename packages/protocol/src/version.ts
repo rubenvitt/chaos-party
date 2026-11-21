@@ -42,6 +42,11 @@
  * (`minigame-intro`); `ControllerMinigameInfo.ready` (eigener Stand) und
  * `BoardView.minigame.ready` (bereite Slots), beide optional. Ältere Controller ohne Knopf
  * halten nichts auf: Nach der Sicherheitsfrist startet das Minispiel trotzdem.
+ * v4-Nachtrag (CHAOS-89, additiv, ohne Versionssprung): Spielformen mit Teams und Koop –
+ * `BoardView.minigame.teams`/`outcome`, Minispiel-Kontext `team` (eigene Rolle) und
+ * `minigame-result.outcome` (alle optional). Ein Sprung auf v5 hätte alle installierten
+ * iOS-Controller und den Apple-Host ausgesperrt; Gegenstellen ohne den Nachtrag zeigen Teams
+ * nicht an, und Team-Minispiele kommen nur aus dem Katalog des Web-Hosts.
  */
 export const PROTOCOL_VERSION = 4;
 

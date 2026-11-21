@@ -621,7 +621,13 @@ export function step(state: GameState, command: GameCommand): StepResult {
           check.message,
         );
       }
-      finishMinigame(ctx, command.placements, command.highlights ?? [], effectiveAt);
+      finishMinigame(
+        ctx,
+        command.placements,
+        command.highlights ?? [],
+        effectiveAt,
+        command.outcome,
+      );
       break;
     }
   }

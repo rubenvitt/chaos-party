@@ -20,7 +20,10 @@ import { HALLO_BAUKASTEN_INFO } from './hallo-baukasten/info.ts';
 import { KRUEMEL_KEHRAUS_INFO } from './kruemel-kehraus/info.ts';
 import { KUCKUCKS_KLATSCHE_INFO } from './kuckucks-klatsche/info.ts';
 import { PUDDING_GERANGEL_INFO } from './pudding-gerangel/info.ts';
+import { PUMP_DUELL_INFO } from './pump-duell/info.ts';
 import { PUMP_PARADE_INFO } from './pump-parade/info.ts';
+import { PUMP_RIESE_INFO } from './pump-riese/info.ts';
+import { PUMP_SOLO_INFO } from './pump-solo/info.ts';
 import { SOCKENREGEN_INFO } from './sockenregen/info.ts';
 import { WACKELTURM_INFO } from './wackelturm/info.ts';
 
@@ -52,6 +55,10 @@ export const MINIGAME_LOADERS: ReadonlyMap<string, MinigameLoader> = new Map<
     HALLO_BAUKASTEN_INFO.id,
     () => import('./hallo-baukasten/index.ts').then((m) => m.halloBaukasten),
   ],
+  // Testspiele der Spielformen (CHAOS-89).
+  [PUMP_DUELL_INFO.id, () => import('./pump-duell/index.ts').then((m) => m.pumpDuell)],
+  [PUMP_SOLO_INFO.id, () => import('./pump-solo/index.ts').then((m) => m.pumpSolo)],
+  [PUMP_RIESE_INFO.id, () => import('./pump-riese/index.ts').then((m) => m.pumpRiese)],
 ]);
 
 export interface MinigameModuleCache {

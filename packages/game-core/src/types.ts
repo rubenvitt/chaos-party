@@ -10,6 +10,10 @@
  * Änderungen nur additiv und abgestimmt (Koordinator).
  */
 
+import type { MinigameOutcome, MinigameTeamPlay, MinigameTeams } from '@chaos-party/minigame-sdk';
+
+export type { MinigameOutcome, MinigameTeamPlay, MinigameTeams };
+
 /** Spielerplatz 1–4 (gleich `SlotNumber` aus `@chaos-party/protocol`). */
 export type Slot = 1 | 2 | 3 | 4;
 
@@ -181,6 +185,21 @@ export interface CatchUpRules {
   readonly finale?: { readonly rounds: number; readonly factor: number };
 }
 
+/**
+ * Münz-Regel für Spielformen mit Teams und Koop (CHAOS-89, festgelegt in EXP-038).
+ * Teams: jede Person im Siegerteam `win`, im anderen Team `lose`, bei Unentschieden alle `draw`;
+ * gewinnt eine Einzelperson (1 gegen 3 bzw. 1 gegen 2), bekommt sie `win × soloWinFactor`.
+ * Koop: Münzen je Platz der Einzelwertung (`koop`, Index 0 = Platz 1) bei voller Stufe,
+ * anteilig zur erreichten Stufe (`Stufe / KOOP_MAX_TIER`, gerundet).
+ */
+export interface TeamRewards {
+  readonly win: number;
+  readonly lose: number;
+  readonly draw: number;
+  readonly soloWinFactor: number;
+  readonly koop: readonly number[];
+}
+
 export interface RuleSet {
   /** Würfelseiten; jede gleich wahrscheinlich (Verteilung per Experiment). */
   readonly diceFaces: readonly number[];
@@ -191,6 +210,8 @@ export interface RuleSet {
     readonly coinsMinus: number;
     /** Münzen je Minispiel-Platz (Index 0 = Platz 1); Gleichstand = gleiche Belohnung. */
     readonly minigameRewards: readonly number[];
+    /** Münzen bei Teams und Koop (CHAOS-89, EXP-038); fehlt = `DEFAULT_TEAM_REWARDS`. */
+    readonly teamRewards?: TeamRewards;
   };
   readonly trophy: {
     readonly price: number;
@@ -295,6 +316,13 @@ export interface MinigameSpec {
   readonly ipadZone?: boolean;
   /** Geheime Wahl: bei iPad-Zonen deutlich seltener (Gewicht). */
   readonly secretChoice?: boolean;
+  /**
+   * Spielform mit Teams oder Koop (CHAOS-89). Dann teilt game-core beim Start die Teams ein
+   * (`MinigameState.teams`) und zahlt nach `economy.teamRewards`. `minPlayers` sollte zur
+   * Spielform passen (`teamPlayMinPlayers`), sonst zieht die Rotation das Spiel zu ungeeigneter
+   * Spielerzahl; dann läuft es ohne Teams (jeder gegen jeden).
+   */
+  readonly teamPlay?: MinigameTeamPlay;
 }
 
 /**
@@ -377,6 +405,13 @@ export interface MinigameState {
    * Slots mit Münzen. Fehlt = keiner (Regel aus, letzte Runde, kein Rückstand).
    */
   readonly tailwind?: readonly TailwindBonus[];
+  /**
+   * Aufstellung bei Teams bzw. Koop (CHAOS-89), fest ab `minigame-intro`. Fehlt = jeder gegen
+   * jeden.
+   */
+  readonly teams?: MinigameTeams;
+  /** Ausgang bei Teams bzw. Koop (CHAOS-89), sobald das Ergebnis feststeht. */
+  readonly outcome?: MinigameOutcome;
 }
 
 /** Rückenwind-Münzen eines Slots nach einem Minispiel (CHAOS-125). */
@@ -600,6 +635,8 @@ export type GameCommand =
       readonly round: number;
       readonly placements: readonly MinigamePlacement[];
       readonly highlights?: readonly string[];
+      /** Pflicht bei Teams bzw. Koop (CHAOS-89), sonst verboten. */
+      readonly outcome?: MinigameOutcome;
       readonly at: number;
     }
   /**

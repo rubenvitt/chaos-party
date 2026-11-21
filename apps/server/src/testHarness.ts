@@ -5,7 +5,7 @@
  * Ergebnisse). Nur für Tests; kein Teil des Server-Builds (`main.ts` importiert es nicht).
  */
 import { createRng } from '@chaos-party/game-core';
-import { rankByScore } from '@chaos-party/minigame-sdk';
+import { KOOP_MAX_TIER, rankByScore, teamPlacements } from '@chaos-party/minigame-sdk';
 import { getMinigameInfo } from '@chaos-party/minigames/catalog';
 import {
   createMessage,
@@ -18,10 +18,13 @@ import {
   type InputMessage,
   type LobbyMessage,
   type MinigameResultAckMessage,
+  type MinigameResultMessage,
+  type MinigameTeamsInfo,
   type RatingsMessage,
   type ServerMessage,
   type SlotNumber,
 } from '@chaos-party/protocol';
+import { minigameSpecOf } from './game.ts';
 import { Session, type ConnectionId, type Outgoing, type SessionOptions } from './session.ts';
 
 export const CODE = 'ABCD';
@@ -545,10 +548,37 @@ export function playMinigameAsHost(
     createMessage('minigame-result', {
       minigameId: minigame.id,
       round: minigame.round,
-      placements: rankByScore(scores, info.scoring),
+      ...teamResult(minigame.teams, scores, info.scoring),
       highlights: ['Testlauf'],
     }),
   );
+}
+
+/**
+ * Plätze und Ausgang wie die Laufzeit (CHAOS-89): ohne Teams nach Punkten; bei Teams gewinnt
+ * das Team mit mehr Punkten im Schnitt (gleich = Unentschieden); bei Koop ist die Stufe die Zahl
+ * der Personen mit Punkten (höchstens 3).
+ */
+function teamResult(
+  teams: MinigameTeamsInfo | undefined,
+  scores: { slot: SlotNumber; score: number }[],
+  scoring: 'higher' | 'lower',
+): Pick<MinigameResultMessage, 'placements' | 'outcome'> {
+  if (!teams) return { placements: rankByScore(scores, scoring) };
+  if (teams.layout === 'koop') {
+    const tier = Math.min(KOOP_MAX_TIER, scores.filter((entry) => entry.score !== 0).length);
+    return { placements: rankByScore(scores, scoring), outcome: { kind: 'koop', tier } };
+  }
+  const mean = (team: readonly SlotNumber[]) =>
+    team.reduce((sum, slot) => sum + (scores.find((e) => e.slot === slot)?.score ?? 0), 0) /
+    team.length;
+  const [a = 0, b = 0] = teams.teams.map(mean);
+  const sign = scoring === 'higher' ? 1 : -1;
+  const winner = a === b ? null : sign * (a - b) > 0 ? 0 : 1;
+  return {
+    placements: teamPlacements(teams, winner, scores, scoring),
+    outcome: { kind: 'teams', winner },
+  };
 }
 
 /** Controller-Bots im Minispiel: jeder Slot drückt so oft, wie seine Slot-Nummer vorgibt. */
@@ -584,7 +614,7 @@ export function setupMinigameGame(
       game: {
         seed,
         rounds,
-        minigames: [{ id: info.id, playMs: info.durationMs, scoring: info.scoring }],
+        minigames: [minigameSpecOf(info)],
       },
     },
     { useItems: false, reaction: 'brace', ...policy },

@@ -15,7 +15,10 @@ import type {
   LobbySettingsSchema,
   LobbyBoardSchema,
   LobbyMinigameSchema,
+  ControllerMinigameTeamSchema,
+  MinigameOutcomeSchema,
   MinigameResultAckMessageSchema,
+  MinigameTeamsSchema,
   MinigameRewardSchema,
   PauseMessageSchema,
   PickCharacterMessageSchema,
@@ -128,6 +131,9 @@ export type PromptOptionInfo = z.infer<typeof PromptOptionSchema>;
 export type PromptInfo = z.infer<typeof PromptSchema>;
 export type ControllerBoardInfo = z.infer<typeof ControllerBoardInfoSchema>;
 export type ControllerMinigameInfo = z.infer<typeof ControllerMinigameInfoSchema>;
+export type ControllerMinigameTeam = z.infer<typeof ControllerMinigameTeamSchema>;
+export type MinigameTeamsInfo = z.infer<typeof MinigameTeamsSchema>;
+export type MinigameOutcomeInfo = z.infer<typeof MinigameOutcomeSchema>;
 export type ControllerLobbyInfo = z.infer<typeof ControllerLobbyInfoSchema>;
 export type MinigamePlacementInfo = z.infer<typeof MinigamePlacementSchema>;
 export type MinigameControlsInfo = z.infer<typeof MinigameControlsSchema>;

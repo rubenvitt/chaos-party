@@ -2751,3 +2751,49 @@ Bilder: [`chaos196-ueberblick.jpg`](screenshots/chaos196-ueberblick.jpg) (PC, Ü
 **Entscheidung:** **B4 behalten.** Empfohlene Rundenzahl im Brett-Register 12 statt 10 (`recommendedRounds`, nur Anzeige; der Server-Standard bleibt 10). Fünf-Runden-Partien bleiben möglich, haben aber öfter Spieler ohne Trophäe als auf dem alten Brett. **Offen für Ruben** (Abweichung vom Akzeptanzkriterium „erreichbare Trophäen in kurzen Partien“): akzeptieren, oder für den großen Wackelwald kürzere Partien als 8 Runden ausblenden bzw. mehr aktive Trophäen?
 
 **Offen für Playtest:** Ist die Lichtung als Abkürzung erkennbar und reizvoll? Fühlt sich der Baumkronenweg riskant an? Reicht der Überblick zu Rundenbeginn, um sich auf dem großen Brett zurechtzufinden? Sind 10 Runden zu kurz? Gerätecheckliste §45.
+
+## EXP-038: Münz-Regel für Spielformen mit Teams und Koop (2026-11-21, CHAOS-89)
+
+**Hypothese / gewünschtes Spielerlebnis:** Team-Spiele (2 gegen 2, 1 gegen 3) und Koop bringen Abwechslung, ohne die Münz-Ökonomie zu verschieben. Ein Team-Sieg fühlt sich lohnend an, Verlierer gehen nicht leer aus, ein Einzelsieg gegen alle ist ein besonderer Moment. Koop belohnt gemeinsames Gelingen, die eigene Leistung zählt trotzdem.
+
+**Varianten (Münzen je Person):**
+- **A** Bezug: nur jeder gegen jeden (`minigameRewards` 10/5/3/0).
+- **B** Startwert aus dem Konzept: Sieg 10, Niederlage 0, Unentschieden 3, Einzelsieg ×2, Koop 10/5/3/0 × Stufe/3. Erwartung: Teams blähen die Münzen auf (2 gegen 2: 20 statt 18), Koop drückt sie.
+- **C** ausgeglichen: Sieg 7, Niederlage 2, Unentschieden 4, Einzelsieg ×2, Koop 8/6/4/2. Erwartung: je Spiel etwa 18 Münzen wie bei A.
+- **D** wie C, Einzelsieg ×3.
+- **E** wie C, Koop 12/9/6/3 (Stufe 2 ≈ jeder gegen jeden, Stufe 3 mehr).
+
+Bei allen Varianten zahlt 1 gegen 1 (Ersatz zu zweit) wie jeder gegen jeden. Das ist ein Ergebnis der ersten Messung: Mit der Team-Regel bekam ein Duell 10 statt 15 Münzen, die Partie zu zweit lief deutlich ärmer.
+
+**Objektive Messgrößen:** Münzen aus Minispielen je Minispiel, Münzen am Ende, gekaufte Trophäen je Partie, Siegquote der zur Halbzeit Führenden und Letzten (eindeutige Plätze), Anteil Personen ohne Trophäe.
+
+**Testumgebung:** `simulateGame` mit `M4_RULES` (Standard ohne Trostpreis), Wackelwald in der Fassung vor CHAOS-196 (43 Felder), 10 Runden, Seeds 1–300 je Zeile, MacBook (Node 26). Rotation = fünf Spiele jeder gegen jeden plus drei Team-Spiele (Pump-Duell mit Zufalls-Teams, Pump-Solo „Letzter gegen alle“, Riesenballon Koop), also 3 von 8 Team-Spiele; im fertigen Katalog sind es eher 15 %. Bots: Punkte gleichverteilt, die Einzelperson gewinnt mit 45 %, Koop-Stufe aus den mittleren Punkten. Skript: `EXPERIMENTS=teams pnpm exec vitest run packages/game-core/src/rules/experimentsTeams.test.ts --silent=false` (`experimentsTeams.ts`).
+
+**Ergebnisse:**
+
+| Variante | Spieler | Münzen je Minispiel | Team-Anteil | Münzen am Ende | Trophäen/Partie | Halbzeit-Führende gewinnt | Halbzeit-Letzte gewinnt | ohne Trophäe |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| A nur jeder gegen jeden (Bezug) | 2 | 15,1 | 0 % | 48,0 | 6,14 | 65 % | 35 % | 1 % |
+| B Startwert: Sieg 10, Niederlage 0, allein ×2, Koop 10/5/3/0 | 2 | 14,2 | 38 % | 44,9 | 6,01 | 72 % | 28 % | 2 % |
+| C ausgeglichen: Sieg 7, Niederlage 2, allein ×2, Koop 8/6/4/2 | 2 | 14,1 | 38 % | 44,6 | 6,00 | 72 % | 28 % | 2 % |
+| D ausgeglichen, allein ×3 | 2 | 14,1 | 38 % | 44,6 | 6,00 | 72 % | 28 % | 2 % |
+| E ausgeglichen, Koop 12/9/6/3 | 2 | 14,6 | 38 % | 46,4 | 6,07 | 73 % | 27 % | 2 % |
+| A nur jeder gegen jeden (Bezug) | 3 | 18,3 | 0 % | 41,1 | 7,74 | 55 % | 15 % | 3 % |
+| B Startwert: Sieg 10, Niederlage 0, allein ×2, Koop 10/5/3/0 | 3 | 17,6 | 37 % | 41,5 | 7,27 | 61 % | 16 % | 3 % |
+| C ausgeglichen: Sieg 7, Niederlage 2, allein ×2, Koop 8/6/4/2 | 3 | 16,8 | 37 % | 38,7 | 7,28 | 56 % | 15 % | 3 % |
+| D ausgeglichen, allein ×3 | 3 | 17,6 | 37 % | 40,9 | 7,38 | 56 % | 17 % | 3 % |
+| E ausgeglichen, Koop 12/9/6/3 | 3 | 17,3 | 37 % | 40,1 | 7,35 | 56 % | 16 % | 3 % |
+| A nur jeder gegen jeden (Bezug) | 4 | 18,5 | 0 % | 34,1 | 8,44 | 55 % | 9 % | 4 % |
+| B Startwert: Sieg 10, Niederlage 0, allein ×2, Koop 10/5/3/0 | 4 | 18,3 | 38 % | 35,2 | 8,03 | 50 % | 12 % | 5 % |
+| C ausgeglichen: Sieg 7, Niederlage 2, allein ×2, Koop 8/6/4/2 | 4 | 17,8 | 38 % | 33,3 | 8,13 | 47 % | 11 % | 4 % |
+| D ausgeglichen, allein ×3 | 4 | 18,2 | 38 % | 34,1 | 8,21 | 47 % | 13 % | 4 % |
+| E ausgeglichen, Koop 12/9/6/3 | 4 | 18,4 | 38 % | 34,2 | 8,30 | 46 % | 12 % | 4 % |
+
+- Bei 3–4 Personen halten C, D und E die Münzmenge je Spiel auf dem Niveau von A (17,3–18,4 gegen 18,3–18,5). Der Startwert B liegt zu dritt ebenfalls nah, aber nur, weil Koop (≈ 1,5 Stufen) den Überschuss der Team-Siege auffrisst.
+- Zu viert helfen Teams beim Aufholen: Die zur Halbzeit Führende gewinnt 46–50 % statt 55 %, die Letzte 11–13 % statt 9 %. Zufällige Teams und „Letzter gegen alle“ mischen die Reihenfolge.
+- Zu zweit gibt es nur Duelle und Koop. Koop verteilt die Münzen gleichmäßiger als ein Duell, darum hält die Führende ihren Vorsprung etwas öfter (72–73 % statt 65 %). Bei 15 % Team-Spielen in der Rotation sinkt der Effekt auf etwa ein Drittel.
+- Einzelsieg ×3 (D) ändert kaum etwas gegen ×2 (C), weil die Einzelperson nur in 1 gegen 3 bzw. 1 gegen 2 vorkommt.
+
+**Entscheidung:** **E behalten** (`DEFAULT_TEAM_REWARDS`: Sieg 7, Niederlage 2, Unentschieden 4, Einzelsieg ×2, Koop 12/9/6/3 × Stufe/3; 1 gegen 1 wie jeder gegen jeden). Münzen wie bei A, zu viert der stärkste Aufholeffekt, und Koop lohnt sich bei gutem Gelingen. Minispiel-Siege zählen bei Teams für alle im Siegerteam, bei Koop für niemanden; den Trostpreis gibt es bei Teams nur, wenn eine Einzelperson verliert. Die Zahlen sind Bot-Simulation, kein Spieltest.
+
+**Offen für Playtest (Ruben, Gerätecheckliste §46):** Fühlt sich ein Team-Sieg mit 7 Münzen lohnend an, oder wirkt er kleiner als Platz 1 mit 10? Ist „Letzter gegen alle“ spannend oder demütigend? Lohnt sich im Koop das Mitmachen, auch für die Person auf dem letzten Einzelplatz?

@@ -11,17 +11,21 @@
  * Wertung mit Gleichstand, Punkte passend zu den Plätzen), bevor Münzen verteilt werden.
  * Ohne konfigurierte Minispiele bleibt der M2-Platzhalter (Rangfolge per Seed).
  */
-import { checkResult } from '@chaos-party/minigame-sdk';
+import { checkResult, KOOP_MAX_TIER, planTeams } from '@chaos-party/minigame-sdk';
 import { shuffled } from '../rng.ts';
 import type {
   GameState,
   ItemKind,
+  MinigameOutcome,
   MinigamePlacement,
   MinigameSpec,
+  MinigameState,
+  MinigameTeams,
   Pacing,
   Slot,
 } from '../types.ts';
-import { changeCoins } from './economy.ts';
+import { DEFAULT_TEAM_REWARDS } from './defaults.ts';
+import { changeCoins, rankPlayers } from './economy.ts';
 import { playerOf, schedule, type Ctx } from './internal.ts';
 import { gainRandomItem } from './items.ts';
 import {
@@ -79,6 +83,7 @@ export function enterMinigame(ctx: Ctx, t: number): void {
   const readyTimeoutMs = ctx.rules.pacing.minigameReadyTimeoutMs ?? 0;
   const waitForReady = spec !== null && readyTimeoutMs > 0;
   d.activeSlot = null;
+  const teams = spec ? teamsFor(ctx, spec) : null;
   d.minigame = {
     id,
     round: d.round,
@@ -86,6 +91,7 @@ export function enterMinigame(ctx: Ctx, t: number): void {
     playMs: spec?.playMs ?? ctx.rules.pacing.minigamePlayMs,
     repeat,
     ...(waitForReady ? { ready: [] } : {}),
+    ...(teams ? { teams } : {}),
     playStartedAt: null,
     placements: null,
     highlights: [],
@@ -100,6 +106,18 @@ export function enterMinigame(ctx: Ctx, t: number): void {
   } else {
     schedule(ctx, 'minigame-intro', t, minigameIntroMs(ctx.rules.pacing, repeat));
   }
+}
+
+/**
+ * Aufstellung für ein Minispiel mit Teams oder Koop (CHAOS-89). Brett-Stand = Endwertung
+ * (Trophäen, Münzen, Siege; Gleichstand nach Slot). Zufall nur bei Zufallszuteilung, damit
+ * jeder-gegen-jeden-Partien denselben Seed-Verlauf behalten. `null` = ohne Teams spielen.
+ */
+function teamsFor(ctx: Ctx, spec: MinigameSpec): MinigameTeams | null {
+  if (!spec.teamPlay) return null;
+  const slots = ctx.d.players.map((p) => p.slot);
+  const standing = rankPlayers(ctx.d.players).map((entry) => entry.slot);
+  return planTeams(spec.teamPlay, slots, standing, (n) => ctx.rng.int(0, n - 1));
 }
 
 function readyMinMs(ctx: Ctx): number {
@@ -214,6 +232,7 @@ export function checkMinigameResult(
     readonly round: number;
     readonly placements: readonly MinigamePlacement[];
     readonly highlights?: readonly string[];
+    readonly outcome?: MinigameOutcome;
   },
 ): MinigameResultCheck {
   const { d } = ctx;
@@ -233,11 +252,13 @@ export function checkMinigameResult(
       minigameId: command.minigameId,
       placements: command.placements,
       ...(command.highlights === undefined ? {} : { highlights: command.highlights }),
+      ...(command.outcome === undefined ? {} : { outcome: command.outcome }),
     },
     {
       minigameId: minigame.id,
       slots: d.players.map((p) => p.slot),
       ...(spec ? { scoring: spec.scoring } : {}),
+      teams: minigame.teams ?? null,
     },
   );
   return check.ok ? { ok: true } : { ok: false, message: check.reason };
@@ -249,10 +270,12 @@ export function finishMinigame(
   placements: readonly MinigamePlacement[],
   highlights: readonly string[],
   t: number,
+  outcome?: MinigameOutcome,
 ): void {
   const { d } = ctx;
   const minigame = d.minigame;
   if (!minigame) throw new Error('Minispiel fehlt');
+  const withOutcome = outcome === undefined ? {} : { outcome };
   const sorted = [...placements]
     .map((entry) => ({ slot: entry.slot, place: entry.place, score: entry.score }))
     .sort((a, b) => a.place - b.place || a.slot - b.slot);
@@ -270,26 +293,32 @@ export function finishMinigame(
       highlights: [...highlights],
       aborted: false,
       rewards: sorted.map((entry) => ({ slot: entry.slot, coins: 0 })),
+      ...withOutcome,
     };
     schedule(ctx, 'minigame-results', t, ctx.rules.pacing.minigameResultsMs);
     return;
   }
   const finale = ctx.rules.catchUp?.finale;
   const factor = finale && d.round > d.rounds - finale.rounds ? finale.factor : 1;
+  const payout = payoutRule(ctx, minigame, outcome);
   const rewards = sorted.map((entry) => {
-    const reward = (ctx.rules.economy.minigameRewards[entry.place - 1] ?? 0) * factor;
+    const reward = payout.coins(entry) * factor;
     // Siege zählen sofort (drittes Wertungskriterium, CHAOS-37); Gleichstand auf 1 für alle.
-    if (entry.place === 1) playerOf(ctx, entry.slot).minigameWins += 1;
+    // Koop hat keinen Sieger (CHAOS-89).
+    if (payout.wins && entry.place === 1) playerOf(ctx, entry.slot).minigameWins += 1;
     return { slot: entry.slot, coins: changeCoins(ctx, entry.slot, reward, 'minigame') };
   });
   // CHAOS-51 (EXP-019): optional Items für den Sieg bzw. als Trostpreis für den letzten Platz
-  // (geteilt: alle; sind alle gleichauf, gibt es keinen letzten Platz).
+  // (geteilt: alle; sind alle gleichauf, gibt es keinen letzten Platz). Bei Teams nur, wenn eine
+  // Einzelperson verliert; Koop hat keinen letzten Platz (CHAOS-89).
   const lastPlace = Math.max(...sorted.map((entry) => entry.place));
   const withItems = rewards.map((reward, index) => {
     const entry = sorted[index];
     if (!entry) return reward;
-    let count = entry.place === 1 ? (ctx.rules.items.minigameWinItems ?? 0) : 0;
-    if (entry.place === lastPlace && lastPlace > 1) count += ctx.rules.items.minigameLastItems ?? 0;
+    let count = payout.wins && entry.place === 1 ? (ctx.rules.items.minigameWinItems ?? 0) : 0;
+    if (payout.consolation && entry.place === lastPlace && lastPlace > 1) {
+      count += ctx.rules.items.minigameLastItems ?? 0;
+    }
     const items: ItemKind[] = [];
     for (let i = 0; i < count; i++) {
       const item = gainRandomItem(ctx, entry.slot);
@@ -303,6 +332,58 @@ export function finishMinigame(
     highlights: [...highlights],
     aborted: false,
     rewards: withItems,
+    ...withOutcome,
   };
   schedule(ctx, 'minigame-results', t, ctx.rules.pacing.minigameResultsMs);
+}
+
+interface PayoutRule {
+  /** Grundmünzen eines Platzes (vor dem Finale-Faktor). */
+  readonly coins: (entry: MinigamePlacement) => number;
+  /** Zählen erste Plätze als Minispiel-Sieg (und bekommen Sieg-Items)? */
+  readonly wins: boolean;
+  /** Bekommt der letzte Platz den Trostpreis? */
+  readonly consolation: boolean;
+}
+
+/**
+ * Münz-Regel je Spielform (CHAOS-89): jeder gegen jeden nach `minigameRewards`, Teams und Koop
+ * nach `economy.teamRewards` (siehe `TeamRewards`).
+ */
+function payoutRule(
+  ctx: Ctx,
+  minigame: MinigameState,
+  outcome: MinigameOutcome | undefined,
+): PayoutRule {
+  const placeRewards = ctx.rules.economy.minigameRewards;
+  const teams = minigame.teams;
+  // 1 gegen 1 (Ersatz zu zweit) ist ein Duell wie jeder gegen jeden: gleiche Münzen (EXP-038).
+  if (!teams || !outcome || teams.layout === '1v1') {
+    return {
+      coins: (entry) => placeRewards[entry.place - 1] ?? 0,
+      wins: true,
+      consolation: true,
+    };
+  }
+  const rule = ctx.rules.economy.teamRewards ?? DEFAULT_TEAM_REWARDS;
+  if (outcome.kind === 'koop') {
+    const share = Math.max(0, Math.min(KOOP_MAX_TIER, outcome.tier)) / KOOP_MAX_TIER;
+    return {
+      coins: (entry) => Math.round((rule.koop[entry.place - 1] ?? 0) * share),
+      wins: false,
+      consolation: false,
+    };
+  }
+  const winners = outcome.winner === null ? null : (teams.teams[outcome.winner] ?? []);
+  const losers = teams.teams.filter((team) => team !== winners).flat();
+  const soloWin = winners !== null && winners.length === 1 && losers.length > 1;
+  return {
+    coins: (entry) => {
+      if (winners === null) return rule.draw;
+      if (!winners.includes(entry.slot)) return rule.lose;
+      return soloWin ? Math.round(rule.win * rule.soloWinFactor) : rule.win;
+    },
+    wins: true,
+    consolation: winners !== null && losers.length === 1,
+  };
 }

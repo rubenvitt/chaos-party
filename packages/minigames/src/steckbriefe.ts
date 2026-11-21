@@ -76,6 +76,39 @@ export const STECKBRIEFE: Readonly<Record<string, Steckbrief>> = {
     tempo: 'wechselnd',
     ort: 'teich',
   },
+  // Testspiel der Spielform 2v2 (CHAOS-89), nicht in der Rotation: bewusst nah an der Pump-Parade.
+  'pump-duell': {
+    kernverb: 'pumpen',
+    ziel: 'meiste',
+    arena: 'buehne',
+    kamera: 'fest',
+    bedienung: 'A',
+    spielform: '2v2',
+    tempo: 'hektisch',
+    ort: 'garten',
+  },
+  // Testspiel der Spielform 1v3 (CHAOS-89), nicht in der Rotation: bewusst nah an der Pump-Parade.
+  'pump-solo': {
+    kernverb: 'pumpen',
+    ziel: 'meiste',
+    arena: 'buehne',
+    kamera: 'fest',
+    bedienung: 'A',
+    spielform: '1v3',
+    tempo: 'hektisch',
+    ort: 'garten',
+  },
+  // Testspiel der Spielform Koop (CHAOS-89), nicht in der Rotation: bewusst nah an der Pump-Parade.
+  'pump-riese': {
+    kernverb: 'pumpen',
+    ziel: 'meiste',
+    arena: 'buehne',
+    kamera: 'fest',
+    bedienung: 'A',
+    spielform: 'Koop',
+    tempo: 'hektisch',
+    ort: 'garten',
+  },
 };
 
 export function getSteckbrief(id: string): Steckbrief | undefined {

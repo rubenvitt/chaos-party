@@ -250,6 +250,10 @@ function hasUniqueSlots(items: readonly { slot: number }[]): boolean {
   return new Set(items.map((item) => item.slot)).size === items.length;
 }
 
+function hasUniqueSlotList(slots: readonly number[]): boolean {
+  return new Set(slots).size === slots.length;
+}
+
 function stickInRange(stick: { x: number; y: number }): boolean {
   return Math.hypot(stick.x, stick.y) <= 1 + STICK_EPSILON;
 }
@@ -273,6 +277,51 @@ export const MinigameControlsSchema = z.strictObject({
   joystick: displayText(16).nullable(),
   a: displayText(16).nullable(),
   b: displayText(16).nullable(),
+});
+
+/** v4-Nachtrag (CHAOS-89): Spielformen mit Teams bzw. Koop (gleich `TEAM_FORMS` im SDK). */
+export const MINIGAME_TEAM_FORMS = ['1v3', '2v2', 'koop'] as const;
+/** Tatsächliche Aufstellung; `1v2`/`1v1` sind die Ersatzformen zu dritt bzw. zu zweit. */
+export const MINIGAME_TEAM_LAYOUTS = ['1v3', '2v2', '1v2', '1v1', 'koop'] as const;
+/** Höchste Koop-Stufe (gleich `KOOP_MAX_TIER` im SDK). */
+export const MINIGAME_KOOP_MAX_TIER = 3;
+
+/**
+ * v4-Nachtrag (CHAOS-89): Aufstellung eines Minispiels mit Teams bzw. Koop. Bei `1v3`/`1v2`/`1v1`
+ * ist Team 0 die Einzelperson, bei `koop` gibt es genau ein Team.
+ */
+export const MinigameTeamsSchema = z
+  .strictObject({
+    form: z.enum(MINIGAME_TEAM_FORMS),
+    layout: z.enum(MINIGAME_TEAM_LAYOUTS),
+    teams: z.array(z.array(SlotSchema).min(1).max(MAX_PLAYERS)).min(1).max(2),
+    soloAdvantage: z.boolean(),
+  })
+  .refine((value) => hasUniqueSlotList(value.teams.flat()), 'Slot in zwei Teams');
+
+/** v4-Nachtrag (CHAOS-89): Ausgang – Siegerteam (Index, `null` = Unentschieden) bzw. Koop-Stufe. */
+export const MinigameOutcomeSchema = z.discriminatedUnion('kind', [
+  z.strictObject({ kind: z.literal('teams'), winner: z.int().min(0).max(1).nullable() }),
+  z.strictObject({ kind: z.literal('koop'), tier: z.int().min(0).max(MINIGAME_KOOP_MAX_TIER) }),
+]);
+
+/**
+ * v4-Nachtrag (CHAOS-89): eigene Rolle am Controller. `solo` = allein gegen die anderen,
+ * `team` = in einem Team, `koop` = alle zusammen. `mates`/`opponents` ohne den eigenen Slot.
+ */
+export const ControllerMinigameTeamSchema = z.strictObject({
+  layout: z.enum(MINIGAME_TEAM_LAYOUTS),
+  role: z.enum(['solo', 'team', 'koop']),
+  /** Index des eigenen Teams (Erkennungszeichen wie am PC: 0 = ☀ Sonne, 1 = ☾ Mond). */
+  index: z.int().min(0).max(1),
+  mates: z.array(SlotSchema).max(MAX_PLAYERS - 1),
+  opponents: z.array(SlotSchema).max(MAX_PLAYERS - 1),
+  /** Zu dritt: Die Einzelperson hat einen Vorteil im Spiel. */
+  advantage: z.boolean(),
+  /** Nur in `results`: eigenes Team gewonnen, verloren oder Unentschieden (nicht bei Koop). */
+  result: z.enum(['won', 'lost', 'draw']).optional(),
+  /** Nur in `results` bei Koop: erreichte Stufe 0–3. */
+  tier: z.int().min(0).max(MINIGAME_KOOP_MAX_TIER).optional(),
 });
 
 /** Minispiel aus Sicht eines Controllers (Anleitung, Bedienung, eigenes Ergebnis). */
@@ -311,6 +360,11 @@ export const ControllerMinigameInfoSchema = z.strictObject({
    * Fehlt = `false`.
    */
   practice: z.boolean().optional(),
+  /**
+   * v4-Nachtrag (CHAOS-89, optional): eigene Rolle bei Teams bzw. Koop. Fehlt = jeder gegen
+   * jeden (bzw. älterer Server).
+   */
+  team: ControllerMinigameTeamSchema.optional(),
   /**
    * v4-Nachtrag (CHAOS-87, optional), nur in `results`: eigene Daumen-Stimme zu diesem Lauf.
    * Fehlt = noch nicht abgestimmt. Abstimmen geht, solange `actions` `rate` enthält.
@@ -598,6 +652,8 @@ export const MinigameResultMessageSchema = z.strictObject({
     .max(MAX_PLAYERS)
     .refine(hasUniqueSlots, 'Slots doppelt'),
   highlights: MinigameHighlightsSchema.optional(),
+  /** v4-Nachtrag (CHAOS-89, optional): Pflicht bei Teams bzw. Koop, sonst verboten (game-core). */
+  outcome: MinigameOutcomeSchema.optional(),
 });
 
 const hostOnlyMessageOptions = [
@@ -980,6 +1036,13 @@ export const BoardViewSchema = z.strictObject({
        * haben. Fehlt = die Anleitung wartet nicht auf Bereitschaft (feste Anleitungszeit).
        */
       ready: z.array(SlotSchema).max(MAX_PLAYERS).optional(),
+      /**
+       * v4-Nachtrag (CHAOS-89, optional): Aufstellung bei Teams bzw. Koop ab `minigame-intro`.
+       * Fehlt = jeder gegen jeden.
+       */
+      teams: MinigameTeamsSchema.optional(),
+      /** v4-Nachtrag (CHAOS-89, optional): Ausgang bei Teams bzw. Koop ab dem Ergebnis. */
+      outcome: MinigameOutcomeSchema.optional(),
       /** Seit Beginn von `minigame-play` vergangen (ms) oder `null` davor. */
       elapsedMs: z.int().nonnegative().nullable(),
       placements: z.array(MinigamePlacementSchema).max(MAX_PLAYERS).nullable(),

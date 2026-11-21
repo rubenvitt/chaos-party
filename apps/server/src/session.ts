@@ -691,6 +691,7 @@ export class Session {
       round: message.round,
       placements: message.placements,
       ...(message.highlights === undefined ? {} : { highlights: message.highlights }),
+      ...(message.outcome === undefined ? {} : { outcome: message.outcome }),
       at: this.now(),
     });
     if (result.ok) {

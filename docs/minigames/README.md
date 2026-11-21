@@ -131,7 +131,7 @@ Rubens Sorge beim Konzept-Gate (2026-11-16): Mit einem Baukasten könnten die Sp
 | # | Frage | Rubens Antwort | Folge |
 |---|---|---|---|
 | 1 | Fabrik-Ansatz | „ich habe angst, dass sie dann einem pattern folgen. aber wenn dem nicht so ist go for it“ | Freigegeben mit Auflage: Regeln gegen Gleichförmigkeit (§5.5), Prüfung bei der Zwischenabnahme |
-| 2 | Neue Spielformen 1v3, 2v2, Koop | „ja neue formen“ | `CHAOS-89` freigegeben. Münz-Regel aus dem Vorschlag ist Startwert, ein Experiment legt sie fest |
+| 2 | Neue Spielformen 1v3, 2v2, Koop | „ja neue formen“ | `CHAOS-89` freigegeben und umgesetzt (ADR-012 Nachtrag 8). Münz-Regel nach EXP-038: Sieg 7, Niederlage 2, Einzelsieg doppelt, Koop 12/9/6/3 × Stufe/3, 1 gegen 1 wie jeder gegen jeden; Testspiele Pump-Duell, Pump-Solo, Riesenballon |
 | 3 | Mikro-Spiele / Schnellfeuer | „ja bestimmt(?) aber als neue Mechanik dann?“ | Ja, als **eigene Mechanik**: Schnellfeuer ist eine eigene Rundenart, kein normales Minispiel (siehe unten) |
 | 4 | Geheime Wahl am geteilten iPad | „ja, aber da bringt das glaube ich wenig am ipad“ | Erlaubt. Die Rotation zieht diese Spiele bei iPad-Zonen deutlich seltener (`CHAOS-85`) |
 | 5 | Reihenfolge Pilot → Zwischenabnahme → Familien | „ja“ | Wie §8 |
