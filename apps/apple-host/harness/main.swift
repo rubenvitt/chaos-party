@@ -103,6 +103,14 @@ let randomBytes: @convention(block) (Int) -> [NSNumber] = { n in
   guard SecRandomCopyBytes(kSecRandomDefault, n, &bytes) == errSecSuccess else { fail("SecRandom") }
   return bytes.map { NSNumber(value: $0) }
 }
+// `env.storage` wie in der App (`hostStorage` in `HostRuntime.swift`, CHAOS-216), nur mit einem Dictionary.
+var storedItems: [String: String] = [:]
+let getItem: @convention(block) (String) -> String? = { key in storedItems[key] }
+let setItem: @convention(block) (String, String) -> Void = { key, value in storedItems[key] = value }
+let storage = JSValue(newObjectIn: ctx)!
+storage.setValue(unsafeBitCast(getItem, to: AnyObject.self), forProperty: "getItem")
+storage.setValue(unsafeBitCast(setItem, to: AnyObject.self), forProperty: "setItem")
+ctx.setObject(storage, forKeyedSubscript: "__storage" as NSString)
 for (name, value) in [("__send", send as Any), ("__close", close), ("__log", log), ("__randomBytes", randomBytes)] {
   ctx.setObject(value, forKeyedSubscript: name as NSString)
 }
@@ -143,10 +151,34 @@ out("Rotation: \(rotation.joined(separator: ", "))")
 t0 = Date()
 let host = ctx.evaluateScript("""
   ChaosHost.create({ send: __send, close: __close, log: __log, randomBytes: __randomBytes,
-    havokWasm: __havokWasm, joinUrl: 'http://192.168.0.2:8080/?code=\(joinCode)', joinCode: '\(joinCode)' })
+    havokWasm: __havokWasm, joinUrl: 'http://192.168.0.2:8080/?code=\(joinCode)', joinCode: '\(joinCode)',
+    storage: __storage })
   """)!
 out("create in \(Int(Date().timeIntervalSince(t0) * 1000)) ms")
 if host.isUndefined { fail("ChaosHost.create lieferte nichts") }
+
+// CHAOS-216: Minispiel umschalten über `hostCommand`, Stand in `env.storage`. Sperren, dann Favorit (hebt die Sperre
+// auf), dann Favorit zurück: Am Ende ist nichts markiert, damit die ganze Partie jedes Minispiel aufbaut.
+func lobbyMinigames() -> [RenderState.LobbyMinigame] {
+  guard let json = host.invokeMethod("renderState", withArguments: [])?.toString(),
+        let state = try? RenderState.decode(json) else { fail("renderState in der Lobby nicht dekodierbar") }
+  return state.lobby?.settings?.minigames ?? []
+}
+if lobbyMinigames().map(\.id) != rotation { fail("lobby.settings.minigames \(lobbyMinigames().map(\.id)) ≠ Rotation \(rotation)") }
+let storageKey = "chaos-party:minigame-rotation"
+for (cmd, blocked, favorite) in [("minigame:blocked=\(rotation[0])", true, false),
+                                 ("minigame:favorite=\(rotation[0])", false, true),
+                                 ("minigame:favorite=\(rotation[0])", false, false)] {
+  _ = host.invokeMethod("hostCommand", withArguments: [cmd])
+  let game = lobbyMinigames().first { $0.id == rotation[0] }
+  if game?.blocked != blocked || game?.favorite != favorite { fail("\(cmd): Stand \(String(describing: game))") }
+  guard let saved = storedItems[storageKey].flatMap({ try? JSONSerialization.jsonObject(with: Data($0.utf8)) as? [String: [String]] })
+  else { fail("\(cmd): nichts in env.storage[\(storageKey)]") }
+  if saved["blocklist"] != (blocked ? [rotation[0]] : []) || saved["favorites"] != (favorite ? [rotation[0]] : []) {
+    fail("\(cmd): env.storage \(saved)")
+  }
+}
+out("Minispiel-Rotation: Sperren/Favorit über hostCommand, Stand in env.storage")
 
 // --- Controller ------------------------------------------------------------------------------
 final class Controller {

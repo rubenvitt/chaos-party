@@ -40,7 +40,14 @@ import {
   type HostConnection,
   type SocketLike,
 } from '../../host/src/net/hostConnection.ts';
-import { boardOptions } from '../../host/src/lobby/lobbyState.ts';
+import {
+  boardOptions,
+  minigamePrefs,
+  minigameSummary,
+  toggleMinigame,
+  type MinigamePrefs,
+} from '../../host/src/lobby/lobbyState.ts';
+import { loadMinigamePrefs, saveMinigamePrefs } from '../../host/src/lobby/minigamePrefs.ts';
 import { createResultSender } from '../../host/src/net/resultSender.ts';
 import {
   intentToMinigameInput,
@@ -296,6 +303,13 @@ function create(env: HostEnv): ChaosHostInstance {
 
   // --- Host-Rolle -----------------------------------------------------------------------------
   let lobby: LobbyMessage | null = null;
+  /**
+   * Gespeicherte Sperrliste und Favoriten schon an den Server geschickt (CHAOS-216)? Wie der
+   * PC-Host einmal je Session, beim ersten Lobby-Stand mit Rotation; die Session lebt so lange
+   * wie diese Instanz.
+   */
+  let rotationSent = false;
+  const storage = env.storage ?? null;
   let view: BoardView | null = null;
   let receivedAt = 0;
   let nextEventSeq: number | null = null;
@@ -435,6 +449,18 @@ function create(env: HostEnv): ChaosHostInstance {
       },
       onLobby: (message) => {
         lobby = message;
+        if (!rotationSent && message.phase === 'lobby' && message.settings.minigames) {
+          // CHAOS-216: gemerkten Stand der Minispiel-Rotation wieder setzen (wie `App.tsx` am PC).
+          const stored = loadMinigamePrefs(storage);
+          if (stored === null || (stored.blocklist.length === 0 && stored.favorites.length === 0)) {
+            rotationSent = true;
+          } else if (sendMinigamePrefs(stored)) {
+            rotationSent = true;
+            log(
+              `Minispiel-Rotation aus dem Speicher: gesperrt ${String(stored.blocklist.length)}, Favoriten ${String(stored.favorites.length)}`,
+            );
+          }
+        }
         if (message.phase === 'lobby') {
           view = null;
           nextEventSeq = null;
@@ -473,6 +499,14 @@ function create(env: HostEnv): ChaosHostInstance {
       warn: log,
     },
   );
+  /** Ganze Listen per `configure` an den Server (CHAOS-216); `false`, wenn nicht verbunden. */
+  function sendMinigamePrefs(prefs: MinigamePrefs): boolean {
+    return connection.sendCommand({
+      type: 'configure',
+      minigameBlocklist: prefs.blocklist,
+      minigameFavorites: prefs.favorites,
+    });
+  }
   resultSender.setTransport((result) => connection.sendMinigameResult(result));
   // `host-ready` erst, wenn die App Brett und Figuren geladen hat (CHAOS-142, CHAOS-68); ohne
   // `deferSceneReady` (Harness, Tests) ist der Host sofort bereit.
@@ -687,6 +721,13 @@ function create(env: HostEnv): ChaosHostInstance {
                   selected: option.selected,
                   random: option.random,
                 })),
+                minigames: (lobby.settings.minigames ?? []).map((game) => ({
+                  id: game.id,
+                  title: game.title,
+                  blocked: game.blocked,
+                  favorite: game.favorite,
+                })),
+                minigameSummary: minigameSummary(lobby.settings),
               }
             : null,
         },
@@ -734,6 +775,24 @@ function create(env: HostEnv): ChaosHostInstance {
       } else if (command.type === 'configure' && session.phase !== 'lobby') {
         // Der Server lehnte es außerhalb der Lobby ab (`out-of-phase`); gar nicht erst senden.
         log(`Host-Befehl ${cmd} ignoriert: nur in der Lobby`);
+      } else if (command.type === 'toggle-minigame') {
+        // CHAOS-216: wie ein Klick im Dialog „Minispiele“ am PC (`onMinigames` in `App.tsx`).
+        const games = lobby?.settings.minigames ?? [];
+        if (session.phase !== 'lobby' || !lobby) {
+          log(`Host-Befehl ${cmd} ignoriert: nur in der Lobby`);
+        } else if (!games.some((game) => game.id === command.id)) {
+          log(`Host-Befehl ${cmd} ignoriert: Minispiel nicht in der Rotation`);
+        } else {
+          const prefs = toggleMinigame(
+            minigamePrefs(lobby.settings),
+            command.id,
+            command.kind,
+            games.map((game) => game.id),
+          );
+          saveMinigamePrefs(prefs, storage);
+          rotationSent = true;
+          if (!sendMinigamePrefs(prefs)) log(`Host-Befehl ${cmd} nicht gesendet (nicht verbunden)`);
+        }
       } else if (command.type === 'skip-finale') {
         if (!finaleShown() || !finale.skip()) log(`Host-Befehl ${cmd} ignoriert: kein Finale`);
       } else if (!commandFits(command.type)) {
@@ -741,6 +800,22 @@ function create(env: HostEnv): ChaosHostInstance {
         // (`out-of-phase`), und die Fernbedienung drückt man auch in der Lobby (CHAOS-145).
         log(`Host-Befehl ${cmd} ignoriert: passt gerade nicht`);
       } else {
+        if (
+          command.type === 'configure' &&
+          lobby &&
+          (command.minigameBlocklist !== undefined || command.minigameFavorites !== undefined)
+        ) {
+          // Ganze Listen von außen (CHAOS-216) ebenfalls merken, wie jede Wahl in der Lobby.
+          const current = minigamePrefs(lobby.settings);
+          saveMinigamePrefs(
+            {
+              blocklist: command.minigameBlocklist ?? current.blocklist,
+              favorites: command.minigameFavorites ?? current.favorites,
+            },
+            storage,
+          );
+          rotationSent = true;
+        }
         const sent =
           command.type === 'start' ? connection.sendStart() : connection.sendCommand(command);
         if (!sent) log(`Host-Befehl ${cmd} nicht gesendet (nicht verbunden)`);

@@ -28,9 +28,18 @@ const BOARD_CHOICES: LobbySettingsState['boards'] = [
   { id: 'zufall', name: 'Zufall', detail: 'Überraschung!', selected: false, random: true },
 ];
 
+/** Minispiele der Rotation (CHAOS-216), Katalog-Reihenfolge, nichts gesperrt, keine Favoriten. */
+const MINIGAMES: LobbySettingsState['minigames'] = [
+  { id: 'sockenregen', title: 'Sockenregen', blocked: false, favorite: false },
+  { id: 'pudding-gerangel', title: 'Pudding-Gerangel', blocked: false, favorite: false },
+  { id: 'wackelturm', title: 'Wackelturm', blocked: false, favorite: false },
+  { id: 'kuckucks-klatsche', title: 'Kuckucks-Klatsche', blocked: false, favorite: false },
+  { id: 'kruemel-kehraus', title: 'Krümel-Kehraus', blocked: false, favorite: false },
+];
+
 /**
  * Server-Standard: 10 Runden, Vorschläge 10/16/20, „Mehr Zeit zum Reagieren“ aus (CHAOS-166),
- * Brett Wackelwald (CHAOS-197).
+ * Brett Wackelwald (CHAOS-197), alle Minispiele im Topf (CHAOS-216).
  */
 const SETTINGS: LobbySettingsState = {
   rounds: 10,
@@ -38,6 +47,8 @@ const SETTINGS: LobbySettingsState = {
   moreReactionTime: false,
   board: 'wackelwald',
   boards: BOARD_CHOICES,
+  minigames: MINIGAMES,
+  minigameSummary: { short: '5 im Topf', long: '5 im Topf' },
 };
 
 const JOIN = {
@@ -678,7 +689,7 @@ const EXAMPLES: Readonly<Record<string, ExampleBase>> = {
     minigame: null,
   },
   // CHAOS-166: 12 ist kein Vorschlag (die Lobby zeigt sie zusätzlich), der Schalter ist an.
-  // CHAOS-197: Brett „Zufall“ gewählt.
+  // CHAOS-197: Brett „Zufall“ gewählt. CHAOS-216: ein Minispiel gesperrt, zwei Favoriten.
   'lobby-settings': {
     phase: 'lobby',
     lobby: {
@@ -690,6 +701,16 @@ const EXAMPLES: Readonly<Record<string, ExampleBase>> = {
         moreReactionTime: true,
         board: 'zufall',
         boards: BOARD_CHOICES.map((choice) => ({ ...choice, selected: choice.random })),
+        // CHAOS-216: Wackelturm gesperrt, Sockenregen und Krümel-Kehraus Favoriten.
+        minigames: MINIGAMES.map((game) => ({
+          ...game,
+          blocked: game.id === 'wackelturm',
+          favorite: game.id === 'sockenregen' || game.id === 'kruemel-kehraus',
+        })),
+        minigameSummary: {
+          short: '4 im Topf · 2 ★ · 1 ⦸',
+          long: '4 im Topf, 2 Favoriten, 1 gesperrt',
+        },
       },
     },
     board: null,

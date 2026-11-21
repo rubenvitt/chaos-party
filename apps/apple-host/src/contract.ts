@@ -13,7 +13,9 @@
 import {
   BoardChoiceSchema,
   CHARACTER_IDS,
+  LobbyMinigameSchema,
   MAX_BOARDS,
+  MAX_ROTATION_MINIGAMES,
   MAX_ROUND_PRESETS,
   MINIGAME_STAGES,
   RoundsSchema,
@@ -60,6 +62,20 @@ export interface HostEnv {
    * schnell wie möglich.
    */
   debugStageDelayMs?: number;
+  /**
+   * Kleiner Schlüssel-Wert-Speicher, der App-Neustarts überdauert (CHAOS-216; Swift:
+   * `UserDefaults`). Der Kern merkt sich darin Sperrliste und Favoriten der Minispiel-Rotation
+   * (Schlüssel `MINIGAME_PREFS_KEY` aus `apps/host/src/lobby/minigamePrefs.ts`, JSON) und schickt
+   * sie beim ersten Lobby-Stand an den Server, wie der PC-Host mit `localStorage`. Fehlt er,
+   * gilt der Stand nur bis zum Beenden. `getItem` liefert `null`, wenn nichts gespeichert ist.
+   */
+  storage?: HostStorage;
+}
+
+/** Ausschnitt von `Storage` (`getItem`/`setItem`), den Swift mit `UserDefaults` erfüllt. */
+export interface HostStorage {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
 }
 
 /** Host-Befehle, die `hostCommand` versteht (wie die Knöpfe am PC-Host). */
@@ -74,9 +90,21 @@ export const LOCAL_HOST_COMMANDS = ['skip-finale'] as const;
 export type LocalHostCommandName = (typeof LOCAL_HOST_COMMANDS)[number];
 
 /**
+ * Minispiel der Rotation umschalten (CHAOS-216), wie ein Klick im Dialog „Minispiele“ am PC-Host:
+ * `minigame:favorite=<id>` bzw. `minigame:blocked=<id>`. Der Kern rechnet den neuen Stand aus dem
+ * Server-Stand (`toggleMinigame`: Favorit und Sperre schließen sich aus), speichert ihn
+ * (`env.storage`) und schickt ihn als `configure` an den Server. Nur in der Lobby.
+ */
+export const MINIGAME_TOGGLE_PREFIX = 'minigame:';
+export const MINIGAME_TOGGLE_KINDS = ['favorite', 'blocked'] as const;
+export type MinigameToggleKind = (typeof MINIGAME_TOGGLE_KINDS)[number];
+
+/**
  * Lobby-Einstellungen über `hostCommand` (CHAOS-166), wie Rundenwahl und Schalter am PC-Host:
  * `configure:rounds=12`, `configure:moreReactionTime=1` (`0`/`1`/`true`/`false`),
- * `configure:board=wackelwald` (Brett-ID oder `zufall`, CHAOS-197) oder mehreres mit Komma:
+ * `configure:board=wackelwald` (Brett-ID oder `zufall`, CHAOS-197),
+ * `configure:minigameBlocklist=a+b,minigameFavorites=c` (ganze Listen der Minispiel-Rotation mit
+ * `+` getrennt, leer = keine, CHAOS-216) oder mehreres mit Komma:
  * `configure:rounds=12,moreReactionTime=1`. Runden 1–`MAX_ROUNDS`. Nur in der Lobby;
  * sonst und bei ungültigem Text loggt der Kern und sendet nichts. Ergebnis in
  * `renderState().lobby.settings`. Parser: `./hostCommand.ts`.
@@ -98,7 +126,8 @@ export interface ChaosHostInstance {
   /** JSON nach `RenderStateSchema`; Swift ruft es je Bild nach `tick` auf. */
   renderState(): string;
   /**
-   * Einer von `HOST_COMMANDS`, `LOCAL_HOST_COMMANDS` oder `configure:…` (`CONFIGURE_PREFIX`);
+   * Einer von `HOST_COMMANDS`, `LOCAL_HOST_COMMANDS`, `configure:…` (`CONFIGURE_PREFIX`) oder
+   * `minigame:…` (`MINIGAME_TOGGLE_PREFIX`, CHAOS-216);
    * Unbekanntes wird geloggt und ignoriert. `pause`, `resume` und `rematch` gehen nur an den
    * Server, wenn sie gerade passen (`renderState().pause.canPause`, `pause.paused`, Finale);
    * sonst loggt der Kern „ignoriert“ (CHAOS-145).
@@ -178,6 +207,17 @@ export const LobbySettingsStateSchema = z.strictObject({
       }),
     )
     .max(MAX_BOARDS + 1),
+  /**
+   * Minispiele der Rotation mit Sperr- und Favoriten-Stand in Katalog-Reihenfolge (CHAOS-216,
+   * `lobby.settings.minigames` vom Server, CHAOS-85); leer bei einem Server ohne Rotation.
+   * Umschalten über `hostCommand('minigame:favorite=<id>')` bzw. `minigame:blocked=<id>`.
+   */
+  minigames: z.array(LobbyMinigameSchema).max(MAX_ROTATION_MINIGAMES),
+  /**
+   * Stand für den Knopf „Minispiele“ (`minigameSummary` aus `apps/host/src/lobby/lobbyState.ts`):
+   * `short` „4 im Topf · 2 ★ · 1 ⦸“, `long` zum Vorlesen; `null` ohne Minispiele.
+   */
+  minigameSummary: z.strictObject({ short: z.string(), long: z.string() }).nullable(),
 });
 
 export const BoardSpaceSchema = z.strictObject({
