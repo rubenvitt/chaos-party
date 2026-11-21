@@ -1652,6 +1652,342 @@
           "license": "GPL-3.0-only",
           "from": ["figur-sock"],
           "budgetBytes": 2097152
+        },
+        {
+          "id": "apple-requisit-eichel",
+          "path": "requisiten/eichel.usdz",
+          "description": "Requisit „eichel“ (Set fangen) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-eichel"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-eichel-faul",
+          "path": "requisiten/eichel-faul.usdz",
+          "description": "Requisit „eichel-faul“ (Set fangen) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-eichel-faul"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-kescher",
+          "path": "requisiten/kescher.usdz",
+          "description": "Requisit „kescher“ (Set fangen) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-kescher"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-sammelkorb",
+          "path": "requisiten/sammelkorb.usdz",
+          "description": "Requisit „sammelkorb“ (Set fangen) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-sammelkorb"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-rasensprenger",
+          "path": "requisiten/rasensprenger.usdz",
+          "description": "Requisit „rasensprenger“ (Set ausweichen) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-rasensprenger"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-schlauchtrommel",
+          "path": "requisiten/schlauchtrommel.usdz",
+          "description": "Requisit „schlauchtrommel“ (Set ausweichen) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-schlauchtrommel"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-eiswuerfel",
+          "path": "requisiten/eiswuerfel.usdz",
+          "description": "Requisit „eiswuerfel“ (Set rempeln) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-eiswuerfel"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-limoglas",
+          "path": "requisiten/limoglas.usdz",
+          "description": "Requisit „limoglas“ (Set rempeln) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-limoglas"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-zitronenscheibe",
+          "path": "requisiten/zitronenscheibe.usdz",
+          "description": "Requisit „zitronenscheibe“ (Set rempeln) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-zitronenscheibe"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-strohhalm",
+          "path": "requisiten/strohhalm.usdz",
+          "description": "Requisit „strohhalm“ (Set rempeln) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-strohhalm"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-toaster",
+          "path": "requisiten/toaster.usdz",
+          "description": "Requisit „toaster“ (Set timing) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-toaster"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-toast",
+          "path": "requisiten/toast.usdz",
+          "description": "Requisit „toast“ (Set timing) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-toast"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-mausefalle",
+          "path": "requisiten/mausefalle.usdz",
+          "description": "Requisit „mausefalle“ (Set reflex) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-mausefalle"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-kaese",
+          "path": "requisiten/kaese.usdz",
+          "description": "Requisit „kaese“ (Set reflex) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-kaese"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-bienenstock",
+          "path": "requisiten/bienenstock.usdz",
+          "description": "Requisit „bienenstock“ (Set zocken) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-bienenstock"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-honigtopf",
+          "path": "requisiten/honigtopf.usdz",
+          "description": "Requisit „honigtopf“ (Set zocken) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-honigtopf"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-biene",
+          "path": "requisiten/biene.usdz",
+          "description": "Requisit „biene“ (Set zocken) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-biene"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-tuer",
+          "path": "requisiten/tuer.usdz",
+          "description": "Requisit „tuer“ (Set bluff) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-tuer"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-tuerschild",
+          "path": "requisiten/tuerschild.usdz",
+          "description": "Requisit „tuerschild“ (Set bluff) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-tuerschild"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-matscheimer",
+          "path": "requisiten/matscheimer.usdz",
+          "description": "Requisit „matscheimer“ (Set revier) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-matscheimer"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-regenwolke",
+          "path": "requisiten/regenwolke.usdz",
+          "description": "Requisit „regenwolke“ (Set revier) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-regenwolke"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-zaunfeld",
+          "path": "requisiten/zaunfeld.usdz",
+          "description": "Requisit „zaunfeld“ (Set kulisse-garten) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-zaunfeld"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-blumentopf",
+          "path": "requisiten/blumentopf.usdz",
+          "description": "Requisit „blumentopf“ (Set kulisse-garten) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-blumentopf"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-giesskanne",
+          "path": "requisiten/giesskanne.usdz",
+          "description": "Requisit „giesskanne“ (Set kulisse-garten) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-giesskanne"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-kochtopf",
+          "path": "requisiten/kochtopf.usdz",
+          "description": "Requisit „kochtopf“ (Set kulisse-kueche) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-kochtopf"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-milchkanne",
+          "path": "requisiten/milchkanne.usdz",
+          "description": "Requisit „milchkanne“ (Set kulisse-kueche) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-milchkanne"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-holzloeffel",
+          "path": "requisiten/holzloeffel.usdz",
+          "description": "Requisit „holzloeffel“ (Set kulisse-kueche) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-holzloeffel"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-badewanne",
+          "path": "requisiten/badewanne.usdz",
+          "description": "Requisit „badewanne“ (Set kulisse-bad) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-badewanne"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-quietscheente",
+          "path": "requisiten/quietscheente.usdz",
+          "description": "Requisit „quietscheente“ (Set kulisse-bad) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-quietscheente"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-seifenstueck",
+          "path": "requisiten/seifenstueck.usdz",
+          "description": "Requisit „seifenstueck“ (Set kulisse-bad) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-seifenstueck"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-seerose",
+          "path": "requisiten/seerose.usdz",
+          "description": "Requisit „seerose“ (Set kulisse-teich) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-seerose"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-schilf",
+          "path": "requisiten/schilf.usdz",
+          "description": "Requisit „schilf“ (Set kulisse-teich) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-schilf"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-steg",
+          "path": "requisiten/steg.usdz",
+          "description": "Requisit „steg“ (Set kulisse-teich) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-steg"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-bauklotz",
+          "path": "requisiten/bauklotz.usdz",
+          "description": "Requisit „bauklotz“ (Set kulisse-spielzimmer) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-bauklotz"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-spielball",
+          "path": "requisiten/spielball.usdz",
+          "description": "Requisit „spielball“ (Set kulisse-spielzimmer) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-spielball"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-spielkiste",
+          "path": "requisiten/spielkiste.usdz",
+          "description": "Requisit „spielkiste“ (Set kulisse-spielzimmer) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-spielkiste"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-baumstumpf",
+          "path": "requisiten/baumstumpf.usdz",
+          "description": "Requisit „baumstumpf“ (Set kulisse-wald) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-baumstumpf"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-fliegenpilz",
+          "path": "requisiten/fliegenpilz.usdz",
+          "description": "Requisit „fliegenpilz“ (Set kulisse-wald) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-fliegenpilz"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-ast",
+          "path": "requisiten/ast.usdz",
+          "description": "Requisit „ast“ (Set kulisse-wald) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-ast"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-truhe",
+          "path": "requisiten/truhe.usdz",
+          "description": "Requisit „truhe“ (Set kulisse-dachboden) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-truhe"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-koffer",
+          "path": "requisiten/koffer.usdz",
+          "description": "Requisit „koffer“ (Set kulisse-dachboden) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-koffer"],
+          "budgetBytes": 163840
+        },
+        {
+          "id": "apple-requisit-lampe",
+          "path": "requisiten/lampe.usdz",
+          "description": "Requisit „lampe“ (Set kulisse-dachboden) als USDZ direkt aus dem bpy-Skript (CHAOS-221): Vertexfarben als Farbtextur (256²) gebacken, UsdPreviewSurface je Material, Laufzeit-Materialien akzent/zustand weiß.",
+          "license": "GPL-3.0-only",
+          "from": ["requisit-lampe"],
+          "budgetBytes": 163840
         }
       ]
     }
