@@ -80,6 +80,11 @@ test.describe('Spielformen mit Teams (CHAOS-89)', () => {
     await expect(lineup).toHaveAttribute('data-layout', '2v2');
     await expect(host.getByTestId('minigame-team-0')).toContainText('Team Sonne');
     await expect(host.getByTestId('minigame-team-1')).toContainText('Team Mond');
+    // Erst wenn die Bühne steht (Arena, Pause-Knopf), sonst fotografiert der Test je nach
+    // Ladezeit des Minispiel-Chunks den Platzhalter-Himmel (CHAOS-229, wie m3-minispiele-bild).
+    await host.waitForFunction(() => window.__chaosMinigame?.ready === true, null, {
+      timeout: 30_000,
+    });
     await expect(host.getByTestId('minigame-intro')).toHaveScreenshot(
       'spielform-2v2-anleitung.png',
       // Mitglieder hängen an der Zufallszuteilung; Teams, Symbole und Anleitung bleiben im Bild.
