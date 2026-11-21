@@ -17,6 +17,11 @@ Sets (Familie aus `docs/minigames/katalog.md`):
 Kulissen nach Ort (für die Arena-Vorlagen aus CHAOS-83):
 - kulisse-garten: zaunfeld, blumentopf, giesskanne
 - kulisse-kueche: kochtopf, milchkanne, holzloeffel
+- kulisse-bad: badewanne, quietscheente, seifenstueck (CHAOS-222)
+- kulisse-teich: seerose, schilf, steg (CHAOS-222)
+- kulisse-spielzimmer: bauklotz, spielball, spielkiste (CHAOS-222)
+- kulisse-wald: baumstumpf, fliegenpilz, ast (CHAOS-222)
+- kulisse-dachboden: truhe, koffer, lampe (CHAOS-222)
 """
 
 from __future__ import annotations
@@ -449,6 +454,271 @@ def holzloeffel() -> Prop:
     return p
 
 
+# ---------------------------------------------------------------------------------------------
+# Kulissen weiterer Orte (CHAOS-222): Bad, Teich, Spielzimmer, Wald, Dachboden. Farben passend
+# zu den Farbwelten `PLACES` der Arena-Vorlagen (packages/minigame-kit/src/babylon/arena.ts).
+# ---------------------------------------------------------------------------------------------
+
+
+def badewanne() -> Prop:
+    """Ovale Klauenfuß-Wanne (1,6 m) mit Wasser, Chromfüßen und Wasserhahn am Kopfende (+X)."""
+    p = Prop("badewanne")
+    wanne = r.gefaess(p, [(0.3, 0.14), (0.35, 0.2), (0.4, 0.66)], P["fliese"], wall=0.04, mat="lack", inner=P["weiss"], segments=32)
+    r.streck(wanne, (2.0, 1.0, 1.0))
+    wasser = r.drehkoerper(p, [(0.33, 0.5), (0.355, 0.56)], P["wasser"], mat="glas", segments=32)
+    r.streck(wasser, (2.0, 1.0, 1.0))
+    for x in (-0.52, 0.52):
+        for y in (-0.2, 0.2):
+            r.kugel(p, (x, y, 0.08), 0.08, P["chrom"], scale=(1, 1, 1.3), mat="metall", segments=12)
+    r.stab(p, [(0.86, 0, 0.6), (0.86, 0, 0.84), (0.72, 0, 0.88), (0.66, 0, 0.8)], 0.03, P["chrom"], "metall")
+    for y in (-0.09, 0.09):
+        r.kugel(p, (0.86, y, 0.7), 0.04, P["chrom"], mat="metall", segments=10)
+    return p
+
+
+def quietscheente() -> Prop:
+    """Quietscheente (≈ 0,5 m, Spielzeug-groß): Bauch, Kopf, Schnabel vorn (−Y), Schwanzspitze."""
+    p = Prop("quietscheente")
+    r.kugel(p, (0, 0.02, 0.17), 0.22, P["ente"], scale=(0.85, 1.15, 0.75))
+    r.kugel(p, (0, 0.23, 0.26), 0.07, P["ente"], scale=(0.8, 1, 1.2), segments=12)  # Schwanz
+    r.kugel(p, (0, -0.12, 0.38), 0.13, P["ente"])
+    r.kugel(p, (0, -0.25, 0.35), 0.07, P["schnabel"], scale=(1.1, 1.0, 0.45), segments=14)
+    for sx in (-1, 1):
+        r.kugel(p, (sx * 0.17, 0.04, 0.2), 0.09, r.mix(P["ente"], P["schnabel"], 0.15), scale=(0.35, 1.2, 0.6), segments=12)
+        r.kugel(p, (sx * 0.06, -0.22, 0.43), 0.03, P["weiss"], segments=10)
+        r.kugel(p, (sx * 0.065, -0.245, 0.435), 0.016, P["tinte"], segments=8)
+    return p
+
+
+def seifenstueck() -> Prop:
+    """Seifenstück mit Schaumblasen auf einer flachen Seifenschale."""
+    p = Prop("seifenstueck")
+    r.gefaess(p, [(0.2, 0.0), (0.26, 0.05)], P["weiss"], wall=0.02, mat="lack", segments=24)
+    schale = p.parts["lack"][-1]
+    r.streck(schale, (1.35, 1.0, 1.0))
+    seife = r.kasten(p, (0, 0, 0.1), (0.34, 0.2, 0.1), P["seife"], radius=0.04)
+    r.rotate(seife, (0, 0, 8))
+    for i, (x, y, rad) in enumerate([(0.05, 0.0, 0.05), (-0.06, 0.04, 0.04), (0.11, 0.05, 0.03), (-0.1, -0.05, 0.035), (0.0, -0.06, 0.03)]):
+        r.kugel(p, (x, y, 0.15 + rad * 0.4), rad, r.mix(P["weiss"], P["wasser"], 0.15 * (i % 2)), mat="glas", segments=12)
+    return p
+
+
+def seerose() -> Prop:
+    """Seerosenblatt mit Kerbe und weiß-rosa Blüte (schwimmt: Boden = Wasserlinie)."""
+    p = Prop("seerose")
+    pad = k.cylinder("seerose-blatt", (0, 0, 0.015), 0.48, 0.03, segments=32)
+
+    def paint(pt: Vector, n: Vector) -> k.Color:
+        a = math.atan2(pt.y, pt.x)
+        if abs(a + math.pi / 2) < 0.18 and math.hypot(pt.x, pt.y) > 0.08:
+            return P["wasser"]  # Kerbe als Wasser-Keil
+        vein = abs(math.sin(a * 7)) < 0.08
+        return P["laub_dunkel"] if vein else P["laub"]
+
+    k.paint(pad, paint)
+    p.add(pad, mat="lack")
+    for ring_i, (count, length, lift) in enumerate([(8, 0.3, 30), (6, 0.22, 55)]):
+        for i in range(count):
+            angle = 360 * i / count + ring_i * 30
+            petal = k.sphere(f"seerose-bluete{ring_i}-{i}", (0, 0, 0), length * 0.5, scale=(1, 0.42, 0.18), segments=12, rings=6)
+            r.move(petal, (length * 0.5, 0, 0))
+
+            def tip(pt: Vector, n: Vector, length: float = length) -> k.Color:
+                return r.mix(P["seerose"], P["seerose_spitze"], max(0.0, (pt.x - length * 0.55) / (length * 0.45)))
+
+            k.paint(petal, tip)
+            r.rotate(petal, (0, -lift, angle))
+            p.add(r.move(petal, (0, 0.04, 0.05)), mat="lack")
+    r.kugel(p, (0, 0.04, 0.1), 0.06, P["gelb"], scale=(1, 1, 0.7), segments=12)
+    return p
+
+
+def schilf() -> Prop:
+    """Schilfbüschel mit Rohrkolben (≈ 1,4 m) auf einem Matschhügel."""
+    p = Prop("schilf")
+    r.kugel(p, (0, 0, 0.0), 0.3, P["matsch"], scale=(1, 0.8, 0.3), mat="matt", segments=16)
+    stems = [(0.0, 0.0, 1.35, 4), (0.12, 0.06, 1.15, -6), (-0.1, 0.05, 1.25, 7), (0.05, -0.1, 1.0, -3), (-0.06, -0.07, 0.9, 5)]
+    for i, (x, y, h, lean) in enumerate(stems):
+        top = (x + math.sin(math.radians(lean)) * h * 0.25, y, h)
+        r.stab(p, [(x, y, 0.05), (x + (top[0] - x) * 0.5, y, h * 0.55), top], 0.014, P["schilf"], "matt", around=6)
+        if i < 3:
+            r.kugel(p, (top[0], y, h - 0.17), 0.045, P["kolben"], scale=(1, 1, 3.2), mat="matt", segments=10)
+    for i, (turn, length) in enumerate([(70, 0.85), (115, 0.7), (250, 0.8), (300, 0.6)]):
+        r.blatt(p, (0, 0, 0.06), length, r.mix(P["schilf"], P["laub_dunkel"], 0.3 * (i % 2)), width=0.08, turn=(0, -72 + 4 * i, turn))
+    return p
+
+
+def steg() -> Prop:
+    """Stück Holzsteg (1,2 × 0,8 m): Planken quer, zwei Längsbalken, vier Pfähle bis zum Boden."""
+    p = Prop("steg")
+    for i in range(6):
+        x = -0.5 + i * 0.2
+        r.brett(p, (x, 0, 0.52), (0.18, 0.8, 0.05), r.mix(P["holz"], P["holz_hell"], 0.3 * (i % 2)), grain=P["holz_dunkel"])
+    for y in (-0.3, 0.3):
+        r.brett(p, (0, y, 0.45), (1.2, 0.08, 0.1), P["holz_dunkel"], grain=P["rinde"])
+        for x in (-0.52, 0.52):
+            r.stab(p, [(x, y, 0.0), (x, y, 0.62)], 0.06, P["rinde"], "matt", around=10)
+    r.ring(p, (0.52, -0.3, 0.56), 0.075, 0.018, P["stroh"], mat="matt", segments=16)  # Seilschlinge
+    return p
+
+
+def bauklotz() -> Prop:
+    """Bauklotz-Turm: roter Würfel, Holzwürfel, gelbe Säule, hellblaues Dach (Spielzimmer)."""
+    p = Prop("bauklotz")
+    r.kasten(p, (0, 0, 0.16), (0.32, 0.32, 0.32), P["rot"], radius=0.025)
+    hk = r.kasten(p, (0.04, 0.0, 0.47), (0.3, 0.3, 0.3), P["holz_hell"], radius=0.025, mat="matt")
+    r.rotate(hk, (0, 0, 18), pivot=(0.04, 0, 0.47))
+    saeule = k.cylinder("bauklotz-saeule", (0, 0, 0.75), 0.12, 0.26, segments=20)
+    for poly in saeule.data.polygons:
+        poly.use_smooth = abs(poly.normal.z) < 0.5  # Deckel flach schattiert, Mantel glatt
+    p.add(saeule, P["gelb"])
+    r.prisma(p, (0, 0, 0.88), (0.36, 0.26, 0.2), P["hellblau"])
+    return p
+
+
+def spielball() -> Prop:
+    """Wasserball mit sechs Bahnen (rot, gelb, hellblau im Wechsel mit Weiß), weiße Pole."""
+    p = Prop("spielball")
+    ball = k.sphere("spielball-kugel", (0, 0, 0), 0.3, segments=24, rings=12)
+    colors = [P["rot"], P["weiss"], P["gelb"], P["weiss"], P["hellblau"], P["weiss"]]
+
+    def paint(pt: Vector) -> k.Color:
+        if abs(pt.z) > 0.26:
+            return P["weiss"]
+        a = (math.atan2(pt.y, pt.x) + math.pi) / (2 * math.pi)
+        return colors[int(a * 6) % 6]
+
+    r.flaechen(ball, paint)
+    p.add(r.move(ball, (0, 0, 0.3)), mat="lack")
+    r.kugel(p, (0, 0, 0.6), 0.03, P["weiss"], segments=8)  # Ventil
+    return p
+
+
+def spielkiste() -> Prop:
+    """Spielzeugkiste aus Holz mit offenem Deckel, lila Zierband und bunten Kugeln drin."""
+    p = Prop("spielkiste")
+    w, d, h, t = 0.9, 0.56, 0.48, 0.04
+    r.brett(p, (0, 0, t / 2), (w, d, t), P["holz_hell"], grain=P["holz"])
+    for y in (-d / 2 + t / 2, d / 2 - t / 2):
+        r.brett(p, (0, y, h / 2), (w, t, h), P["holz_hell"], grain=P["holz"])
+    for x in (-w / 2 + t / 2, w / 2 - t / 2):
+        r.brett(p, (x, 0, h / 2), (t, d, h), P["holz_hell"], grain=P["holz"])
+    r.kasten(p, (0, -d / 2 - 0.004, h * 0.55), (w * 0.9, 0.012, 0.09), P["lila"], radius=0.005)
+    lid = r.brett(p, (0, d / 2 + 0.2, h + 0.02), (w + 0.04, 0.42, 0.045), P["holz_hell"], grain=P["holz"])
+    r.rotate(lid, (-35, 0, 0), pivot=(0, d / 2, h + 0.02))
+    for i, (x, y, rad, col) in enumerate([(-0.22, -0.05, 0.12, P["rot"]), (0.05, 0.06, 0.13, P["hellblau"]), (0.25, -0.08, 0.1, P["gelb"])]):
+        r.kugel(p, (x, y, h - 0.04), rad, col, segments=14)
+    for x in (-w / 2 - 0.02, w / 2 + 0.02):
+        r.ring(p, (x, 0, h * 0.7), 0.06, 0.014, P["holz_dunkel"], tilt=(0, 90, 0), mat="matt", segments=14)
+    return p
+
+
+def baumstumpf() -> Prop:
+    """Baumstumpf mit Jahresringen, Rindenfurchen, drei Wurzeln und Moospolster."""
+    p = Prop("baumstumpf")
+    prof = [(0.42, 0.0), (0.36, 0.06), (0.32, 0.18), (0.31, 0.5), (0.3, 0.55)]
+    stumpf = k.lathe("baumstumpf-holz", [(0.0, 0.0)] + prof + [(0.0, 0.55)], segments=28)
+
+    def paint(pt: Vector, n: Vector) -> k.Color:
+        rr = math.hypot(pt.x, pt.y)
+        if n.z > 0.7 and pt.z > 0.5:
+            ring_i = math.sin(rr * 70)
+            return r.mix(P["holz_hell"], P["holz"], 0.35 + 0.35 * ring_i) if rr < 0.26 else P["holz"]
+        groove = abs(math.sin(math.atan2(pt.y, pt.x) * 11 + pt.z * 3)) < 0.25
+        return r.mix(P["rinde"], P["tinte"], 0.25) if groove else P["rinde"]
+
+    k.paint(stumpf, paint)
+    p.add(stumpf, mat="matt")
+    for a in (20, 140, 260):
+        rad = math.radians(a)
+        c, s = math.cos(rad), math.sin(rad)
+        r.stab(p, [(c * 0.25, s * 0.25, 0.14), (c * 0.45, s * 0.45, 0.06), (c * 0.6, s * 0.6, 0.02)], 0.06, P["rinde"], "matt", around=8)
+    r.kugel(p, (0.16, -0.12, 0.55), 0.12, P["moos"], scale=(1, 0.8, 0.25), mat="matt", segments=12)
+    return p
+
+
+def fliegenpilz() -> Prop:
+    """Großer Fliegenpilz (≈ 0,7 m) mit weißen Tupfen, Lamellen, Manschette; kleiner Pilz daneben."""
+    p = Prop("fliegenpilz")
+    for (x, y, size) in [(0.0, 0.0, 1.0), (0.3, 0.12, 0.45)]:
+        stiel = [(0.1 * size, 0.0), (0.09 * size, 0.2 * size), (0.075 * size, 0.45 * size)]
+        r.drehkoerper(p, stiel, P["creme"], mat="matt", at=(x, y, 0), segments=16)
+        if size > 0.6:
+            r.ring(p, (x, y, 0.33), 0.09, 0.018, P["weiss"], mat="matt", segments=16)
+        hut = k.sphere(f"fliegenpilz-hut{size}", (0, 0, 0), 0.3 * size, scale=(1, 1, 0.55), segments=24, rings=12)
+
+        def paint(pt: Vector, n: Vector, size: float = size) -> k.Color:
+            if pt.z < 0.02 * size:
+                return P["creme"]  # Lamellen
+            spot = math.sin(pt.x / size * 26) * math.sin(pt.y / size * 24 + 1.0) * math.sin(pt.z / size * 30)
+            return P["weiss"] if spot > 0.55 else P["pilz_rot"]
+
+        k.paint(hut, paint)
+        p.add(r.move(hut, (x, y, 0.45 * size)), mat="lack")
+    return p
+
+
+def ast() -> Prop:
+    """Abgebrochener Ast (1,2 m) am Boden mit zwei Zweigen und ein paar Blättern."""
+    p = Prop("ast")
+    r.stab(p, [(-0.6, 0.0, 0.06), (-0.2, 0.04, 0.07), (0.2, -0.03, 0.06), (0.6, 0.02, 0.05)], 0.055, P["rinde"], "matt", around=10)
+    r.drehkoerper(p, [(0.05, -0.62), (0.05, -0.6)], P["holz_hell"], mat="matt", segments=10)
+    r.rotate(p.parts["matt"][-1], (0, 90, 0))
+    r.stab(p, [(-0.1, 0.03, 0.08), (0.0, 0.25, 0.12), (0.12, 0.42, 0.16)], 0.025, P["rinde"], "matt", around=8)
+    r.stab(p, [(0.25, -0.02, 0.07), (0.38, -0.22, 0.1), (0.42, -0.36, 0.15)], 0.022, P["rinde"], "matt", around=8)
+    for (x, y, z, turn) in [(0.12, 0.42, 0.16, (0, -20, 50)), (0.0, 0.25, 0.12, (0, -15, 140)), (0.42, -0.36, 0.15, (0, -25, -60)), (0.38, -0.22, 0.1, (0, -10, -150))]:
+        r.blatt(p, (x, y, z), 0.18, P["laub"], width=0.45, turn=turn)
+    return p
+
+
+def truhe() -> Prop:
+    """Holztruhe mit gewölbtem Deckel, Eisenbändern und Messingschloss vorn (−Y)."""
+    p = Prop("truhe")
+    w, d, h = 0.9, 0.55, 0.42
+    r.brett(p, (0, 0, h / 2), (w, d, h), P["holz"], grain=P["holz_dunkel"])
+    deckel = k.cylinder("truhe-deckel", (0, 0, 0), d / 2, w, segments=24, axis="X")
+    r.streck(deckel, (1.0, 1.0, 0.5))
+    k.paint(deckel, lambda pt, n: r.mix(P["holz"], P["holz_dunkel"], 0.5 + 0.5 * math.sin(pt.x * 9 + pt.z * 30)))
+    p.add(r.move(deckel, (0, 0, h)), mat="matt")
+    for x in (-0.3, 0.3):
+        r.kasten(p, (x, 0, h / 2), (0.06, d + 0.02, h + 0.01), P["blech_dunkel"], radius=0.01, mat="metall")
+        band = k.cylinder("truhe-band", (0, 0, 0), d / 2 + 0.01, 0.06, segments=24, axis="X")
+        r.streck(band, (1.0, 1.0, 0.52))
+        p.add(r.move(band, (x, 0, h)), P["blech_dunkel"], "metall")
+    r.kasten(p, (0, -d / 2 - 0.02, h - 0.05), (0.1, 0.03, 0.12), P["messing"], radius=0.012, mat="metall")
+    return p
+
+
+def koffer() -> Prop:
+    """Alter Lederkoffer, aufrecht: zwei Riemen, Griff oben, Metallecken, Reiseaufkleber vorn."""
+    p = Prop("koffer")
+    w, d, h = 0.75, 0.24, 0.55
+    r.kasten(p, (0, 0, h / 2), (w, d, h), P["leder"], radius=0.04, mat="matt")
+    for x in (-0.2, 0.2):
+        r.kasten(p, (x, 0, h / 2), (0.06, d + 0.012, h + 0.012), P["leder_hell"], radius=0.012, mat="matt")
+        r.kasten(p, (x, -d / 2 - 0.008, h * 0.62), (0.07, 0.012, 0.05), P["messing"], radius=0.006, mat="metall")
+    r.henkel(p, [(-0.1, 0, h), (-0.08, 0, h + 0.08), (0.08, 0, h + 0.08), (0.1, 0, h)], 0.02, P["leder_hell"], "matt")
+    for x in (-w / 2 + 0.02, w / 2 - 0.02):
+        for z in (0.03, h - 0.03):
+            r.kugel(p, (x, 0, z), 0.04, P["messing"], scale=(0.8, 1.6, 0.8), mat="metall", segments=10)
+    for (x, z, col, rad) in [(0.0, 0.2, P["gelb"], 0.07), (-0.08, 0.4, P["hellblau"], 0.05), (0.32, 0.36, P["creme"], 0.045)]:
+        disc = k.cylinder("koffer-aufkleber", (0, 0, 0), rad, 0.008, segments=18, axis="Y")
+        p.add(r.move(disc, (x, -d / 2 - 0.004, z)), col, "lack")
+    return p
+
+
+def lampe() -> Prop:
+    """Petroleumlampe: Messingfuß, Glastank, Glaszylinder mit Bauch, leuchtende Flamme, Henkel."""
+    p = Prop("lampe")
+    r.drehkoerper(p, [(0.16, 0.0), (0.16, 0.03), (0.07, 0.08), (0.06, 0.12)], P["messing"], mat="metall", segments=24)
+    r.drehkoerper(p, [(0.06, 0.12), (0.15, 0.18), (0.15, 0.24), (0.07, 0.3)], r.mix(P["messing"], P["flamme"], 0.4), mat="glas", segments=24)
+    r.drehkoerper(p, [(0.08, 0.3), (0.08, 0.34)], P["messing"], mat="metall", segments=20)
+    r.kugel(p, (0, 0, 0.43), 0.03, P["flamme"], scale=(1, 1, 2.0), segments=12)
+    r.gefaess(p, [(0.065, 0.34), (0.11, 0.42), (0.07, 0.52), (0.06, 0.62)], P["eis"], wall=0.008, mat="glas", segments=24)
+    r.henkel(p, [(0.15, 0, 0.06), (0.24, 0, 0.12), (0.22, 0, 0.24), (0.14, 0, 0.22)], 0.014, P["messing"], "metall")
+    return p
+
+
 PROPS: dict[str, Callable[[], Prop]] = {
     "eichel": eichel,
     "eichel-faul": eichel_faul,
@@ -477,4 +747,31 @@ PROPS: dict[str, Callable[[], Prop]] = {
     "kochtopf": kochtopf,
     "milchkanne": milchkanne,
     "holzloeffel": holzloeffel,
+    "badewanne": badewanne,
+    "quietscheente": quietscheente,
+    "seifenstueck": seifenstueck,
+    "seerose": seerose,
+    "schilf": schilf,
+    "steg": steg,
+    "bauklotz": bauklotz,
+    "spielball": spielball,
+    "spielkiste": spielkiste,
+    "baumstumpf": baumstumpf,
+    "fliegenpilz": fliegenpilz,
+    "ast": ast,
+    "truhe": truhe,
+    "koffer": koffer,
+    "lampe": lampe,
 }
+
+
+KULISSEN: dict[str, list[str]] = {
+    "garten": ["zaunfeld", "blumentopf", "giesskanne"],
+    "kueche": ["kochtopf", "milchkanne", "holzloeffel"],
+    "bad": ["badewanne", "quietscheente", "seifenstueck"],
+    "teich": ["seerose", "schilf", "steg"],
+    "spielzimmer": ["bauklotz", "spielball", "spielkiste"],
+    "wald": ["baumstumpf", "fliegenpilz", "ast"],
+    "dachboden": ["truhe", "koffer", "lampe"],
+}
+"""Kulissen-Set je Ort der Arena-Vorlagen (`kulisse-<ort>` in props.ts), für den Kulissen-Bogen."""

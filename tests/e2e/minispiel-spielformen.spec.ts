@@ -80,11 +80,12 @@ test.describe('Spielformen mit Teams (CHAOS-89)', () => {
     await expect(lineup).toHaveAttribute('data-layout', '2v2');
     await expect(host.getByTestId('minigame-team-0')).toContainText('Team Sonne');
     await expect(host.getByTestId('minigame-team-1')).toContainText('Team Mond');
-    // Erst fotografieren, wenn die 3D-Bühne hinter der Karte steht (Minispiel lädt bei Bedarf,
-    // CHAOS-86); sonst zeigt das Bild je nach Takt nur den Ladehintergrund ohne Pause-Knopf.
-    await host.waitForFunction(() => window.__chaosMinigame?.ready === true, null, {
-      timeout: 60_000,
+    // Erst wenn die Bühne hinter der Anleitung steht: Sonst zeigt das Bild je nach Tempo der
+    // Maschine den Verlauf statt der Arena und keinen Pause-Knopf.
+    await expect(host.getByTestId('minigame-screen')).toHaveAttribute('data-status', 'ready', {
+      timeout: 30_000,
     });
+    await expect(host.locator('main.host')).toHaveAttribute('data-scene', 'ready');
     await expect(host.getByTestId('pause-button')).toBeVisible();
     await expect(host.getByTestId('minigame-intro')).toHaveScreenshot(
       'spielform-2v2-anleitung.png',
