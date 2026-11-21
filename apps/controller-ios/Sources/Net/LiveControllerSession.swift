@@ -121,6 +121,12 @@ final class LiveControllerSession: ControllerSessionProtocol {
         return true
     }
 
+    @discardableResult
+    func rate(slot: Int, _ vote: Vote) -> Bool {
+        guard let run = state.ratableRun(slot) else { return false }
+        return send(.rate(slot: slot, minigameId: run.minigameId, round: run.round, vote: vote)) != nil
+    }
+
     func moveStick(slot: Int, x: Double, y: Double) {
         let sender =
             moveSenders[slot]
