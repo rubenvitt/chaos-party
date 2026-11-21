@@ -80,6 +80,10 @@ test.describe('Spielformen mit Teams (CHAOS-89)', () => {
     await expect(lineup).toHaveAttribute('data-layout', '2v2');
     await expect(host.getByTestId('minigame-team-0')).toContainText('Team Sonne');
     await expect(host.getByTestId('minigame-team-1')).toContainText('Team Mond');
+    // Bild erst mit fertiger Szene hinter der Anleitung (wie `m3-minispiel-anzeige`): Seit die
+    // Minispiele bei Bedarf laden (CHAOS-86), kam die Anleitung manchmal vor der Bühne ins Bild.
+    await expect(host.locator('main.host')).toHaveAttribute('data-scene', 'ready');
+    await host.waitForFunction(() => window.__chaosMinigame?.ready === true);
     await expect(host.getByTestId('minigame-intro')).toHaveScreenshot(
       'spielform-2v2-anleitung.png',
       // Mitglieder hängen an der Zufallszuteilung; Teams, Symbole und Anleitung bleiben im Bild.
