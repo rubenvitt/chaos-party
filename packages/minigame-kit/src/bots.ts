@@ -9,7 +9,14 @@
  * Werte sind Annahmen für Couch-Spieler (Reaktionszeit inkl. Bildschirm/Funk-Latenz), nicht
  * gemessen. Zahlen aus Bot-Partien sind Näherungen, kein Beweis für Spaß.
  */
-import { createMinigameRng, type MinigameRng, type Slot } from '@chaos-party/minigame-sdk';
+import {
+  createMinigameRng,
+  lerpStrength,
+  type MinigameBotDriver,
+  type MinigameInput,
+  type MinigameRng,
+  type Slot,
+} from '@chaos-party/minigame-sdk';
 import { LeadTracker } from './scoreboard.ts';
 
 export interface BotProfile {
@@ -318,5 +325,157 @@ export function matchMetrics(records: readonly GameRecord[]): MatchMetrics {
     strongestWins: strongest / n,
     weakestWins: weakest / n,
     actionsPer10s: actions / n,
+  };
+}
+
+// --- KI-Spieler in echten Partien (CHAOS-180, ADR-020) ------------------------------------
+
+/**
+ * Eckwerte der Stärke für Spiele mit `BotProfile`: leicht = Neuling, schwer = Profi (die
+ * Spanne der Fairness-Messung, EXP-005). Auch „schwer“ hat Reaktionszeit, Zielrauschen und
+ * Aussetzer. Die Werte stellt CHAOS-183 nach Messung ein.
+ */
+export const BOT_STRENGTH_CORNERS = {
+  leicht: BOT_PROFILES.neuling,
+  schwer: BOT_PROFILES.profi,
+} as const satisfies Record<'leicht' | 'schwer', BotProfile>;
+
+/** Bot-Profil zur Stärke `s` (0 = leicht … 1 = schwer), jeder Wert linear interpoliert. */
+export function profileForStrength(strength: number): BotProfile {
+  const { leicht, schwer } = BOT_STRENGTH_CORNERS;
+  const mix = (key: Exclude<keyof BotProfile, 'name' | 'mischief'>) =>
+    lerpStrength(leicht[key], schwer[key], strength);
+  return {
+    name: `KI ${Math.round(lerpStrength(0, 100, strength))} %`,
+    reactionMs: mix('reactionMs'),
+    aimNoise: mix('aimNoise'),
+    timingSdMs: mix('timingSdMs'),
+    falseStart: mix('falseStart'),
+    awareness: mix('awareness'),
+    judgement: mix('judgement'),
+    lapse: mix('lapse'),
+    mischief: 0,
+  };
+}
+
+/**
+ * Bot über die gemeinsame Schnittstelle (`MinigameBot`, `act` → `BotAction`) als Laufzeit-Bot
+ * (`MinigameBotDriver`): Stick wird `move`, Knöpfe werden `press`/`release`. `observe` liefert
+ * den Spielzustand zum Lesen (`null` = noch nicht bereit).
+ */
+export function kitBotDriver<G>(bot: MinigameBot<G>, observe: () => G | null): MinigameBotDriver {
+  return {
+    slot: bot.slot,
+    tick: () => {
+      const game = observe();
+      if (game === null) return [];
+      const action = bot.act(game);
+      return action ? actionInputs(action) : [];
+    },
+  };
+}
+
+/** `BotAction` → Eingaben (Stick zuerst, dann drücken, dann loslassen). */
+export function actionInputs(action: BotAction): MinigameInput[] {
+  const inputs: MinigameInput[] = [];
+  if (action.stick) inputs.push({ type: 'move', x: action.stick.x, y: action.stick.y });
+  for (const button of action.press ?? []) inputs.push({ type: 'press', button });
+  // Ein Druck ohne eigenes Loslassen ist ein kurzer Tipp (wie die Bots der Bot-Partien).
+  for (const button of action.press ?? []) {
+    if (!action.release?.includes(button)) inputs.push({ type: 'release', button });
+  }
+  for (const button of action.release ?? []) inputs.push({ type: 'release', button });
+  return inputs;
+}
+
+// --- Figuren-Bots für Physik-Spiele (EXP-006, Pudding-Gerangel, Krümel-Kehraus) -------------
+
+/** Können eines Figuren-Bots in Havok-Spielen (EXP-006). */
+export interface PawnBotSkill {
+  readonly name: string;
+  /** Alle wie viele Schritte neu entscheiden (Reaktionszeit). */
+  readonly replanSteps: number;
+  /** Zielfehler (Bogenmaß-Streuung der Stick-Richtung). */
+  readonly noise: number;
+  /** Wahrscheinlichkeit, einen guten Rempler auch zu nutzen. */
+  readonly dashChance: number;
+  /** Achtet auf Gefahren aus der Umgebung. */
+  readonly aware: boolean;
+}
+
+/**
+ * Stufen der Figuren-Bots: Neuling und Normal aus EXP-006 (`SKILLS.weak`/`normal`), Profi aus
+ * der Fairness-Prüfung (CHAOS-84: plant alle 6 Schritte, zielt genauer, rempelt gezielter).
+ */
+export const PAWN_BOT_SKILLS = {
+  profi: { name: 'profi', replanSteps: 6, noise: 0.12, dashChance: 0.8, aware: true },
+  normal: { name: 'normal', replanSteps: 10, noise: 0.25, dashChance: 0.6, aware: true },
+  neuling: { name: 'schwach', replanSteps: 24, noise: 0.6, dashChance: 0.3, aware: false },
+} as const satisfies Record<string, PawnBotSkill>;
+
+/** Ab dieser Stärke achtet ein Figuren-Bot auf Gefahren (Neuling nicht, Normal schon). */
+export const PAWN_AWARE_FROM = 0.3;
+
+/** Figuren-Können zur Stärke `s` (leicht = Neuling, schwer = Profi). */
+export function pawnSkillForStrength(strength: number): PawnBotSkill {
+  const { neuling, profi } = PAWN_BOT_SKILLS;
+  return {
+    name: `KI ${Math.round(lerpStrength(0, 100, strength))} %`,
+    replanSteps: Math.round(lerpStrength(neuling.replanSteps, profi.replanSteps, strength)),
+    noise: lerpStrength(neuling.noise, profi.noise, strength),
+    dashChance: lerpStrength(neuling.dashChance, profi.dashChance, strength),
+    aware: lerpStrength(0, 1, strength) >= PAWN_AWARE_FROM,
+  };
+}
+
+/** Entscheid eines Figuren-Bots: Stick (x, y = +z) und ob gerempelt wird (A). */
+export interface PawnDecision {
+  readonly x: number;
+  readonly y: number;
+  readonly dash: boolean;
+}
+
+/** Richtung (dx, dz) → Stick mit gleichverteiltem Zielfehler ±`noise` und Tempo `speed`. */
+export function aim(
+  dx: number,
+  dz: number,
+  noise: number,
+  rng: MinigameRng,
+  speed = 1,
+): PawnDecision {
+  const len = Math.hypot(dx, dz);
+  if (len < 1e-3) return { x: 0, y: 0, dash: false };
+  const angle = Math.atan2(dz, dx) + (rng.next() * 2 - 1) * noise;
+  const s = Math.min(1, speed);
+  return { x: Math.cos(angle) * s, y: Math.sin(angle) * s, dash: false };
+}
+
+/**
+ * Laufzeit-Bot für Figuren-Spiele: entscheidet alle `skill.replanSteps` Schritte neu (versetzt
+ * je Platz wie in EXP-006), lenkt dorthin und rempelt mit A. `decide` liefert `null`, solange
+ * es nichts zu entscheiden gibt (Figur raus, Spiel noch nicht bereit).
+ */
+export function pawnBotDriver(
+  slot: Slot,
+  skill: PawnBotSkill,
+  decide: () => PawnDecision | null,
+): MinigameBotDriver {
+  let step = 0;
+  let planned = false;
+  return {
+    slot,
+    tick: () => {
+      const due = (step + slot * 3) % skill.replanSteps === 0 || !planned;
+      step++;
+      if (!due) return [];
+      const decision = decide();
+      if (!decision) return [];
+      planned = true;
+      const inputs: MinigameInput[] = [{ type: 'move', x: decision.x, y: decision.y }];
+      if (decision.dash) {
+        inputs.push({ type: 'press', button: 'a' }, { type: 'release', button: 'a' });
+      }
+      return inputs;
+    },
   };
 }
