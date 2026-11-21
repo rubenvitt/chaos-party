@@ -17,8 +17,20 @@ import {
   strategyTable,
   type ExperimentSetup,
 } from './experiment.ts';
+import { WACKELTURM_PARAMS } from '../../wackelturm/logic.ts';
 import { GEYSIR_CONCEPT, GEYSIR_PARAMS, multiplier, playGeysir } from './geysir.ts';
-import { playWackelturm, WACKELTURM_CONCEPT } from './wackelturm-sim.ts';
+import {
+  KIPPGEFUEHL_SEEDS,
+  kippgefuehlDetailTable,
+  kippgefuehlFairnessTable,
+  oddSeatStats,
+} from './kippgefuehl.ts';
+import {
+  EXP007_BOT_MODEL,
+  KIPPGEFUEHL_BOT_MODEL,
+  playWackelturm,
+  WACKELTURM_CONCEPT,
+} from './wackelturm-sim.ts';
 
 const runtime = globalThis as {
   process?: { env?: Record<string, string | undefined> };
@@ -105,6 +117,51 @@ describe('Hybrid-Prototypen: Smoke-Test mit wenigen Seeds', () => {
     expect(clarityTable().rows).toHaveLength(2);
   });
 });
+
+describe('EXP-039: Kippgefühl der Wackelturm-Bots (CHAOS-215)', () => {
+  it('EXP-007-Konzept spielt weiter mit dem alten Modell (Tabellen bleiben reproduzierbar)', () => {
+    const table = bots.slice(0, 4);
+    expect(WACKELTURM_CONCEPT.play(table, 7, WACKELTURM_PARAMS)).toEqual(
+      playWackelturm(table, 7, undefined, undefined, EXP007_BOT_MODEL),
+    );
+    expect(playWackelturm(table, 7)).toEqual(
+      playWackelturm(table, 7, undefined, undefined, KIPPGEFUEHL_BOT_MODEL),
+    );
+  });
+
+  it('Geschick zählt: Profi gewinnt öfter als Neuling (40 Seeds)', () => {
+    const seeds = seedRange(40);
+    const novice = oddSeatStats(KIPPGEFUEHL_BOT_MODEL, 'neuling', seeds);
+    const pro = oddSeatStats(KIPPGEFUEHL_BOT_MODEL, 'profi', seeds);
+    expect(pro.wins).toBeGreaterThan(novice.wins);
+    // Das alte Modell zeigt das Artefakt: Profi gewinnt seltener als Neuling.
+    const oldNovice = oddSeatStats(EXP007_BOT_MODEL, 'neuling', seeds);
+    const oldPro = oddSeatStats(EXP007_BOT_MODEL, 'profi', seeds);
+    expect(oldPro.wins).toBeLessThan(oldNovice.wins);
+  });
+
+  it('Tabellen sind vollständig (3 Seeds)', async () => {
+    const fair = await kippgefuehlFairnessTable(3);
+    const detail = kippgefuehlDetailTable(seedRange(3));
+    for (const table of [fair, detail]) {
+      for (const row of table.rows) expect(row).toHaveLength(table.headers.length);
+      expect(toMarkdown(table)).not.toContain('NaN');
+    }
+  });
+});
+
+describe.runIf(runtime.process?.env?.EXPERIMENTS === '1')(
+  'EXP-039: volle Tabellen (EXPERIMENTS=1)',
+  () => {
+    it('druckt beide Tabellen als Markdown', { timeout: 900_000 }, async () => {
+      const md = [
+        toMarkdown(await kippgefuehlFairnessTable(KIPPGEFUEHL_SEEDS.length)),
+        toMarkdown(kippgefuehlDetailTable(KIPPGEFUEHL_SEEDS)),
+      ].join('\n\n');
+      runtime.console?.log(`\n${md}\n`);
+    });
+  },
+);
 
 describe.runIf(runtime.process?.env?.EXPERIMENTS === '1')(
   'Hybrid-Prototypen: volle Tabellen (EXPERIMENTS=1)',

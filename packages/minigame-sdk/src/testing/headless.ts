@@ -27,6 +27,7 @@ import type {
   SoundId,
   VfxId,
 } from '../babylon/contract.ts';
+import type { MinigameBotSeat } from '../bot.ts';
 import type { MinigameTeams } from '../teams.ts';
 import { FIXED_STEP_SECONDS } from '../babylon/contract.ts';
 import {
@@ -228,6 +229,8 @@ export interface HeadlessRunOptions {
   /** Aufstellung bei Teams bzw. Koop (CHAOS-89). */
   readonly teams?: MinigameTeams;
   readonly script?: InputScript;
+  /** KI-Plätze (CHAOS-180); die Laufzeit erzeugt die Bots über `Minigame.createBot`. */
+  readonly bots?: readonly MinigameBotSeat[];
   /** Abbruch, falls kein Ergebnis kommt (Standard: Zeitlimit + 5 s). */
   readonly maxMs?: number;
   /** Szene nach dem Lauf **nicht** entsorgen (für eigene Prüfungen); dann selbst `dispose`. */
@@ -268,6 +271,7 @@ export async function runMinigameHeadless(
     havok,
     testMode: true,
     ...(options.teams ? { teams: options.teams } : {}),
+    ...(options.bots ? { bots: options.bots } : {}),
   });
   await runner.prepare();
   runner.start();

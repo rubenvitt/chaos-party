@@ -24,6 +24,8 @@ import { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
 import type { Scene } from '@babylonjs/core/scene.js';
 import {
   rankByScore,
+  type MinigameBotDriver,
+  type MinigameBotOptions,
   type MinigameInput,
   type MinigameResult,
   type Slot,
@@ -38,6 +40,7 @@ import type {
   MinigamePlayer,
 } from '@chaos-party/minigame-sdk/babylon';
 import { markVisual } from '@chaos-party/minigame-sdk/babylon';
+import { createWackelturmBot } from './bot.ts';
 import { WACKELTURM_INFO } from './info.ts';
 import {
   createWackelturm,
@@ -171,6 +174,11 @@ export class Wackelturm implements Minigame {
   start(): void {
     this.running = true;
     this.ctx?.fx.sound('go');
+  }
+
+  /** KI-Platz (CHAOS-180): Bot liest den Regelzustand nur. */
+  createBot(options: MinigameBotOptions): MinigameBotDriver {
+    return createWackelturmBot(options, () => this.state);
   }
 
   handleInput(slot: Slot, input: MinigameInput): void {
