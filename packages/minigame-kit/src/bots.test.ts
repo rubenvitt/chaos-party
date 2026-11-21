@@ -1,8 +1,15 @@
 import { createMinigameRng, type Slot } from '@chaos-party/minigame-sdk';
 import { describe, expect, it } from 'vitest';
 import {
+  actionInputs,
   BOT_PROFILES,
+  BOT_STRENGTH_CORNERS,
   BotSenses,
+  kitBotDriver,
+  PAWN_BOT_SKILLS,
+  pawnBotDriver,
+  pawnSkillForStrength,
+  profileForStrength,
   lineup,
   lineupWithTroublemaker,
   matchMetrics,
@@ -125,5 +132,82 @@ describe('Bot-Partie über die gemeinsame Schnittstelle', () => {
     expect(metrics.strongestWins).toBeGreaterThan(metrics.weakestWins);
     expect(metrics.actionsPer10s).toBeGreaterThan(0);
     expect(matchMetrics([]).winnerScore).toBe(0);
+  });
+});
+
+describe('KI-Stärke (CHAOS-180)', () => {
+  it('Profil zur Stärke: Eckwerte leicht = Neuling, schwer = Profi, dazwischen linear', () => {
+    const { leicht, schwer } = BOT_STRENGTH_CORNERS;
+    const easy = profileForStrength(0);
+    const hard = profileForStrength(1);
+    expect(easy.reactionMs).toBe(leicht.reactionMs);
+    expect(hard.reactionMs).toBe(schwer.reactionMs);
+    expect(profileForStrength(0.5).reactionMs).toBeCloseTo(
+      (leicht.reactionMs + schwer.reactionMs) / 2,
+    );
+    // Ungültiges zählt als mittel, außerhalb wird begrenzt.
+    expect(profileForStrength(Number.NaN).aimNoise).toBeCloseTo(profileForStrength(0.5).aimNoise);
+    expect(profileForStrength(7).judgement).toBe(schwer.judgement);
+    // Nie unfehlbar: auch schwer hat Reaktionszeit, Zielrauschen und Aussetzer.
+    expect(hard.reactionMs).toBeGreaterThan(200);
+    expect(hard.aimNoise).toBeGreaterThan(0);
+    expect(hard.lapse).toBeGreaterThan(0);
+    expect(hard.mischief).toBe(0);
+  });
+
+  it('Figuren-Können zur Stärke: Neuling bis Profi, Gefahrenblick ab etwa einem Drittel', () => {
+    expect(pawnSkillForStrength(0)).toMatchObject({
+      replanSteps: PAWN_BOT_SKILLS.neuling.replanSteps,
+      aware: false,
+    });
+    expect(pawnSkillForStrength(1)).toMatchObject({
+      replanSteps: PAWN_BOT_SKILLS.profi.replanSteps,
+      noise: PAWN_BOT_SKILLS.profi.noise,
+      aware: true,
+    });
+    expect(pawnSkillForStrength(0.5).aware).toBe(true);
+  });
+
+  it('Aktionen werden Eingaben: Stick, drücken, loslassen', () => {
+    expect(actionInputs({ stick: { x: 1, y: 0 }, press: ['a'] })).toEqual([
+      { type: 'move', x: 1, y: 0 },
+      { type: 'press', button: 'a' },
+      { type: 'release', button: 'a' },
+    ]);
+    expect(actionInputs({ release: ['b'] })).toEqual([{ type: 'release', button: 'b' }]);
+  });
+
+  it('kitBotDriver fragt den Bot nur, wenn das Spiel bereit ist', () => {
+    let ready = false;
+    let calls = 0;
+    const driver = kitBotDriver<number>(
+      {
+        slot: 2,
+        profile: BOT_PROFILES.normal,
+        act: () => {
+          calls++;
+          return { press: ['a'] };
+        },
+      },
+      () => (ready ? 1 : null),
+    );
+    expect(driver.tick()).toEqual([]);
+    ready = true;
+    expect(driver.tick()).toHaveLength(2);
+    expect(calls).toBe(1);
+  });
+
+  it('pawnBotDriver entscheidet im Takt des Könnens und rempelt mit A', () => {
+    const skill = pawnSkillForStrength(1);
+    let decisions = 0;
+    const driver = pawnBotDriver(1, skill, () => {
+      decisions++;
+      return { x: 0, y: 1, dash: decisions === 2 };
+    });
+    const ticks = Array.from({ length: skill.replanSteps * 4 }, () => driver.tick());
+    // Sofort einmal, dann alle `replanSteps` Schritte (versetzt je Platz).
+    expect(decisions).toBe(5);
+    expect(ticks.flat().filter((input) => input.type === 'press')).toHaveLength(1);
+    expect(ticks[0]).toEqual([{ type: 'move', x: 0, y: 1 }]);
   });
 });
