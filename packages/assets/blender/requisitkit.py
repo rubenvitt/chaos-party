@@ -16,8 +16,9 @@ Materialien (Name im GLB = Schlüssel):
 Die zwei Laufzeit-Materialien sind im GLB weiß und ohne Vertexfarben.
 
 Grundformen (Familien des Art-Kits): Obst & Nüsse (`obst`, `nuss`), Gefäße (`gefaess`,
-`henkel`, `tuelle`), Möbel & Kästen (`kasten`, `brett`), Spielzeug (`kugel`, `wolke`,
-`fluegel`), Gartengeräte (`stab`, `ring`, `netz`).
+`henkel`, `tuelle`), Möbel & Kästen (`kasten`, `brett`, `prisma`), Spielzeug (`kugel`, `wolke`,
+`fluegel`), Gartengeräte (`stab`, `ring`, `netz`), Pflanzen (`blatt`). Helfer: `move`, `rotate`,
+`streck` (gebacken), `flaechen` (Vertexfarbe je Fläche für harte Farbgrenzen).
 
 Maßstab wie bei den Figuren: Meter, Boden bei z = 0, Mitte über dem Ursprung, vorn = -Y
 (nach dem glTF-Export +Z vorn, Y oben). Eine Figur ist 1,4–1,8 m hoch; Requisiten sind
@@ -28,7 +29,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import Sequence
+from typing import Callable, Sequence
 
 import figurkit as k  # importiert bpy zuerst
 import bpy  # noqa: E402
@@ -81,6 +82,24 @@ P = {
     "ton": k.hex_color("#d9774a"),
     "stroh": k.hex_color("#e8c56f"),
     "schlauch": k.hex_color("#4e9a5a"),
+    # Kulissen nach Ort (CHAOS-222), abgestimmt auf die Farbwelten `PLACES` der Arena-Vorlagen.
+    "wasser": k.hex_color("#8fd3f0"),
+    "fliese": k.hex_color("#eef8fb"),
+    "seife": k.hex_color("#a8e0c8"),
+    "ente": k.hex_color("#ffd43b"),
+    "schnabel": k.hex_color("#f2793a"),
+    "seerose": k.hex_color("#fbf4f7"),
+    "seerose_spitze": k.hex_color("#f7b8d0"),
+    "schilf": k.hex_color("#8aa34a"),
+    "kolben": k.hex_color("#6a4128"),
+    "hellblau": k.hex_color("#7cc6ef"),
+    "lila": k.hex_color("#b48ae0"),
+    "pilz_rot": k.hex_color("#e0233d"),
+    "moos": k.hex_color("#7fa83e"),
+    "leder": k.hex_color("#8a4b2f"),
+    "leder_hell": k.hex_color("#c58a5a"),
+    "messing": k.hex_color("#c9a44a"),
+    "flamme": k.hex_color("#ffe14d"),
     "weiss": (1.0, 1.0, 1.0),
 }
 
@@ -192,6 +211,27 @@ def move(obj: bpy.types.Object, offset: Vec) -> bpy.types.Object:
     _bake_transform(obj)
     for v in obj.data.vertices:
         v.co += Vector(offset)
+    obj.data.update()
+    return obj
+
+
+def flaechen(obj: bpy.types.Object, color_of: Callable[[Vector], Color]) -> bpy.types.Object:
+    """Vertexfarben je Fläche aus ihrer Mitte (harte Farbgrenzen: Ballbahnen, Streifen). Die Ecken
+    einer Fläche bekommen alle dieselbe Farbe, Grenzen verlaufen also nicht."""
+    mesh = obj.data
+    layer = mesh.color_attributes.new("Farbe", "BYTE_COLOR", "CORNER")
+    for poly in mesh.polygons:
+        c = color_of(poly.center)
+        for loop_index in poly.loop_indices:
+            layer.data[loop_index].color = (*c, 1.0)
+    return obj
+
+
+def streck(obj: bpy.types.Object, factor: Vec, pivot: Vec = (0, 0, 0)) -> bpy.types.Object:
+    """Teil um `pivot` strecken oder stauchen (je Achse; ovale Wanne, halbe Rolle)."""
+    _bake_transform(obj)
+    for v in obj.data.vertices:
+        v.co = Vector(tuple(pivot[i] + (v.co[i] - pivot[i]) * factor[i] for i in range(3)))
     obj.data.update()
     return obj
 
@@ -403,6 +443,45 @@ def wolke(prop: Prop, at: Vec, radius: float, color: Color, *, under: Color | No
         else:
             prop.add(o, color, mat)
         objs.append(o)
+
+
+def prisma(prop: Prop, at: Vec, size: Vec, color: Color, *, mat: str = "lack", bevel: float = 0.02) -> bpy.types.Object:
+    """Dreiseitiges Prisma (Dachklotz, Keil): Grundfläche `size` x × y, Spitze oben, Kanten leicht
+    gerundet. `at` = Mitte der Grundfläche."""
+    import bmesh  # noqa: PLC0415
+
+    sx, sy, sz = size
+    mesh = bpy.data.meshes.new(f"{prop.name}-prisma")
+    bm = bmesh.new()
+    tri = [(-sx / 2, 0.0), (sx / 2, 0.0), (0.0, sz)]
+    front = [bm.verts.new((x, -sy / 2, z)) for x, z in tri]
+    back = [bm.verts.new((x, sy / 2, z)) for x, z in tri]
+    bm.faces.new(front)
+    bm.faces.new(list(reversed(back)))
+    for i in range(3):
+        j = (i + 1) % 3
+        bm.faces.new((front[j], front[i], back[i], back[j]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(mesh)
+    bm.free()
+    obj = bpy.data.objects.new(f"{prop.name}-prisma", mesh)
+    bpy.context.scene.collection.objects.link(obj)
+    if bevel > 0:
+        mod = obj.modifiers.new("kante", "BEVEL")
+        mod.width = bevel
+        mod.segments = 2
+        mod.limit_method = "NONE"
+        k._apply_modifiers(obj)
+    return prop.add(move(obj, at), color, mat)
+
+
+def blatt(prop: Prop, at: Vec, length: float, color: Color, *, width: float = 0.35, turn: Vec = (0, 0, 0), mat: str = "matt") -> bpy.types.Object:
+    """Flaches, spitzovales Blatt (Laub, Schilfhalm, Blütenblatt): liegt entlang +X ab `at`,
+    `turn` dreht es um seinen Ansatz (Grad, XYZ)."""
+    o = k.sphere(f"{prop.name}-blatt", (0, 0, 0), length * 0.5, scale=(1, width, 0.08), segments=12, rings=6)
+    move(o, (length * 0.5, 0, 0))
+    rotate(o, turn)
+    return prop.add(move(o, at), color, mat)
 
 
 def fluegel(prop: Prop, root: Vec, length: float, color: Color, *, angle: float = 0.0, mat: str = "glas") -> None:

@@ -199,10 +199,10 @@ Wolken, Abend, Dämmerung, Nacht). Bilder: `docs/screenshots/chaos63-lichtverlau
 `packages/assets/blender/requisitkit.py` (auf `figurkit`): Obst & Nüsse (`obst`, `nuss`), Gefäße
 (`gefaess`, `drehkoerper`, `henkel`, `tuelle`), Möbel & Kästen (`kasten`, `brett`), Spielzeug
 (`kugel`, `wolke`, `fluegel`), Gartengeräte (`stab`, `ring`, `netz`). Die Requisiten selbst stehen
-in `requisiten.py`, je Familie ein **Set**; dazu Kulissen nach Ort (Garten, Küche), die die
-Arena-Vorlagen aus CHAOS-83 platzieren können. Erzeugen: `pnpm generate:props`
-(`blender/props-all.sh`, mit `--vorschau` auch den Kontaktbogen
-`docs/screenshots/chaos88-requisiten.jpg`).
+in `requisiten.py`, je Familie ein **Set**; dazu je Ort der Arena-Vorlagen aus CHAOS-83 ein
+Kulissen-Set `kulisse-<ort>` (CHAOS-222, Zuordnung `PROP_PLACES`/`placePropSet` in `props.ts`).
+Erzeugen: `pnpm generate:props` (`blender/props-all.sh`, mit `--vorschau` auch die Kontaktbögen
+`docs/screenshots/chaos88-requisiten.jpg` und `docs/screenshots/chaos222-kulissen.jpg`).
 
 | Set | Familie | Requisiten | Pilot-Spiel |
 |---|---|---|---|
@@ -216,6 +216,11 @@ Arena-Vorlagen aus CHAOS-83 platzieren können. Erzeugen: `pnpm generate:props`
 | `revier` | 13 Revier & Malen | Matscheimer, Regenwolke | MG-121 Matschmaler |
 | `kulisse-garten` | Ort | Zaunfeld, Blumentopf, Gießkanne | mehrere |
 | `kulisse-kueche` | Ort | Kochtopf, Milchkanne, Holzlöffel | MG-033, MG-045 |
+| `kulisse-bad` | Ort | Badewanne, Quietscheente, Seifenstück | – |
+| `kulisse-teich` | Ort | Seerose, Schilf, Steg | – |
+| `kulisse-spielzimmer` | Ort | Bauklotz-Turm, Wasserball, Spielzeugkiste | – |
+| `kulisse-wald` | Ort | Baumstumpf, Fliegenpilz, Ast | – |
+| `kulisse-dachboden` | Ort | Truhe, Koffer, Petroleumlampe | – |
 
 **Geplante Sets der übrigen Familien** (gebaut mit ihrer Familien-Welle, CHAOS-94 …; Auswahl aus
 den Skizzen in `docs/minigames/katalog.md`, Wiederverwendung über Familien hinweg erwünscht):
@@ -235,9 +240,14 @@ den Skizzen in `docs/minigames/katalog.md`, Wiederverwendung über Familien hinw
 | `koop` | 19 Gemeinsam gegen das Chaos | Arche-Bretter, Sandburg, Wäscheleine, Gatter, Picknickdecke | Kästen, Gartengeräte |
 | `mikro` | 20 Mikro-Spiele | Feder, Kerze, Kuchen, Wecker, Schlüssel und Schloss | Spielzeug, Gefäße, Kästen |
 
-Kulissen nach Ort fehlen noch für Bad, Teich, Spielzimmer, Wald und Dachboden (Orte aus Rubens
-Notiz an CHAOS-83, eigene Folgeaufgabe). Neue Grundformen gehören in `requisitkit.py`, nicht in
-ein einzelnes Requisit.
+**Kulissen nach Ort (CHAOS-222):** Alle sieben Orte der Arena-Vorlagen haben ein Set mit drei
+Requisiten. Die Farben folgen der Farbwelt des Orts (`PLACES` in
+`packages/minigame-kit/src/babylon/arena.ts`): Bad hell und wasserblau, Teich grün mit
+weiß-rosa Seerose, Spielzimmer bunte Spielzeugfarben (Rot, Gelb, Hellblau, Lila – keine
+Slot-Farbtöne als Fläche), Wald Rinde, Moos und Fliegenpilz-Rot, Dachboden Holz, Leder, Messing.
+Der Kulissen-Bogen zeigt jedes Set auf einer Scheibe in der Bodenfarbe seiner Arena-Vorlage.
+Neue Grundformen gehören in `requisitkit.py`, nicht in ein einzelnes Requisit (mit CHAOS-222 dazu:
+`prisma`, `blatt`, `streck`, `flaechen` für harte Farbgrenzen).
 
 **Vertrag** (`packages/assets/src/props.ts`, geprüft in `check:assets` und im Babylon-Ladetest):
 - Meter wie die Figuren, Y oben, vorn +Z; **Boden bei y = 0**, Grundfläche mittig über dem
