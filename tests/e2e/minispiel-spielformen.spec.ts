@@ -6,11 +6,19 @@
  * mit Team-Überschrift am PC und Ausgang am Handy. Der Server hat das Team-Ergebnis angenommen
  * (sonst gäbe es keine Ergebnisanzeige).
  *
+ * Bilder (CHAOS-233): Die Anleitung am PC wird erst aufgenommen, wenn die Bühne fertig geladen
+ * ist (vorher fehlt der Pause-Knopf und die Karte sitzt anders), und ohne 3D-Fläche dahinter:
+ * Die Arena gehört zu `m3-minispiele-bild.spec.ts`, hier geht es um Team-Ansage, Symbole und
+ * Anleitung. Vom Handy gibt es hier **kein** Bild: Die Handys laufen im Geräte-Browser ohne GPU
+ * (`deviceBrowser`, CPU-Rasterung), dessen Schriftbild je Rechner abweicht. Die Rolle am Handy
+ * prüft hier der DOM; das Bild dazu macht `controller-minispiel.spec.ts` in den iPhone-Projekten.
+ *
  * Was das **nicht** beweist: Lesbarkeit am Fernseher und Spaß im Team – siehe
  * `docs/device-test-checklist.md` §46.
  */
 import { withRules } from '../../packages/game-core/src/index.ts';
 import { getMinigameInfo } from '../../packages/minigames/src/catalog.ts';
+import { PLAYER_SLOTS, type SlotNumber } from '../../packages/protocol/src/index.ts';
 import type {} from '../../apps/host/src/minigame/testHook.ts';
 import { collectProblems, expectNoProblems } from './fixtures/pages.ts';
 import { startChaosServer, type RunningServer } from './fixtures/server.ts';
@@ -80,27 +88,32 @@ test.describe('Spielformen mit Teams (CHAOS-89)', () => {
     await expect(lineup).toHaveAttribute('data-layout', '2v2');
     await expect(host.getByTestId('minigame-team-0')).toContainText('Team Sonne');
     await expect(host.getByTestId('minigame-team-1')).toContainText('Team Mond');
+    // Erst die fertige Bühne (Pause-Knopf da, Karte an ihrem Platz), dann ohne 3D-Fläche:
+    // Das Bild hängt so weder am Ladezeitpunkt noch am Frame der Arena (CHAOS-233).
+    await host.waitForFunction(() => window.__chaosMinigame?.ready === true, null, {
+      timeout: 60_000,
+    });
+    await expect(host.getByTestId('pause-button')).toBeVisible();
+    await host.addStyleTag({ content: '.minigame-screen canvas { visibility: hidden; }' });
     await expect(host.getByTestId('minigame-intro')).toHaveScreenshot(
       'spielform-2v2-anleitung.png',
       // Mitglieder hängen an der Zufallszuteilung; Teams, Symbole und Anleitung bleiben im Bild.
       { mask: [host.locator('.minigame-team-members')] },
     );
 
+    const label = (slots: readonly number[]) =>
+      slots.map((slot) => PLAYER_SLOTS[slot as SlotNumber].label).join(' und ');
     for (const [index, phone] of phones.entries()) {
       const slot = index + 1;
       const own = teams?.teams.findIndex((team) => team.includes(slot as 1 | 2 | 3 | 4)) ?? -1;
+      const mates = (teams?.teams[own] ?? []).filter((other) => other !== slot);
+      const opponents = teams?.teams[own === 0 ? 1 : 0] ?? [];
       const role = phone.getByTestId('minigame-team-role');
       await expect(role).toHaveAttribute('data-role', 'team');
       await expect(role).toContainText(own === 0 ? 'Team Sonne' : 'Team Mond');
+      await expect(role).toContainText(`Du und ${label(mates)} gegen ${label(opponents)}.`);
+      await expect(phone.getByTestId('minigame-title')).toHaveText(INFO.title);
     }
-    // Die Zuteilung ist zufällig (Seed der Partie): Bild immer vom Handy in Team Sonne, die
-    // Namen von Mitspieler und Gegnern maskiert, damit es nicht an der Zuteilung hängt.
-    const sonne = phones[(teams?.teams[0]?.[0] ?? 1) - 1];
-    if (!sonne) throw new Error('kein Handy in Team Sonne');
-    await expect(sonne.getByTestId('minigame-intro')).toHaveScreenshot(
-      'spielform-2v2-rolle-handy.png',
-      { mask: [sonne.locator('.minigame-team-role-text > span')] },
-    );
 
     for (const phone of phones) {
       const ready = phone.getByTestId('minigame-ready-button');
