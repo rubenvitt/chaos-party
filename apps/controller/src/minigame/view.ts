@@ -14,6 +14,7 @@ import type {
   ControllerMinigameInfo,
   ItemKindName,
   MinigameControlsInfo,
+  MinigameCueInfo,
   Vote,
 } from '@chaos-party/protocol';
 import type { SlotContext } from '../state/reducer.ts';
@@ -136,6 +137,18 @@ export interface PlayButton {
   readonly label: string | null;
 }
 
+/** Bildwort des laufenden Abschnitts im Kopf (CHAOS-231, Schnellfeuer). */
+export interface CueView {
+  /** Abschnitt 0-basiert; ein neuer Wert spielt die Einblendung neu ab. */
+  readonly step: number;
+  readonly icon: string;
+  readonly word: string;
+  /** „2/5“ */
+  readonly progress: string;
+  /** Abschnitt zählt doppelt („×2“). */
+  readonly double: boolean;
+}
+
 /** Was das Spiel-Layout (`joystick-buttons`) anzeigt. */
 export interface PlayView {
   /** Joystick angeboten; `stickHint` ist dann der Text darunter. */
@@ -144,15 +157,29 @@ export interface PlayView {
   readonly buttons: readonly PlayButton[];
   /** Titel für den kleinen Kopf (nur im Minispiel). */
   readonly title: string | null;
+  /** Bildwort des laufenden Abschnitts (CHAOS-231), sonst `null`. */
+  readonly cue: CueView | null;
+}
+
+export function describeCue(cue: MinigameCueInfo): CueView {
+  return {
+    step: cue.step,
+    icon: cue.icon,
+    word: cue.word,
+    progress: `${String(cue.step + 1)}/${String(cue.steps)}`,
+    double: cue.double,
+  };
 }
 
 /**
  * Spiel-Layout aus Kontext: Ein Element erscheint nur, wenn der Server es anbietet
- * (`actions`) **und** der Steckbrief es nicht ausblendet (`controls.* === null`).
+ * (`actions`) **und** der Steckbrief es nicht ausblendet (`controls.* === null`). Meldet das
+ * Minispiel einen Abschnitt (`minigame.cue`, CHAOS-231), gilt dessen Bedienung statt des
+ * Steckbriefs: Schnellfeuer zeigt je Mikro-Spiel nur, was es braucht.
  */
 export function describePlay(context: Pick<SlotContext, 'actions' | 'minigame'>): PlayView {
   const minigame = context.minigame?.stage === 'play' ? context.minigame : undefined;
-  const controls = minigame?.controls;
+  const controls = minigame?.cue?.controls ?? minigame?.controls;
   const stick = context.actions.includes('move') && controls?.joystick !== null;
   const buttons = (['a', 'b'] as const).flatMap((button): PlayButton[] => {
     if (!context.actions.includes(BUTTON_ACTION[button])) return [];
@@ -168,6 +195,7 @@ export function describePlay(context: Pick<SlotContext, 'actions' | 'minigame'>)
         : `Ziehen: ${controls.joystick}`,
     buttons,
     title: minigame?.title ?? null,
+    cue: minigame?.cue ? describeCue(minigame.cue) : null,
   };
 }
 

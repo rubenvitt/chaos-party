@@ -867,9 +867,9 @@ Automatisch geprüft (Linux): Zuteilung, Ersatz zu zweit und zu dritt, Prüfung 
 
 ## 47. Schnellfeuer: fünf Mikro-Spiele als eigene Rundenart (für CHAOS-90)
 
-**Stand:** 2026-11-21 · **Aufgabe:** CHAOS-90 · **Entscheidung:** ADR-024 · **Experiment:** EXP-039
+**Stand:** 2026-11-21 · **Aufgabe:** CHAOS-90, CHAOS-231 (Bildwort am Controller) · **Entscheidung:** ADR-024 (mit Nachtrag 1) · **Experiment:** EXP-039
 
-Automatisch geprüft (Mac): Mikro-Vertrag, Kette, Bots und Fairness-Vorlage (Unit-Tests), Auslöser im Regelkern samt Bot-Simulation, E2E mit 2, 3 und 4 Personen am PC-Host (SwiftShader, Testmodus) bis zum angenommenen Ergebnis, Apple-Host-Bot-Partie im Node-Kern mit Schnellfeuer in Runde 6; Schalter `HostEnv.rapidFire` im Node-Kern mit `bots --full --schnellfeuer=aus|halbzeit|finale|ereignis` (CHAOS-232), Swift-Teil (`--schnellfeuer`) nur im macOS-CI gebaut. **Nicht** geprüft: echtes Spieltempo mit Menschen, Lesbarkeit des Bildworts am Fernseher, Apple-Host-App am Mac und auf der Apple TV, Spielspaß.
+Automatisch geprüft (Mac): Mikro-Vertrag, Kette, Bots und Fairness-Vorlage (Unit-Tests), Auslöser im Regelkern samt Bot-Simulation, E2E mit 2, 3 und 4 Personen am PC-Host (SwiftShader, Testmodus) bis zum angenommenen Ergebnis, Apple-Host-Bot-Partie im Node-Kern mit Schnellfeuer in Runde 6; Schalter `HostEnv.rapidFire` im Node-Kern mit `bots --full --schnellfeuer=aus|halbzeit|finale|ereignis` (CHAOS-232), Swift-Teil (`--schnellfeuer`) nur im macOS-CI gebaut. CHAOS-231: E2E mit echtem Server prüft, dass das iPhone je Mikro-Spiel dasselbe Bildwort wie der Host-Banner und nur dessen Bedienung zeigt; iPad-Zonen mit nachgebautem Server (Chromium-Emulation); native App nur Logik- und Fixture-Tests in der macOS-CI. **Nicht** geprüft: echtes Spieltempo mit Menschen, Lesbarkeit des Bildworts am Fernseher, Apple-Host-App am Mac und auf der Apple TV, Spielspaß.
 
 | ID  | Schritt | Erwartung | Ergebnis | Nachweis |
 | --- | ------- | --------- | -------- | -------- |
@@ -882,4 +882,6 @@ Automatisch geprüft (Mac): Mikro-Vertrag, Kette, Bots und Fairness-Vorlage (Uni
 | SF7 | Apple TV: dieselbe Partie | Gegenstände sichtbar, Bildwort im Banner, kein Ruckeln beim Wechsel der Mikro-Spiele | | Log |
 | SF7b | Nativer Host (Mac-App oder Apple TV) mit `--schnellfeuer=halbzeit`, dann `--schnellfeuer=aus` (Mac: `open -a "Chaos Party" --args --schnellfeuer=halbzeit`, CHAOS-232) | Log zeigt „Startparameter: Schnellfeuer halbzeit“ und „JS Schnellfeuer halbzeit“; Schnellfeuer kommt genau in Runde 5 von 10. Mit `aus` kommt es nie | | Log |
 | SF8 | Spieltest-Frage (CHAOS-92) | Ist das Tempo lustig oder zu hektisch? Versteht man das Bildwort ohne Anleitung? Gewinnt immer dieselbe Person? Lieber Ereignis, Halbzeit oder Finale (`SCHNELLFEUER=ereignis|halbzeit|finale`)? | | Notiz |
+| SF9 | Bildwort am Controller (CHAOS-231): iPhone, iPad-Zone und native App während der Kette | Im Kopf steht dasselbe Bildwort wie am Fernseher („⏰ HAUEN!“, „1/5“), synchron zum Bildwort am Host; nur die Knöpfe des Mikro-Spiels (Wecker/Spaghetti/Kerze: nur A, Fliege/Kuchen: Stick + A); Finale mit „×2“ | | Video |
+| SF10 | Knöpfe wechseln während des Bildworts (CHAOS-231) | Der Stick erscheint bzw. verschwindet im Bildwort, nicht mitten im Spiel; kein Druck geht dabei verloren; nach WLAN-Wackler zeigt der Controller wieder das laufende Bildwort | | Video |
 

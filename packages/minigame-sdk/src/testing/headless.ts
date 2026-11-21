@@ -33,6 +33,7 @@ import {
   createMinigameRunner,
   type HavokInstance,
   type MinigameRunner,
+  type RunnerOptions,
   type RunnerResult,
 } from '../babylon/runner.ts';
 
@@ -232,6 +233,8 @@ export interface HeadlessRunOptions {
   readonly maxMs?: number;
   /** Szene nach dem Lauf **nicht** entsorgen (für eigene Prüfungen); dann selbst `dispose`. */
   readonly keepScene?: boolean;
+  /** Controller-Hinweise mitschreiben (CHAOS-231, `RunnerOptions.onCue`). */
+  readonly onCue?: RunnerOptions['onCue'];
 }
 
 export interface HeadlessRun {
@@ -267,6 +270,7 @@ export async function runMinigameHeadless(
     characters,
     havok,
     testMode: true,
+    ...(options.onCue ? { onCue: options.onCue } : {}),
     ...(options.teams ? { teams: options.teams } : {}),
   });
   await runner.prepare();

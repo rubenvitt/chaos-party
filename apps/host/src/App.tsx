@@ -509,6 +509,7 @@ export function App({ config }: AppProps) {
             test={test}
             hub={hub}
             onResult={submitMinigameResult}
+            onCue={session.sendMinigameCue}
             onReady={setMinigameReady}
             getResultState={getResultState}
             resultAck={session.resultAck}

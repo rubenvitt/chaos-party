@@ -13,7 +13,7 @@ import {
   celebrateFigures,
   createCamera,
 } from '@chaos-party/minigame-kit/babylon';
-import type { MinigameInput, MinigameResult, Slot } from '@chaos-party/minigame-sdk';
+import type { MinigameCue, MinigameInput, MinigameResult, Slot } from '@chaos-party/minigame-sdk';
 import type * as Sdk from '@chaos-party/minigame-sdk/babylon';
 import { SchnellfeuerChain, type ChainEvent } from './chain.ts';
 import { SCHNELLFEUER_INFO as INFO } from './info.ts';
@@ -115,6 +115,10 @@ class Schnellfeuer implements Sdk.Minigame {
       scores: chain.totals.hud((slot) => game?.status(slot)?.slice(0, 16)),
       ...(banner ? { banner } : {}),
     };
+  }
+
+  getCue(): MinigameCue | null {
+    return this.result ? null : (this.chain?.cue() ?? null);
   }
 
   dispose(): void {

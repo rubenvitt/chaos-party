@@ -1,0 +1,56 @@
+{
+  "v": 4,
+  "type": "context",
+  "slot": 1,
+  "phase": "board",
+  "layout": "joystick-buttons",
+  "actions": [
+    "move",
+    "button-a"
+  ],
+  "board": {
+    "gamePhase": "minigame-play",
+    "round": 2,
+    "rounds": 5,
+    "coins": 12,
+    "trophies": 1,
+    "items": [
+      "double-dice",
+      "shield"
+    ],
+    "activeSlot": null,
+    "paused": false,
+    "character": "cactus",
+    "minigameWins": 1
+  },
+  "minigame": {
+    "id": "schnellfeuer",
+    "title": "Schnellfeuer!",
+    "tagline": "Wer pumpt am schnellsten?",
+    "instructions": [
+      "Tippe A so schnell du kannst",
+      "Mit dem Stick lenken"
+    ],
+    "controls": {
+      "joystick": "Zielen",
+      "a": "Los!",
+      "b": null
+    },
+    "stage": "play",
+    "scoreUnit": "Pumpstöße",
+    "tied": false,
+    "aborted": false,
+    "cue": {
+      "step": 1,
+      "steps": 5,
+      "icon": "🍝",
+      "word": "SCHLÜRFEN!",
+      "controls": {
+        "joystick": null,
+        "a": "Schlürfen",
+        "b": null
+      },
+      "double": false
+    }
+  }
+}
