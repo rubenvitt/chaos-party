@@ -80,6 +80,12 @@ test.describe('Spielformen mit Teams (CHAOS-89)', () => {
     await expect(lineup).toHaveAttribute('data-layout', '2v2');
     await expect(host.getByTestId('minigame-team-0')).toContainText('Team Sonne');
     await expect(host.getByTestId('minigame-team-1')).toContainText('Team Mond');
+    // Das Bild zeigt die Bühne hinter der Karte: erst vergleichen, wenn sie steht. Software-
+    // Rendering baut Pump-Duell samt Brett mal schneller, mal langsamer als die 15 s des
+    // Screenshot-Vergleichs; ohne Warten entstand das Bild sonst vor leerem Hintergrund.
+    await expect(host.getByTestId('minigame-screen')).toHaveAttribute('data-status', 'ready', {
+      timeout: 60_000,
+    });
     await expect(host.getByTestId('minigame-intro')).toHaveScreenshot(
       'spielform-2v2-anleitung.png',
       // Mitglieder hängen an der Zufallszuteilung; Teams, Symbole und Anleitung bleiben im Bild.
