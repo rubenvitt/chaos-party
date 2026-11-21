@@ -153,3 +153,14 @@ Alte Controller ignorieren die Felder und zeigen KI-Plätze als normale Mitspiel
 - Nach dem Stärke-Experiment (CHAOS-183): Eckwerte und Ziel-Siegquoten eintragen (Nachtrag).
 - Nach Rubens Playtest (CHAOS-185): Denkpausen, Kennzeichnung und den Standard „mittel“ prüfen.
 - Wenn Minispiel-Logik je in den Server wandert (Umkehr von ADR-012), muss auch die Minispiel-KI umziehen.
+
+## Nachtrag 1 (2026-11-21, CHAOS-180): Vertrag der Minispiel-Bots
+
+Umsetzungsentscheidungen von Claude im Rahmen von §3, §4 und §8:
+
+- **Ort des Erzeugers:** `createBot` ist eine optionale Methode des Minispiel-**Exemplars** (`Minigame.createBot(options)`), nicht des Moduls. Nur das Exemplar kennt nach `prepare` seinen Zustand, und so braucht der Vertrag keinen Typparameter für die Beobachtung. Die Regel „nur Beobachtbares“ ist Konvention jedes Bots (Review, Tests wie `KuckuckDoorWatcher` gegen die Logik-Ereignisse), nicht vom Typsystem erzwungen. Pflicht wird sie über den Vertragstest der Rotation.
+- **Laufzeit:** `createMinigameRunner` bekommt die KI-Plätze als Option `bots` (Platz und Stärke). Ab `start` ruft sie je Platz und festem Schritt `tick()` vor `update` auf und leitet die Eingaben durch den Controller-Eingang. Stick-Eingaben drosselt sie auf 30 Hz (`BOT_MOVE_STEPS = 2`); Knöpfe warten hinter einem gedrosselten Stick, damit ein Rempler in die gewollte Richtung geht. In der Pause fragt sie keinen Bot, danach entscheiden die Bots neu. Wirft ein Bot, steht nur sein Platz still (neutrale Eingaben), das Minispiel läuft weiter. Der Host übergibt die KI-Plätze, sobald er sie aus dem Brett-Stand kennt (CHAOS-179/182).
+- **Zufall:** `botSeed(minigameSeed, slot)` je Platz. Ein Test prüft, dass Bots den Spielzufall (`ctx.rng`) nicht verschieben.
+- **Eckwerte:** Für Spiele mit `BotProfile` ist leicht = Neuling und schwer = Profi aus der Fairness-Messung (EXP-005), für Havok-Figurenspiele die Stufen aus EXP-006 bzw. CHAOS-84. Der Wackelturm bekommt eigene Eckwerte (EXP-039), weil der Profi-Bot aus EXP-007 gegen den Neuling verliert.
+- **Untergrenze der Reaktionszeit:** Die ≈ 500 ms aus §4 gelten für Reaktionsfenster am **Brett** (`DelayModel.minMs`). In Minispielen wäre 500 ms langsamer als ein durchschnittlicher Couch-Mensch (Normal-Profil: 400 ms inklusive Bildschirm- und Funklatenz). Dort ist die Grenze das Profi-Profil (230 ms Mittel, log-normal gestreut) mit Rest-Aussetzern (≥ 2 %), Zielrauschen und Fehlstarts. „Nie unfehlbar“ gilt damit weiter. Die endgültigen Eckwerte stellt CHAOS-183 nach Messung gegen eine Mensch-Näherung ein.
+- **Persönlichkeit** (`createBot(…, persönlichkeit, …)` im Arbeitsnamen) ist noch nicht im Vertrag. Sie kommt mit CHAOS-186 als weiteres Feld in `MinigameBotOptions`.

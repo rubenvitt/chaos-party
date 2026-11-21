@@ -2797,3 +2797,46 @@ Bei allen Varianten zahlt 1 gegen 1 (Ersatz zu zweit) wie jeder gegen jeden. Das
 **Entscheidung:** **E behalten** (`DEFAULT_TEAM_REWARDS`: Sieg 7, Niederlage 2, Unentschieden 4, Einzelsieg ×2, Koop 12/9/6/3 × Stufe/3; 1 gegen 1 wie jeder gegen jeden). Münzen wie bei A, zu viert der stärkste Aufholeffekt, und Koop lohnt sich bei gutem Gelingen. Minispiel-Siege zählen bei Teams für alle im Siegerteam, bei Koop für niemanden; den Trostpreis gibt es bei Teams nur, wenn eine Einzelperson verliert. Die Zahlen sind Bot-Simulation, kein Spieltest.
 
 **Offen für Playtest (Ruben, Gerätecheckliste §46):** Fühlt sich ein Team-Sieg mit 7 Münzen lohnend an, oder wirkt er kleiner als Platz 1 mit 10? Ist „Letzter gegen alle“ spannend oder demütigend? Lohnt sich im Koop das Mitmachen, auch für die Person auf dem letzten Einzelplatz?
+
+## EXP-039: KI-Stärke in Minispielen – Eckwerte leicht/schwer (2026-11-21, CHAOS-180)
+
+**Hypothese / gewünschtes Spielerlebnis:** Die Stärke eines KI-Platzes (leicht, mittel, schwer) wirkt in jedem Minispiel der Rotation spürbar und stufenweise. Wer gegen „schwer“ spielt, merkt eine geschickte KI, wer gegen „leicht“ spielt, eine, die oft danebenliegt. Erster Ansatz: die Bots der Fairness-Messung mit ihren Stufen als Eckwerte (leicht = Neuling, schwer = Profi).
+
+**Varianten:**
+- **A** Eckwerte der Fairness-Bots in allen fünf Spielen (Sockenregen und Kuckucks-Klatsche `BotProfile` Neuling/Profi, Pudding-Gerangel und Krümel-Kehraus Figuren-Können Neuling/Profi, Wackelturm Geschick 0,2/0,9 mit Wunschhöhe zufällig 1–10).
+- **B** nur Wackelturm: Raster über Tempo (Anteil der Kippgrenze 0,74 [EXP-007-Formel], 0,85, 0,92, 1,0), Bremsschwelle (0,44 [Formel], 0,6, 0,75) und Wunschhöhe (1–10, 4–6, 6–7, 5–8) für den geschickten Bot, gegen leicht (0,2) und normal (0,6) aus EXP-007.
+- **C** gewählt: A, aber Wackelturm schwer = Geschick 0,9, Tempo 0,85, Bremsen ab 0,75, Wunschhöhe 5–8; leicht wie Neuling. Alles linear interpoliert.
+
+**Objektive Messgrößen:** Siegquote der stärkeren Hälfte (zwei KI gegen zwei, Sitze wechseln je Seed, geteilte Siege anteilig; 0,5 = kein Unterschied), mittlere Punkte je Platz. Paare schwer/leicht, schwer/mittel, mittel/leicht.
+
+**Testumgebung:** echtes Minispiel-Modul headless über die Laufzeit mit KI-Plätzen (`runMinigameHeadless(…, { bots })`, `checks/botStrength.ts`), Seeds 1–40 (Logik-Spiele) bzw. 1–8 (Havok-Spiele); Raster B auf der reinen Wackelturm-Logik (`playWackelturm`), Seeds 1–120. Cloud-Container, Node 22. CI: `checks/botStrength.test.ts` mit 16 bzw. 6 Seeds.
+
+**Ergebnisse:**
+
+| Minispiel | A schwer/leicht | C schwer/leicht | C schwer/mittel | C mittel/leicht | Punkte schwer/leicht (C) |
+| --- | --- | --- | --- | --- | --- |
+| Sockenregen | 1,00 | 0,97 | 0,83 | 0,91 | 18,1 / 8,9 |
+| Pudding-Gerangel | 1,00 | 1,00 | 0,75 | 0,88 | 43,4 / 30,3 |
+| Wackelturm | **0,19** | 0,80 | 0,76 | 0,65 | 51,1 / 36,6 |
+| Kuckucks-Klatsche | 0,79 | 0,84 | 0,74 | 0,63 | 20,6 / 13,5 |
+| Krümel-Kehraus | 1,00 | 1,00 | 0,69 | 0,69 | 7,6 / 3,9 |
+
+(A mit 24 bzw. 6 Seeds.)
+
+Wackelturm, Raster B (Auszug, Siegquote gegen leicht / gegen normal):
+
+| Tempo | Bremsen ab | Wunschhöhe | gegen leicht | gegen normal |
+| --- | --- | --- | --- | --- |
+| 0,74 (Formel) | 0,44 (Formel) | 1–10 | 0,39 | 0,37 |
+| 0,74 | 0,44 | 6–7 | 0,62 | 0,65 |
+| 0,74 | 0,75 | 1–10 | 0,82 | 0,79 |
+| 0,85 | 0,60 | 5–8 | 0,74 | 0,79 |
+| 0,85 | 0,75 | 5–8 | 0,97 | 0,93 |
+| 0,85 | 0,75 | 6–7 | 0,97 | 1,00 |
+
+- In vier Spielen wirkt die Stärke schon mit den Fairness-Stufen, monoton über mittel.
+- Im Wackelturm verliert der geschickte EXP-007-Bot gegen den ungeschickten. Er läuft mit 74 % der Kippgrenze und bremst schon ab Wackeln 0,44, liefert also langsamer und seltener. Den Ausschlag geben Bremsschwelle und Wunschhöhe (Turmbonus ab 6), weniger das Tempo. Das stützt die Vermutung aus CHAOS-215: Die Wackelturm-Ausnahme in der Fairness-Prüfung liegt am Bot, nicht am Spiel.
+
+**Entscheidung:** **C behalten** (`profileForStrength`, `pawnSkillForStrength`, `WACKELTURM_STRENGTH_CORNERS`). Die Fairness-Prüfung (CHAOS-84) und EXP-007 rechnen weiter mit den alten Wackelturm-Bots, damit ihre Zahlen vergleichbar bleiben. Ob die Fairness-Prüfung auf die neuen Wackelturm-Werte umzieht und die Ausnahme fällt, entscheidet CHAOS-215. Die Eckwerte sind Bot-gegen-Bot gemessen und ein Startpunkt für CHAOS-183 (gegen eine Mensch-Näherung), kein Beweis, dass die KI Spaß macht.
+
+**Offen für Playtest (CHAOS-185):** Wirkt „schwer“ im Wackelturm clever (stapelt bis zum Bonus) oder unfair? Ist „leicht“ in Sockenregen und Krümel-Kehraus noch ein Gegner, oder steht es nur herum?

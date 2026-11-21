@@ -10,6 +10,7 @@
  * Wackelturm die Geschicklichkeit aus EXP-007 (0,9/0,6/0,2), Havok-Spiele die `SKILLS` aus
  * EXP-006 plus eine Profi-Stufe (schneller planen, genauer zielen).
  */
+import { PAWN_BOT_SKILLS } from '@chaos-party/minigame-kit';
 import { createMinigameRng, type Slot } from '@chaos-party/minigame-sdk';
 import { runMinigameHeadless } from '@chaos-party/minigame-sdk/testing';
 import { KRUEMEL_KEHRAUS_INFO } from '../kruemel-kehraus/info.ts';
@@ -27,7 +28,7 @@ import { SockenregenBot } from '../prototypes/arcade/sockenregenBot.ts';
 import type { Strategy as WackelturmStrategy } from '../prototypes/hybrid/common.ts';
 import { playWackelturm } from '../prototypes/hybrid/wackelturm-sim.ts';
 import { KRUEMEL_VARIANTS, simulateKruemel } from '../prototypes/physics/experimentKruemel.ts';
-import type { KruemelStrategy } from '../prototypes/physics/kruemelKehrausBot.ts';
+import type { KruemelStrategy } from '../kruemel-kehraus/bot.ts';
 import { createPuddingGerangelPrototype } from '../prototypes/physics/puddingGerangelView.ts';
 import { SKILLS, type BotDecision, type BotSkill } from '../prototypes/physics/shared.ts';
 import { wackelBot } from '../prototypes/physics/wackel.ts';
@@ -46,16 +47,8 @@ const ARCADE_PROFILES: Record<FairnessSkill, BotProfile> = {
 };
 
 /** Havok-Spiele: Profi plant alle 6 Schritte neu, zielt genauer und rempelt gezielter. */
-const PROFI_SKILL: BotSkill = {
-  name: 'profi',
-  replanSteps: 6,
-  noise: 0.12,
-  dashChance: 0.8,
-  aware: true,
-};
-
 const PHYSICS_SKILLS: Record<FairnessSkill, BotSkill> = {
-  profi: PROFI_SKILL,
+  profi: PAWN_BOT_SKILLS.profi,
   normal: SKILLS.normal,
   neuling: SKILLS.weak,
 };

@@ -90,7 +90,7 @@ Umgesetzt in `CHAOS-84`; Regeln, Tische, Schwellen mit Begründung und Ausnahmen
 
 1. `info.ts` mit Anleitung ≤ 3 Zeilen, Bedienung, Dauer, Kategorie, Familie, Spielform; Vielfalts-Steckbrief in `packages/minigames/src/steckbriefe.ts` (Felder: ADR-021 §3).
 2. Logik rein und deterministisch (Seed), Unit-Tests für Wertung und Sonderfälle. Unterbau aus dem Baukasten (`@chaos-party/minigame-kit`), Bot über `MinigameBot`/`BotMatchAdapter` (Muster: `hallo-baukasten/`).
-3. Besteht Vertragstest und Bot-Fairness-Schwellen.
+3. Besteht Vertragstest und Bot-Fairness-Schwellen. **Hat einen KI-Bot** (`createBot`, CHAOS-180, ADR-020), Pflicht für die Rotation: spielt in allen Stärken fehlerfrei und punktet (Vertragstest `catalog.test.ts`), „schwer“ schlägt „leicht“ messbar (`checks/botStrength.test.ts`). Siehe §5.6.
 4. Läuft am geteilten iPad (Zone) bedienbar, sonst als „nur iPhone“ markiert und von der Rotation bei iPad-Zonen ausgeschlossen.
 5. Screenshot-Baseline, kurzer Eintrag im Katalog (Status, Zahlen).
 6. Grafikstufe `niedrig` hält auf dem Ziel-PC mindestens die Bildrate der bestehenden Spiele.
@@ -118,6 +118,27 @@ Rubens Sorge beim Konzept-Gate (2026-11-16): Mit einem Baukasten könnten die Sp
 - **Optik variiert bewusst:** Orte (Garten, Küche, Bad, Teich, Spielzimmer, Wald, Dachboden), Tageszeit, Kamera. Es soll nicht jedes Spiel eine runde Arena von oben sein.
 - **Rotation:** nie zwei Spiele derselben Familie oder mit demselben Kernverb hintereinander.
 - **Abbruchkriterium:** Bei der Zwischenabnahme (`CHAOS-92`) spielt Ruben die Pilot-Spiele hintereinander. Fühlen sie sich gleich an, wird die Fabrik geändert, bevor weitere Wellen starten.
+
+### 5.6 KI-Bots (CHAOS-180, ADR-020)
+
+KI-Plätze spielen Minispiele über denselben Weg wie Menschen. Der Vertrag liegt im SDK (`packages/minigame-sdk/src/bot.ts`):
+
+- **`Minigame.createBot({ slot, strength, rng })` → `{ slot, tick() }`.** Die Laufzeit (`createMinigameRunner`, Option `bots`) erzeugt den Bot beim `start` und ruft `tick()` in jedem festen Schritt vor `update`. Die Eingaben laufen durch den Controller-Eingang (nur laufend, nur Teilnehmer, Achsen begrenzt, kein doppeltes `press`), der Stick höchstens mit 30 Hz wie `moveSender`. Ein Fehler im Bot stoppt nur diesen Platz.
+- **Nur Beobachtbares:** Der Bot liest, was am Bildschirm zu sehen ist. Er ändert den Zustand nie selbst. Beispiel Kuckucks-Klatsche: Der Bot erkennt Rappeln, Öffnen und Gong an den Türen (`KuckuckDoorWatcher`), nicht am versteckten Inhalt.
+- **Stärke** `s` von 0 (leicht) bis 1 (schwer), mittel = 0,5. Jedes Spiel interpoliert zwischen benannten Eckwerten. Mit dem Baukasten heißt das: `profileForStrength(s)` (Neuling … Profi) für Spiele mit `BotProfile`, `pawnSkillForStrength(s)` für Figuren-Spiele mit Havok, eigene Eckwerte nur, wenn die Messung es verlangt (Wackelturm, EXP-039).
+- **Zufall:** eigener Strom je Platz (`botSeed(minigameSeed, slot)`), `ctx.rng` bleibt unberührt.
+
+Muster für neue Spiele: `hallo-baukasten/bot.ts` (`createHalloBot` = `kitBotDriver` + `profileForStrength`). Bot-Partien (`runBotMatch`) und KI-Platz nutzen denselben Bot.
+
+| Minispiel | Bot | Eckwerte leicht → schwer |
+| --- | --- | --- |
+| Sockenregen | `sockenregen/bot.ts` (aus EXP-005) | `profileForStrength` |
+| Pudding-Gerangel | `pudding-gerangel/bot.ts` (aus EXP-006) | `pawnSkillForStrength` |
+| Wackelturm | `wackelturm/bot.ts` (aus EXP-007) | `WACKELTURM_STRENGTH_CORNERS` (EXP-039) |
+| Kuckucks-Klatsche | `kuckucks-klatsche/bot.ts` (aus EXP-016) | `profileForStrength` |
+| Krümel-Kehraus | `kruemel-kehraus/bot.ts` (aus EXP-023) | `pawnSkillForStrength` |
+
+Stärke-Kennzahl (EXP-039, je zwei KI schwer gegen zwei leicht, Siegquote schwer): Sockenregen 0,97, Pudding-Gerangel 1,00, Wackelturm 0,80, Kuckucks-Klatsche 0,84, Krümel-Kehraus 1,00. Das sind Bot-gegen-Bot-Werte. Wie sich die Stärken gegen Menschen anfühlen, klären CHAOS-183 und Rubens Playtest (CHAOS-185).
 
 ## 6. Folgen für den Rest des Spiels
 
