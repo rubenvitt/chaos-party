@@ -108,6 +108,10 @@
       "swipe-down",
       "swipe-left",
       "swipe-right"
+    ],
+    "votes": [
+      "up",
+      "down"
     ]
   }
 }

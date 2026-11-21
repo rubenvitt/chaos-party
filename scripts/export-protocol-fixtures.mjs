@@ -33,6 +33,7 @@ const {
   PROTOCOL_VERSION,
   STICK_EPSILON,
   ServerToControllerMessageSchema,
+  VOTES,
   createMessage,
   encode,
   parseControllerMessage,
@@ -288,6 +289,22 @@ const serverToController = {
     board: board({ gamePhase: 'minigame-results', activeSlot: null }),
     minigame: minigame({ stage: 'results', place: 4, score: 17, reward: 0, prizes: ['trap'] }),
   }),
+  // CHAOS-87/CHAOS-219: Daumen angeboten, eigene Stimme schon abgegeben.
+  'context-minigame-results-vote': context({
+    phase: 'board',
+    layout: 'board',
+    actions: ['rate'],
+    board: board({ gamePhase: 'minigame-results', activeSlot: null }),
+    minigame: minigame({ stage: 'results', place: 2, score: 30, reward: 5, vote: 'down' }),
+  }),
+  // CHAOS-87/CHAOS-219: Übungsrunde aus der Galerie, keine Münzen, Daumen angeboten.
+  'context-minigame-results-practice': context({
+    phase: 'board',
+    layout: 'board',
+    actions: ['rate'],
+    board: board({ gamePhase: 'minigame-results', round: 1, rounds: 1, activeSlot: null }),
+    minigame: minigame({ stage: 'results', place: 1, score: 42, practice: true }),
+  }),
   'context-minigame-aborted': context({
     phase: 'board',
     layout: 'board',
@@ -339,13 +356,20 @@ const controllerToServer = {
   // CHAOS-179: KI-Platz setzen bzw. entfernen (nur Spielleitung; Oberfläche folgt mit CHAOS-182).
   'ai-seat': createMessage('ai-seat', { slot: 1, seq: 11, seat: 3, strength: 'mittel' }),
   'ai-seat-remove': createMessage('ai-seat', { slot: 1, seq: 12, seat: 3, strength: null }),
-  // CHAOS-87: Daumen nach dem Minispiel (native App ohne Oberfläche dafür, CHAOS-219).
+  // CHAOS-87: Daumen nach dem Minispiel (native App: CHAOS-219).
   rate: createMessage('rate', {
     slot: 1,
     seq: 10,
     minigameId: 'sockenregen',
     round: 2,
     vote: 'up',
+  }),
+  'rate-down': createMessage('rate', {
+    slot: 1,
+    seq: 11,
+    minigameId: 'pump-race',
+    round: 1,
+    vote: 'down',
   }),
 };
 
@@ -407,6 +431,7 @@ const constants = {
     minigameStages: MINIGAME_STAGES,
     buttons: BUTTONS,
     gestureKinds: GESTURE_KINDS,
+    votes: VOTES,
   },
 };
 

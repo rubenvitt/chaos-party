@@ -244,6 +244,15 @@ extension ControllerState {
         return prompt
     }
 
+    /// Minigame run the slot may rate right now (CHAOS-87): results shown and `rate` offered.
+    /// `round` is `board.round` (0 without board info, like the web controller).
+    func ratableRun(_ slot: Int) -> (minigameId: String, round: Int)? {
+        guard let context = contexts[slot], context.actions.contains(.rate),
+            let minigame = context.minigame, minigame.stage == .results
+        else { return nil }
+        return (minigame.id, context.board?.round ?? 0)
+    }
+
     /// Buttons of the slot's prompt are locked (choice sent, unanswered).
     func isLocked(_ slot: Int) -> Bool {
         guard let prompt = ownPrompt(slot) else { return false }
@@ -279,6 +288,11 @@ protocol ControllerSessionProtocol: AnyObject, Observable {
     /// or not connected. A sent choice locks the prompt (`state.choices`).
     @discardableResult
     func choose(slot: Int, promptId: Int, option: String) -> Bool
+    /// Sends `rate` (thumbs, CHAOS-87/CHAOS-219) for the minigame of the slot's results;
+    /// `false` if the context does not offer `rate` or the session is not connected. Sending
+    /// again changes the vote; the server confirms it in `minigame.vote`.
+    @discardableResult
+    func rate(slot: Int, _ vote: Vote) -> Bool
     /// Joystick position, `x²+y² ≤ 1`, screen up = positive `y` (screen y mirrored, `input/joystick.ts`). Throttled
     /// inside the session (`SessionTiming.moveInterval`); call it on every drag change.
     func moveStick(slot: Int, x: Double, y: Double)
@@ -335,6 +349,15 @@ final class FakeControllerSession: ControllerSessionProtocol {
         guard state.ownPrompt(slot)?.info.id == promptId, !state.isLocked(slot) else { return false }
         sent.append("choose \(slot) \(promptId) \(option)")
         state.choices[slot] = PendingChoice(promptId: promptId, option: option)
+        return true
+    }
+
+    @discardableResult
+    func rate(slot: Int, _ vote: Vote) -> Bool {
+        guard let run = state.ratableRun(slot) else { return false }
+        sent.append("rate \(slot) \(run.minigameId) \(run.round) \(vote.rawValue)")
+        // Like the server: the own vote comes back in the next context.
+        state.contexts[slot]?.minigame?.vote = vote
         return true
     }
 
@@ -492,6 +515,33 @@ extension ControllerState {
         return online(
             SlotContext(
                 phase: .board, layout: .board, actions: [],
+                board: board(.minigameResults, activeSlot: nil), minigame: minigame))
+    }()
+
+    /// Thumbs offered after the minigame (CHAOS-87, CHAOS-219), own vote already given.
+    static let minigameVoteSample: ControllerState = {
+        var minigame = sampleMinigame
+        minigame.stage = .results
+        minigame.place = 2
+        minigame.score = 30
+        minigame.reward = 5
+        minigame.vote = .up
+        return online(
+            SlotContext(
+                phase: .board, layout: .board, actions: [.rate],
+                board: board(.minigameResults, activeSlot: nil), minigame: minigame))
+    }()
+
+    /// Practice round from the gallery (CHAOS-87): no coin line, back to the lobby.
+    static let minigamePracticeSample: ControllerState = {
+        var minigame = sampleMinigame
+        minigame.stage = .results
+        minigame.place = 1
+        minigame.score = 42
+        minigame.practice = true
+        return online(
+            SlotContext(
+                phase: .board, layout: .board, actions: [.rate],
                 board: board(.minigameResults, activeSlot: nil), minigame: minigame))
     }()
 
