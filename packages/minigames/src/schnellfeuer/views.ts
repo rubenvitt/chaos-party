@@ -2,6 +2,9 @@
  * Ansicht der Mikro-Spiele (Babylon, CHAOS-90): je Mikro-Spiel ein Satz Gegenstände auf jeder
  * Bahn, gebaut in `prepare` und nur sichtbar, solange das Mikro-Spiel dran ist (`setEnabled`;
  * native Hosts lassen abgeschaltete Meshes weg). Bewegt wird nur nach dem reinen Zustand.
+ *
+ * Rollen für native Hosts (`markVisual`, CHAOS-154): Jeder Satz trägt die Rolle seines
+ * Mikro-Spiels (er taucht auf und verschwindet), bewegliche Teile eine eigene mit dem Slot.
  */
 import { CreateBox } from '@babylonjs/core/Meshes/Builders/boxBuilder.js';
 import { CreateCylinder } from '@babylonjs/core/Meshes/Builders/cylinderBuilder.js';
@@ -10,7 +13,7 @@ import type { Mesh } from '@babylonjs/core/Meshes/mesh.js';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
 import type { MinigameStage } from '@chaos-party/minigame-kit/babylon';
 import type { Slot } from '@chaos-party/minigame-sdk';
-import type { MinigamePlayer } from '@chaos-party/minigame-sdk/babylon';
+import { markVisual, type MinigamePlayer } from '@chaos-party/minigame-sdk/babylon';
 import type { MicroGame } from './micro.ts';
 import {
   FliegeGame,
@@ -52,10 +55,10 @@ function mesh<T extends Mesh>(
 }
 
 const wecker: ViewBuilder = async (stage, lanes) => {
-  const root = stage.node('wecker');
+  const root = stage.node('wecker', 'wecker');
   const clocks = new Map<Slot, { body: TransformNode; bells: Mesh[] }>();
   for (const lane of lanes) {
-    const body = stage.node('wecker-uhr');
+    const body = stage.node('wecker-uhr', 'wecker-uhr', lane.player.slot);
     body.parent = root;
     body.position.set(lane.x, 0.55, PROP_Z);
     const face = CreateCylinder(
@@ -108,7 +111,7 @@ const wecker: ViewBuilder = async (stage, lanes) => {
 };
 
 const spaghetti: ViewBuilder = async (stage, lanes) => {
-  const root = stage.node('spaghetti');
+  const root = stage.node('spaghetti', 'spaghetti');
   const plates = new Map<Slot, { noodle: Mesh; sauce: Mesh }>();
   for (const lane of lanes) {
     const plate = CreateCylinder(
@@ -129,13 +132,17 @@ const spaghetti: ViewBuilder = async (stage, lanes) => {
       { diameter: 0.1, height: 1, tessellation: 6 },
       stage.scene,
     );
-    mesh(stage, noodle, '#f1cf6b', root);
+    markVisual(mesh(stage, noodle, '#f1cf6b', root), 'nudel', lane.player.slot);
     const sauce = CreateSphere(
       stage.name('sosse', stage.count),
       { diameter: 0.5, segments: 6 },
       stage.scene,
     );
-    mesh(stage, sauce, '#c8321e', root, 0.2).position.set(lane.x, 1.5, PROP_Z + 1.2);
+    markVisual(mesh(stage, sauce, '#c8321e', root, 0.2), 'sosse', lane.player.slot).position.set(
+      lane.x,
+      1.5,
+      PROP_Z + 1.2,
+    );
     plates.set(lane.player.slot, { noodle, sauce });
     noodle.metadata = { x: lane.x };
     await stage.pace();
@@ -159,7 +166,7 @@ const spaghetti: ViewBuilder = async (stage, lanes) => {
 };
 
 const kerze: ViewBuilder = async (stage, lanes) => {
-  const root = stage.node('kerze');
+  const root = stage.node('kerze', 'kerze');
   const flames = new Map<Slot, Mesh>();
   for (const lane of lanes) {
     const stand = CreateCylinder(
@@ -179,7 +186,11 @@ const kerze: ViewBuilder = async (stage, lanes) => {
       { diameter: 0.5, segments: 6 },
       stage.scene,
     );
-    mesh(stage, flame, '#ff9a2e', root, 0.9).position.set(lane.x, 1.35, PROP_Z);
+    markVisual(mesh(stage, flame, '#ff9a2e', root, 0.9), 'flamme', lane.player.slot).position.set(
+      lane.x,
+      1.35,
+      PROP_Z,
+    );
     flames.set(lane.player.slot, flame);
     await stage.pace();
   }
@@ -198,7 +209,7 @@ const kerze: ViewBuilder = async (stage, lanes) => {
 };
 
 const fliege: ViewBuilder = async (stage, lanes) => {
-  const root = stage.node('fliege');
+  const root = stage.node('fliege', 'fliege');
   const parts = new Map<Slot, { fly: TransformNode; hand: Mesh; x: number }>();
   for (const lane of lanes) {
     const board = CreateBox(
@@ -207,7 +218,7 @@ const fliege: ViewBuilder = async (stage, lanes) => {
       stage.scene,
     );
     mesh(stage, board, '#b58251', root).position.set(lane.x, 0.2, PROP_Z);
-    const fly = stage.node('fliege-koerper');
+    const fly = stage.node('fliege-koerper', 'fliege-koerper', lane.player.slot);
     fly.parent = root;
     const body = CreateSphere(
       stage.name('fliegenkoerper', stage.count),
@@ -228,7 +239,7 @@ const fliege: ViewBuilder = async (stage, lanes) => {
       { diameter: 0.42, segments: 8 },
       stage.scene,
     );
-    mesh(stage, hand, lane.player.color, root, 0.25);
+    markVisual(mesh(stage, hand, lane.player.color, root, 0.25), 'hand', lane.player.slot);
     hand.scaling.y = 0.45;
     parts.set(lane.player.slot, { fly, hand, x: lane.x });
     await stage.pace();
@@ -258,7 +269,7 @@ const fliege: ViewBuilder = async (stage, lanes) => {
 };
 
 const kuchen: ViewBuilder = async (stage, lanes) => {
-  const root = stage.node('kuchen');
+  const root = stage.node('kuchen', 'kuchen');
   const parts = new Map<Slot, { left: Mesh; right: Mesh; knife: Mesh; x: number }>();
   for (const lane of lanes) {
     const board = CreateBox(
@@ -274,7 +285,11 @@ const kuchen: ViewBuilder = async (stage, lanes) => {
         { width: 0.5, height: 0.5, depth: 0.8 },
         stage.scene,
       );
-      mesh(stage, half, side === 'links' ? '#f2c4d0' : '#eab3c2', root);
+      markVisual(
+        mesh(stage, half, side === 'links' ? '#f2c4d0' : '#eab3c2', root),
+        'kuchenhaelfte',
+        `${String(lane.player.slot)}-${side}`,
+      );
       halves.push(half);
     }
     const knife = CreateBox(
@@ -282,7 +297,7 @@ const kuchen: ViewBuilder = async (stage, lanes) => {
       { width: 0.05, height: 0.6, depth: 0.95 },
       stage.scene,
     );
-    mesh(stage, knife, '#cfd6de', root, 0.15);
+    markVisual(mesh(stage, knife, '#cfd6de', root, 0.15), 'messer', lane.player.slot);
     const [left, right] = halves as [Mesh, Mesh];
     parts.set(lane.player.slot, { left, right, knife, x: lane.x });
     await stage.pace();
