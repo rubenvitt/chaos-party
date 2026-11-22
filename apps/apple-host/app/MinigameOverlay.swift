@@ -109,8 +109,12 @@ struct MinigameOverlayView: View {
                     badge(slot: player.slot, color: player.color)
                     VStack(alignment: .leading, spacing: 0) {
                         Text(player.name ?? "Spieler \(player.slot)").font(.system(size: 26, weight: .heavy, design: .rounded))
-                        Text(player.character.flatMap { Self.names[$0] } ?? "").font(.system(size: 20, weight: .medium, design: .rounded))
-                            .foregroundStyle(Self.ink.opacity(0.7))
+                        if player.isAi {
+                            AiBadge(text: AiStrength.badge, size: 18)
+                        } else {
+                            Text(player.character.flatMap { Self.names[$0] } ?? "").font(.system(size: 20, weight: .medium, design: .rounded))
+                                .foregroundStyle(Self.ink.opacity(0.7))
+                        }
                     }
                 }
                 .padding(.horizontal, 16).padding(.vertical, 8)
@@ -208,8 +212,12 @@ struct MinigameOverlayView: View {
                 badge(slot: player.slot, color: player.color, symbol: player.symbol)
                 VStack(alignment: .leading, spacing: 0) {
                     Text(player.name ?? "Spieler \(player.slot)").font(.system(size: 24, weight: .heavy, design: .rounded)).lineLimit(1)
-                    Text(player.character ?? "").font(.system(size: 18, weight: .medium, design: .rounded))
-                        .foregroundStyle(Self.ink.opacity(0.7))
+                    if let ai = player.ai {
+                        AiBadge(text: ai, size: 16)
+                    } else {
+                        Text(player.character ?? "").font(.system(size: 18, weight: .medium, design: .rounded))
+                            .foregroundStyle(Self.ink.opacity(0.7))
+                    }
                 }
             }
             Text(mark + (player.text ?? "")).font(.system(size: 20, weight: .black, design: .rounded))
@@ -277,8 +285,12 @@ struct MinigameOverlayView: View {
                         badge(slot: score.slot, color: score.color, symbol: score.symbol)
                         VStack(alignment: .leading, spacing: 0) {
                             Text(score.name ?? "").font(.system(size: 26, weight: .heavy, design: .rounded)).lineLimit(1)
-                            Text(score.character ?? "").font(.system(size: 19, weight: .medium, design: .rounded))
-                                .foregroundStyle(Self.ink.opacity(0.7))
+                            if let ai = score.ai {
+                                AiBadge(text: ai, size: 17)
+                            } else {
+                                Text(score.character ?? "").font(.system(size: 19, weight: .medium, design: .rounded))
+                                    .foregroundStyle(Self.ink.opacity(0.7))
+                            }
                             if let status = score.status, !status.isEmpty {
                                 Text(status).font(.system(size: 19, weight: .bold, design: .rounded))
                                     .foregroundStyle(score.connected == false ? Color.red : Self.accent)
@@ -325,8 +337,12 @@ struct MinigameOverlayView: View {
                             badge(slot: row.slot, color: row.color, symbol: row.symbol)
                             VStack(alignment: .leading, spacing: 0) {
                                 Text(row.name ?? "").font(.system(size: 32, weight: .heavy, design: .rounded))
-                                Text(row.character ?? "").font(.system(size: 20, weight: .medium, design: .rounded))
-                                    .foregroundStyle(Self.ink.opacity(0.7))
+                                if let ai = row.ai {
+                                    AiBadge(text: ai, size: 18)
+                                } else {
+                                    Text(row.character ?? "").font(.system(size: 20, weight: .medium, design: .rounded))
+                                        .foregroundStyle(Self.ink.opacity(0.7))
+                                }
                             }
                             Spacer()
                             Text(row.scoreText ?? "").font(.system(size: 28, weight: .bold, design: .rounded))

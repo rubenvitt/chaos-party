@@ -69,7 +69,7 @@ Zum Vergleich die Bestandsspiele ohne Baukasten: Sockenregen ≈ 1 430, Krümel-
 - **Bot-Wahrnehmung feiner als der Bildschirm** (README §5.6 „nur Beobachtbares“): Der Rasensprenger-Bot liest während der Vorwarnung den genauen Einschaltzeitpunkt (`sprayAt`), sichtbar ist nur die gleich lange Vorwarnung ohne Countdown; der Bienenstock-Bot liest den genauen Wutwert, sichtbar sind 0–3 kreisende Bienen; der Toaster-Bot liest Bräunung und Tempo aus der Farbe genauer als ein Mensch. Die Fairness-Zahlen sind dadurch eher optimistisch für Bots mit gutem Profil.
 - **Requisiten:** Grundkörper im Look statt der Art-Kit-Modelle (CHAOS-237).
 - **Drei Türen:** keine private Rückmeldung der Wahl am Controller (CHAOS-242), KI-Stärke verfehlt (CHAOS-243).
-- **Matschmaler:** 192 Feld-Körper mit Rolle; im Swift-Harness stieg `renderState` im Minispiel von max. 7,6 auf 11 ms. Bildrate auf dem Ziel-PC und der echten Apple TV ungeprüft (Gerätecheckliste §49).
+- **Matschmaler:** 192 Feld-Körper mit Rolle; im Swift-Harness stieg `renderState` im Minispiel von max. 7,6 auf 11 ms. Bildrate auf dem Ziel-PC und der echten Apple TV ungeprüft (Gerätecheckliste §50).
 - **Eiswürfel-Sumo:** im Leerlauf passen alle vier Figuren bis zum Ende aufs Eis (Gleichstand ohne Eingaben).
 
 ## Ausfallquote
@@ -92,8 +92,8 @@ Abbruchkriterium der Fabrik (README §5.5): Fühlen sich die Spiele gleich an? B
 - Automatisch: Vertragstest, Vielfalt, Fairness, KI-Stärke, Darstellungs-Rollen, Apple-Darstellungs-Vertrag (`pnpm test`), Bild-E2E mit Linux-Baselines je Rotationsspiel (`tests/e2e/m3-minispiele-bild.spec.ts`), Apple-Host-Bot-Partien im Node-Bündel (`pnpm --filter @chaos-party/apple-host bots --full --matches 3`).
 - Bilder: [`../screenshots/chaos91-pilotwelle-pc-tvos.jpg`](../screenshots/chaos91-pilotwelle-pc-tvos.jpg), je Spiel links der PC-Host (Babylon, Testmodus), rechts der tvOS-Simulator (RealityKit) aus einer Bot-Partie mit allen acht Spielen (`--minispiele=…`, vier Bot-Controller, alle Ergebnisse angenommen).
 - Apple-Host: Swift-Harness `apps/apple-host/harness/run.sh full` spielt jetzt 16 Runden, damit alle zwölf Rotationsspiele drankommen (auch mit `hz=10`).
-- Leistung (DoD 6, `pnpm perf`, SwiftShader, nur relativ): Die neuen Spiele liegen im Bereich der Bestandsspiele (Bildabstand im Median 87–125 ms gegen 98–131 ms, Draw Calls 164–262 gegen 208–292); die Baseline (`tests/perf/baseline.json`) enthält jetzt alle zwölf Rotationsspiele. Brett-Heap nach GC stieg in der längeren Perf-Partie (zwölf statt fünf Minispiel-Chunks) von 93 auf 128 MB. Bildrate auf dem Ziel-PC mit echter GPU: offen (Gerätecheckliste §49).
-- Gerätecheckliste §49 für Rubens Spieltest.
+- Leistung (DoD 6, `pnpm perf`, SwiftShader, nur relativ): Die neuen Spiele liegen im Bereich der Bestandsspiele (Bildabstand im Median 87–125 ms gegen 98–131 ms, Draw Calls 164–262 gegen 208–292); die Baseline (`tests/perf/baseline.json`) enthält jetzt alle zwölf Rotationsspiele. Brett-Heap nach GC stieg in der längeren Perf-Partie (zwölf statt fünf Minispiel-Chunks) von 93 auf 128 MB. Bildrate auf dem Ziel-PC mit echter GPU: offen (Gerätecheckliste §50).
+- Gerätecheckliste §50 für Rubens Spieltest.
 - Nicht geprüft: Spaß mit Menschen, echte iPhones/iPads, Bildrate auf dem Ziel-PC und der echten Apple TV (Gerätecheckliste).
 
 ## Folgeaufgaben

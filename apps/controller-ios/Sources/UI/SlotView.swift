@@ -57,10 +57,15 @@ struct SlotView: View {
         switch screen {
         case .lobby:
             if let context, let model = LobbyModel(context: context, pending: state.picks[slot]) {
-                LobbyPanel(model: model, tint: tint, landscape: landscape, contextKey: context.key) {
+                LobbyPanel(
+                    model: model, seats: SeatsModel(lobby: context.lobby, ownSlot: slot), tint: tint,
+                    landscape: landscape, contextKey: context.key
+                ) {
                     session.pickCharacter(slot: slot, $0)
                 } onReady: {
                     session.setReady(slot: slot)
+                } onAiSeat: { seat, strength in
+                    session.setAiSeat(slot: slot, seat: seat, strength: strength)
                 }
             }
         case .lobbyBasic:
@@ -222,15 +227,146 @@ struct LobbyModel: Equatable {
     }
 }
 
+// MARK: - Seats with AI (port of `describeSeats`, CHAOS-182)
+
+/// One seat in the row „Mitspieler“ of the lobby.
+struct SeatChip: Equatable {
+    enum Kind: Equatable { case own, human, ai, free }
+    let slot: Int
+    let kind: Kind
+    /// Strength, AI only.
+    let strength: String?
+    /// „Du“, „Mitspieler“, „KI · Mittel“, „+ KI“ or „frei“.
+    let text: String
+    /// What a tap sends as `ai-seat` strength (lead only): put an AI (free) or next strength (AI); `nil` = nothing.
+    let tap: String?
+    /// The lead may remove this AI (`ai-seat` with strength `nil`).
+    let removable: Bool
+}
+
+/// AI strengths in lobby order (ADR-020 §4), like `AI_STRENGTHS`/`AI_STRENGTH_NAMES` in the protocol.
+enum AiStrengths {
+    static let order = ["leicht", "mittel", "schwer", "dynamisch"]
+    static let standard = "mittel"
+    static let badge = "KI"
+    private static let names = ["leicht": "Leicht", "mittel": "Mittel", "schwer": "Schwer", "dynamisch": "Dynamisch"]
+
+    static func name(_ strength: String?) -> String { names[strength ?? standard] ?? "Mittel" }
+
+    static func next(after strength: String?) -> String {
+        let index = order.firstIndex(of: strength ?? standard) ?? 1
+        return order[(index + 1) % order.count]
+    }
+}
+
+/// Row „Mitspieler“ from `lobby.seats`/`lobby.lead` (v4 addendum CHAOS-179). `nil` for an older server without
+/// `seats`, and when there is no AI and this slot is not the lead (saves space). Only the lead gets buttons.
+struct SeatsModel: Equatable {
+    let lead: Bool
+    let chips: [SeatChip]
+
+    init?(lobby: ControllerLobbyInfo?, ownSlot: Int) {
+        guard let seats = lobby?.seats else { return nil }
+        let lead = lobby?.lead == true
+        guard lead || seats.contains(where: { $0.kind == "ai" }) else { return nil }
+        self.lead = lead
+        chips = (1...4).map { slot in
+            guard let seat = seats.first(where: { $0.slot == slot }) else {
+                return SeatChip(
+                    slot: slot, kind: .free, strength: nil, text: lead ? "+ \(AiStrengths.badge)" : "frei",
+                    tap: lead ? AiStrengths.standard : nil, removable: false)
+            }
+            if seat.kind == "ai" {
+                let strength = seat.strength ?? AiStrengths.standard
+                return SeatChip(
+                    slot: slot, kind: .ai, strength: strength,
+                    text: "\(AiStrengths.badge) · \(AiStrengths.name(strength))",
+                    tap: lead ? AiStrengths.next(after: strength) : nil, removable: lead)
+            }
+            let own = slot == ownSlot
+            return SeatChip(
+                slot: slot, kind: own ? .own : .human, strength: nil, text: own ? "Du" : "Mitspieler", tap: nil,
+                removable: false)
+        }
+    }
+}
+
+/// Row „Mitspieler“ (`LobbySeats` in `ui/lobby.tsx`): who is human, who is AI (with strength), which seats are free.
+private struct SeatsRow: View {
+    let model: SeatsModel
+    let onAiSeat: (Int, String?) -> Void
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(model.chips, id: \.slot) { chip in
+                chipView(chip)
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Mitspieler")
+    }
+
+    @ViewBuilder
+    private func chipView(_ chip: SeatChip) -> some View {
+        let style = Slots.style(chip.slot)
+        let foreground: Color =
+            switch chip.kind {
+            case .ai: Color(hex: "#f6efe2")
+            case .free: Palette.dim
+            case .own, .human: Palette.ink
+            }
+        let fill: Color =
+            switch chip.kind {
+            case .ai: Color(hex: "#3b3f58")
+            case .own: Palette.glassStrong
+            case .human, .free: Palette.glass
+            }
+        let label = VStack(spacing: 1) {
+            Text(style.symbol).font(.system(size: 14, weight: .bold))
+            Text(chip.text).font(.caption.weight(.bold)).lineLimit(1).minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity, minHeight: 44)
+        .foregroundStyle(foreground)
+        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(fill))
+        .overlay(alignment: .top) {
+            RoundedRectangle(cornerRadius: 2).fill(style.color).frame(height: 3).padding(.horizontal, 10)
+        }
+        ZStack(alignment: .topTrailing) {
+            if let tap = chip.tap {
+                SwiftUI.Button { onAiSeat(chip.slot, tap) } label: { label }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(
+                        chip.kind == .free ? "KI auf Platz \(style.label) setzen" : "\(chip.text), tippen für nächste Stärke")
+            } else {
+                label
+            }
+            if chip.removable {
+                SwiftUI.Button { onAiSeat(chip.slot, nil) } label: {
+                    Image(systemName: "xmark").font(.system(size: 11, weight: .bold))
+                        .frame(width: 26, height: 26)
+                        .background(Circle().fill(Color.black.opacity(0.8)))
+                        .foregroundStyle(.white)
+                }
+                .buttonStyle(.plain)
+                .offset(x: 6, y: -8)
+                .accessibilityLabel("KI auf Platz \(style.label) entfernen")
+            }
+        }
+    }
+}
+
 // MARK: - Lobby views
 
 private struct LobbyPanel: View {
     let model: LobbyModel
+    /// Row „Mitspieler“ with AI seats (CHAOS-182) or `nil`.
+    let seats: SeatsModel?
     let tint: Tint
     let landscape: Bool
     let contextKey: String
     let onPick: (CharacterId) -> Void
     let onReady: () -> Void
+    let onAiSeat: (Int, String?) -> Void
 
     var body: some View {
         let head = HStack(spacing: 12) {
@@ -261,11 +397,16 @@ private struct LobbyPanel: View {
         if landscape {
             HStack(spacing: 20) {
                 VStack(spacing: 12) { head; grid }
-                foot.frame(maxWidth: 230)
+                VStack(spacing: 12) {
+                    if let seats { SeatsRow(model: seats, onAiSeat: onAiSeat) }
+                    foot
+                }
+                .frame(maxWidth: 230)
             }
         } else {
             VStack(spacing: 16) {
                 head
+                if let seats { SeatsRow(model: seats, onAiSeat: onAiSeat) }
                 grid
                 Spacer(minLength: 0)
                 foot

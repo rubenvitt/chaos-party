@@ -63,6 +63,7 @@ import {
 import { loadMinigamePrefs, saveMinigamePrefs } from '../../host/src/lobby/minigamePrefs.ts';
 import { createResultSender } from '../../host/src/net/resultSender.ts';
 import {
+  botSeatsFromView,
   intentToMinigameInput,
   minigameStageOf,
   planPlay,
@@ -436,6 +437,8 @@ function create(env: HostEnv): ChaosHostInstance {
         const headless = createHeadlessStage({
           module,
           players: playersFromView(view),
+          // KI-Plätze spielen über die Bots der Laufzeit mit (CHAOS-182, ADR-020 §3).
+          bots: botSeatsFromView(view),
           seed: view.minigame.seed,
           teams: view.minigame.teams ?? null,
           timeLimitMs: plan.kind === 'play' ? plan.timeLimitMs : module.info.durationMs,

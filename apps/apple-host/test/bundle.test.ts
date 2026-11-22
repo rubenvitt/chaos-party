@@ -379,6 +379,60 @@ describe('Bündel', () => {
     expect(lines).toContain('  js: Host-Befehl configure:rounds=4 ignoriert: nur in der Lobby');
   }, 60_000);
 
+  it('zeigt KI-Plätze in Lobby und auf dem Brett, die KI spielt das Minispiel mit (CHAOS-182)', async () => {
+    // Lobby: Der Host setzt eine KI, ändert die Stärke und entfernt eine zweite wieder.
+    const logs: string[] = [];
+    const host = loadBundle(code).api.create({
+      send: () => undefined,
+      close: () => undefined,
+      log: (line) => logs.push(line),
+      randomBytes: seededBytes(31),
+      havokWasm: wasm,
+      joinUrl: 'http://10.0.0.5:8787/?code=KIKI',
+      joinCode: 'KIKI',
+    });
+    await settle();
+    host.hostCommand('configure:aiSeat=2:leicht');
+    host.hostCommand('configure:aiSeat=4:mittel');
+    host.hostCommand('configure:aiSeat=2:schwer');
+    host.hostCommand('configure:aiSeat=4:aus');
+    await settle();
+    const lobby = RenderStateSchema.parse(JSON.parse(host.renderState())).lobby.players;
+    expect(lobby.map((p) => [p.slot, p.kind, p.strength, p.name])).toEqual([
+      [2, 'ai', 'schwer', 'KI Orange'],
+    ]);
+    expect(logs.filter((line) => PROBLEM_MARKERS.some((m) => line.includes(m)))).toEqual([]);
+
+    // Partie: zwei Bot-Controller plus KI auf Platz 3 bis zum ersten angenommenen Minispiel.
+    let boardState: RenderState | undefined;
+    let resultsState: RenderState | undefined;
+    const result = await runBotMatch({
+      code,
+      wasm,
+      full: false,
+      seed: 7,
+      beforeStart: ['configure:aiSeat=3:mittel'],
+      onPhase: (key, state) => {
+        if (key === 'board') boardState ??= state;
+        if (key === 'minigame-results') resultsState ??= state;
+      },
+    });
+    expect(result.exceptions).toEqual([]);
+    expect(result.problems).toEqual([]);
+    expect(result.serverErrors).toEqual([]);
+    expect(result.contractErrors).toEqual([]);
+    expect(result.resultsAccepted).toBe(1);
+    expect(result.ok).toBe(true);
+    const ai = boardState?.lobby.players.find((p) => p.slot === 3);
+    expect(ai?.kind).toBe('ai');
+    expect(ai?.character).not.toBeNull();
+    const hudAi = boardState?.board?.hud?.players.find((p) => p.slot === 3);
+    expect(hudAi?.ai).toMatch(/^KI/);
+    expect(boardState?.board?.hud?.players.filter((p) => p.ai !== undefined)).toHaveLength(1);
+    const row = resultsState?.minigame?.results?.rows.find((r) => r.slot === 3);
+    expect(row?.ai).toMatch(/^KI/);
+  }, 60_000);
+
   it('spielt mit zwei Bot-Controllern bis zum ersten angenommenen Minispiel', async () => {
     const phases: string[] = [];
     const result = await runBotMatch({

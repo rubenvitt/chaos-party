@@ -15,6 +15,7 @@ import {
 import './lobby/portrait.css';
 import './finale/finale.css';
 import { DEFAULT_BOARD, getBoard } from '@chaos-party/game-core';
+import type { AiStrength, SlotNumber } from '@chaos-party/protocol';
 import { createDemoMessages, DEMO_DELAYS_MS, demoStartMessage } from './board/demo.ts';
 import type { BoardScene } from './board/types.ts';
 import { finaleSpeedOf, serverWebSocketUrl, type HostConfig } from './config.ts';
@@ -406,6 +407,13 @@ export function App({ config }: AppProps) {
     },
     [command],
   );
+  // KI-Plätze (CHAOS-182): setzen, Stärke ändern, entfernen (`null`).
+  const onAiSeat = useCallback(
+    (seat: SlotNumber, strength: AiStrength | null) => {
+      command({ type: 'configure', aiSeat: { seat, strength } });
+    },
+    [command],
+  );
   const onStart = useCallback(() => {
     // Der Klick auf „Los geht’s!“ ist die Nutzer-Geste, die den Ton freischaltet (CHAOS-33).
     soundEngine().unlock();
@@ -534,6 +542,8 @@ export function App({ config }: AppProps) {
           ratings={session.ratings}
           onPractice={onPractice}
           onMinigames={onMinigames}
+          // Die M1-Arena kennt keine KI; nur in der Brettpartie (ADR-020).
+          onAiSeat={arena ? undefined : onAiSeat}
         />
       )}
     </main>

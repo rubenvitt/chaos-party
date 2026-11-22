@@ -111,6 +111,10 @@ final class LiveControllerSession: ControllerSessionProtocol {
         dispatch(.pickSent(slot: slot, character: character, seq: seq))
     }
 
+    func setAiSeat(slot: Int, seat: Int, strength: String?) {
+        send(.aiSeat(slot: slot, seat: seat, strength: strength))
+    }
+
     @discardableResult
     func choose(slot: Int, promptId: Int, option: String) -> Bool {
         // At most one choice per prompt (two fingers, double tap).

@@ -282,6 +282,11 @@ const BOARD_EVENTS: BoardState = {
 };
 
 const PLAYERS_IN_GAME: LobbyPlayer[] = [ANNA, { ...BEN, ready: true, character: 'sock' }];
+/** Partie mit KI auf Platz 2 (CHAOS-182): heißt nach ihrer Figur. */
+const PLAYERS_WITH_AI: LobbyPlayer[] = [
+  ANNA,
+  { ...BEN, name: 'Socke Sigi', ready: true, character: 'sock', kind: 'ai', strength: 'schwer' },
+];
 
 /** Kleinstes Beispiel einer Geometrie (CHAOS-144): ein Quadrat 1 × 1 in der x/z-Ebene. */
 const QUAD_GEOMETRY: MinigameGeometry = {
@@ -761,6 +766,21 @@ const EXAMPLES: Readonly<Record<string, ExampleBase>> = {
     phase: 'board',
     lobby: { ...JOIN, players: PLAYERS_IN_GAME },
     board: BOARD,
+    minigame: null,
+  },
+  // CHAOS-182: KI-Platz auf dem Brett, mit Abzeichen und Stil im HUD.
+  'board-with-ai': {
+    phase: 'board',
+    lobby: { ...JOIN, players: PLAYERS_WITH_AI },
+    board: {
+      ...BOARD,
+      hud: {
+        ...HUD,
+        players: HUD.players.map((player) =>
+          player.slot === 2 ? { ...player, name: 'Socke Sigi', ai: 'KI · Fuchs' } : player,
+        ),
+      },
+    },
     minigame: null,
   },
   'board-events': {

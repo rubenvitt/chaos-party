@@ -1,6 +1,12 @@
 import {
+  AI_BADGE,
+  AI_STRENGTH_HINTS,
+  AI_STRENGTH_NAMES,
+  DEFAULT_AI_STRENGTH,
   MAX_PLAYERS,
+  nextAiStrength,
   PLAYER_SLOTS,
+  type AiStrength,
   type LobbyMessage,
   type MinigameRating,
   type SlotNumber,
@@ -48,6 +54,11 @@ interface LobbyPanelProps {
   readonly onPractice: (minigameId: string) => boolean;
   /** Sperrliste/Favoriten der Minispiele geändert (sendet `configure`, CHAOS-85). */
   readonly onMinigames?: ((prefs: MinigamePrefs) => void) | undefined;
+  /**
+   * KI-Platz setzen, Stärke ändern oder entfernen (`null`), sendet `configure.aiSeat`
+   * (CHAOS-182, ADR-020 §2). Fehlt = keine KI-Knöpfe (lokaler Modus).
+   */
+  readonly onAiSeat?: ((seat: SlotNumber, strength: AiStrength | null) => void) | undefined;
 }
 
 const ALL_SLOTS: readonly SlotNumber[] = [1, 2, 3, 4];
@@ -81,6 +92,9 @@ function hostLabel(url: string): string {
  * `lobby.settings.moreReactionTime`), daneben der Knopf „Minispiele“ (CHAOS-228): öffnet die eine
  * Minispiel-Ansicht mit Üben, Daumen (CHAOS-87) sowie Favoriten und Sperrliste der Rotation
  * (CHAOS-85; Umschalter nur, wenn der Server `settings.minigames` schickt), und der Start.
+ * KI-Plätze (CHAOS-182, ADR-020): Jeder freie Platz hat „+ KI“ (Stärke mittel), eine KI-Karte
+ * zeigt das KI-Abzeichen, die Stärke als Wechselknopf (leicht → mittel → schwer → dynamisch) und
+ * „✕“ zum Entfernen; die Figur bekommt sie erst beim Start.
  * Alles per Maus und Tastatur bedienbar (echte Knöpfe, sichtbarer Fokus).
  */
 export function LobbyPanel({
@@ -95,6 +109,7 @@ export function LobbyPanel({
   ratings,
   onPractice,
   onMinigames,
+  onAiSeat,
 }: LobbyPanelProps) {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const closeGallery = useCallback(() => {
@@ -233,14 +248,31 @@ export function LobbyPanel({
           ) : (
             <ul className="lobby-players" aria-label="Beigetretene Spieler">
               {players.map((p) => (
-                <LobbyPlayerCard key={p.slot} player={p} all={players} />
+                <LobbyPlayerCard key={p.slot} player={p} all={players} onAiSeat={onAiSeat} />
               ))}
               {freeSlots.map((slot) => (
-                <li key={`frei-${String(slot)}`} className="lobby-player lobby-player--free">
+                <li
+                  key={`frei-${String(slot)}`}
+                  className="lobby-player lobby-player--free"
+                  data-testid={`lobby-free-${String(slot)}`}
+                >
                   <span className="lobby-free-symbol" aria-hidden="true">
                     {PLAYER_SLOTS[slot].symbol}
                   </span>
                   <span className="lobby-free-text">Platz frei</span>
+                  {onAiSeat !== undefined && (
+                    <button
+                      type="button"
+                      className="lobby-ai-add"
+                      data-testid={`lobby-ai-add-${String(slot)}`}
+                      aria-label={`KI auf Platz ${PLAYER_SLOTS[slot].label} setzen`}
+                      onClick={() => {
+                        onAiSeat(slot, DEFAULT_AI_STRENGTH);
+                      }}
+                    >
+                      + <span className="ai-badge">{AI_BADGE}</span>
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
@@ -416,11 +448,15 @@ export function LobbyPanel({
 function LobbyPlayerCard({
   player,
   all,
+  onAiSeat,
 }: {
   readonly player: HostPlayer;
   readonly all: readonly HostPlayer[];
+  readonly onAiSeat: LobbyPanelProps['onAiSeat'];
 }) {
   const figure = cardCharacter(player, all);
+  const ai = player.kind === 'ai';
+  const strength = player.strength ?? DEFAULT_AI_STRENGTH;
   const state = !player.connected ? '⚠ getrennt' : player.ready ? 'bereit ✓' : 'nicht bereit';
   return (
     <li
@@ -430,11 +466,12 @@ function LobbyPlayerCard({
       data-ready={player.ready}
       data-character={player.character ?? ''}
       data-choosing={!figure.chosen}
+      data-kind={ai ? 'ai' : 'human'}
       style={{ '--player-color': player.color } as CSSProperties}
     >
       <span className="lobby-player-figure">
         <CharacterPortrait character={figure.character} />
-        {!figure.chosen && (
+        {!figure.chosen && !ai && (
           <span className="lobby-player-question" aria-hidden="true">
             ?
           </span>
@@ -452,9 +489,51 @@ function LobbyPlayerCard({
           {figure.text}
         </span>
       </span>
-      <span className="lobby-player-state" data-testid={`lobby-state-${String(player.slot)}`}>
-        {state}
-      </span>
+      {ai ? (
+        <span className="lobby-ai-controls">
+          <span className="ai-badge" data-testid={`lobby-ai-badge-${String(player.slot)}`}>
+            {AI_BADGE}
+          </span>
+          {onAiSeat === undefined ? (
+            <span className="lobby-player-state">{AI_STRENGTH_NAMES[strength]}</span>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="lobby-ai-strength"
+                data-testid={`lobby-ai-strength-${String(player.slot)}`}
+                data-strength={strength}
+                aria-label={`Stärke ${AI_STRENGTH_NAMES[strength]}: ${AI_STRENGTH_HINTS[strength]}. Klicken wählt ${AI_STRENGTH_NAMES[nextAiStrength(strength)]}.`}
+                title={AI_STRENGTH_HINTS[strength]}
+                onClick={() => {
+                  onAiSeat(player.slot, nextAiStrength(strength));
+                }}
+              >
+                {AI_STRENGTH_NAMES[strength]}
+                <span className="lobby-board-next" aria-hidden="true">
+                  {' '}
+                  ›
+                </span>
+              </button>
+              <button
+                type="button"
+                className="lobby-ai-remove"
+                data-testid={`lobby-ai-remove-${String(player.slot)}`}
+                aria-label={`${player.label} entfernen`}
+                onClick={() => {
+                  onAiSeat(player.slot, null);
+                }}
+              >
+                ✕
+              </button>
+            </>
+          )}
+        </span>
+      ) : (
+        <span className="lobby-player-state" data-testid={`lobby-state-${String(player.slot)}`}>
+          {state}
+        </span>
+      )}
     </li>
   );
 }

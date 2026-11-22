@@ -3,13 +3,17 @@
  * statt des Bretts, wie viel Spielzeit bleibt, was passiert nach einem Host-Neuladen.
  */
 import {
+  BOT_LEVEL_STRENGTH,
   CHARACTER_NAMES,
   defaultCharacterFor,
+  type MinigameBotSeat,
   type MinigameInput,
 } from '@chaos-party/minigame-sdk';
 import type { MinigamePlayer } from '@chaos-party/minigame-sdk/babylon';
 import {
+  aiTagline,
   PLAYER_SLOTS,
+  type AiStrength,
   type BoardView,
   type InputIntent,
   type SlotNumber,
@@ -185,6 +189,36 @@ export function characterName(view: Pick<BoardView, 'players'>, slot: SlotNumber
   const character =
     view.players.find((player) => player.slot === slot)?.character ?? defaultCharacterFor(slot);
   return CHARACTER_NAMES[character].name;
+}
+
+/**
+ * KI-Kennzeichnung eines Slots aus dem Brett-Stand (CHAOS-182, ADR-020 §7): „KI“ bzw. „KI ·
+ * Saboteur“, bei Menschen `null`. Eine KI heißt nach ihrer Figur, deshalb zeigen Ergebnis und
+ * Anleitung statt der Figur dieses Abzeichen.
+ */
+export function aiTaglineOf(view: Pick<BoardView, 'players'>, slot: SlotNumber): string | null {
+  return aiTagline(view.players.find((player) => player.slot === slot));
+}
+
+/**
+ * Stärke `s` eines KI-Platzes für die Minispiel-Bots (ADR-020 §4). „Dynamisch“ startet bei
+ * „mittel“; die Anpassung je Runde kommt mit CHAOS-187.
+ */
+export function botStrength(strength: AiStrength | undefined): number {
+  if (strength === undefined || strength === 'dynamisch') return BOT_LEVEL_STRENGTH.mittel;
+  return BOT_LEVEL_STRENGTH[strength];
+}
+
+/**
+ * KI-Plätze des laufenden Minispiels für `createMinigameRunner({ bots })` (CHAOS-182, ADR-020
+ * Nachtrag 1): alle KI-Plätze aus dem Brett-Stand nach Slot (alle Plätze spielen mit). PC- und Apple-Host
+ * nutzen dieselbe Funktion.
+ */
+export function botSeatsFromView(view: Pick<BoardView, 'players'>): MinigameBotSeat[] {
+  return [...view.players]
+    .filter((player) => player.kind === 'ai')
+    .sort((a, b) => a.slot - b.slot)
+    .map((player) => ({ slot: player.slot, strength: botStrength(player.strength) }));
 }
 
 /** Teilnehmer eines Minispiels aus dem Brett-Stand (nach Slot sortiert). */

@@ -1,6 +1,7 @@
 import {
   defaultCharacterFor,
   PLAYER_SLOTS as SLOT_STYLES,
+  type AiStrength,
   type CharacterId,
   type LobbyPlayer,
 } from '@chaos-party/protocol';
@@ -13,6 +14,10 @@ export interface HostPlayer extends ScenePlayer {
   readonly ready: boolean;
   /** Gewählte Figur (v4, CHAOS-36) oder `null` = wählt noch. */
   readonly character: CharacterId | null;
+  /** KI-Platz (CHAOS-182, ADR-020): fehlt bei Menschen. */
+  readonly kind?: 'ai' | undefined;
+  /** Stärke, nur bei KI. */
+  readonly strength?: AiStrength | undefined;
 }
 
 /** Symbol eines Slots (Farben und Bezeichnungen kommen aus `@chaos-party/protocol`). */
@@ -50,5 +55,6 @@ export function playersFromLobby(players: readonly LobbyPlayer[]): HostPlayer[] 
       connected: p.connected,
       ready: p.ready,
       character: p.character,
+      ...(p.kind === 'ai' ? { kind: 'ai' as const, strength: p.strength ?? 'mittel' } : {}),
     }));
 }

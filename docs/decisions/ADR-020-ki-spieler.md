@@ -188,3 +188,15 @@ Umsetzungsentscheidungen von Claude im Rahmen von §3, §4, §6 und §8:
 - **Reaktion verpasst:** Die Politik darf `option: null` liefern. Die Session antwortet dann nicht, die Frist entscheidet (`timeout`) wie bei einem Menschen, der nicht reagiert. Eine Reaktionszeit hinter der Frist kommt nicht mehr an, weil der Prompt dann schon zu ist.
 - **Fristen:** Bei Prompts mit Frist (außer Reaktion) bleibt die Denkpause mindestens 300 ms vor der Frist (`AI_DEADLINE_MARGIN_MS`).
 - **Platzhalter:** `PLACEHOLDER_AI_POLICY` bleibt als feste Test-Politik für Tests, die genaue Zeiten prüfen.
+
+## Nachtrag 4 (2026-11-22, CHAOS-182): Lobby, Kennzeichnung, Übergabe an die Minispiel-Bots
+
+Umsetzungsentscheidungen von Claude im Rahmen von §1, §2, §4 und §7:
+
+- **KI-Zeichen (§7):** ein Abzeichen mit dem Text „KI“, Creme `#f6efe2` auf Tinte `#3b3f58` mit Creme-Rand (Farben aus `docs/art-direction.md`), kein Emoji. Es steht neben dem Slot-Symbol, nie statt seiner. Ab dem Start trägt es den Stil („KI · Fuchs“), sobald CHAOS-186 ihn vergibt. Texte zentral in `packages/protocol/src/aiLabels.ts` (`AI_BADGE`, `AI_STRENGTH_NAMES`, `aiTagline`, `nextAiStrength`); Swift hat die Stärken als kleine Kopie (`AiStrength` im Apple-Host, `AiStrengths` in der Controller-App).
+- **Wo das Abzeichen steht:** Lobby-Karte, Brett-HUD (unter dem Namen), Minispiel-Anleitung, Punkte und Ergebnis (statt der Figur, weil eine KI nach ihrer Figur heißt), Trophäenzählung und Endstand. Das 3D-Podest bleibt ohne Abzeichen. Brett-Banner und Ticker nennen nur den Namen; „(KI)“ am Controller während eines KI-Zugs braucht die Platzart im Brett-Kontext und folgt mit CHAOS-239.
+- **Bedienung am Host:** „+ KI“ je freiem Platz (Stärke mittel), Stärke als Wechselknopf in der Reihenfolge leicht → mittel → schwer → dynamisch, „✕“ bzw. „Entfernen“. Am PC echte Knöpfe (Maus, Tab, Leertaste/Enter), am Apple-Host fokussierbare Knöpfe (Siri Remote) mit `configure:aiSeat=<platz>:<stärke|aus>`. Die M1-Arena bietet keine KI an.
+- **Bedienung am Controller:** Reihe „Mitspieler“ über der Figurenwahl (iPhone im Browser und native App). Die Spielleitung sieht sie immer und bekommt Knöpfe; andere sehen sie nur, wenn es eine KI gibt. In iPad-Zonen gibt es die Reihe noch nicht (Platz, CHAOS-238), dort verwaltet der Host.
+- **Start (§1):** Der Knopf leuchtet ab zwei Plätzen (Menschen und KI) mit mindestens einem verbundenen Menschen, wenn alle Menschen bereit sind. **Abweichung:** Ein einzelner Mensch ohne KI kann weiter einen Probelauf starten (wie seit M1, für Demos und bestehende Tests), der Knopf leuchtet dann aber nicht und der Hinweis schlägt eine KI vor. Ohne verbundenen Menschen bleibt der Knopf aus.
+- **Minispiel-Bots:** Beide Hosts übergeben die KI-Plätze aus dem Brett-Stand an `createMinigameRunner({ bots })` (`botSeatsFromView` in `apps/host/src/minigame/plan.ts`). „Dynamisch“ spielt dort bis CHAOS-187 wie „mittel“ (`s = 0,5`).
+- **Apple-Host-Vertrag:** optionales Feld `ai` (Abzeichen-Text) an HUD-Spielern, Minispiel-Spielern (Punkte, Bereitschaft, Teams, Ergebnis) und Finale-Spielern; fehlt bei Menschen.

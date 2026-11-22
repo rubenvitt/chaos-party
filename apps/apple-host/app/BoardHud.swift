@@ -256,6 +256,7 @@ private struct HudPlayerCard: View {
             HStack(spacing: 12) {
                 PlayerDot(color: color, slot: player.slot, size: 40)
                 Text(player.name).font(rounded(36, .black)).lineLimit(1)
+                if let ai = player.ai { AiBadge(text: ai, size: 18) }
             }
             HStack(spacing: 24) {
                 HStack(spacing: 8) { TrophyIcon(size: 36); Text("\(player.trophies)").font(rounded(38, .black).monospacedDigit()) }

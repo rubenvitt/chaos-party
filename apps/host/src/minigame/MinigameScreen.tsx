@@ -43,6 +43,8 @@ import type {
 import { ButtonIcon, JoystickIcon } from './icons.tsx';
 import { MinigameKeyboard } from './keyboard.ts';
 import {
+  aiTaglineOf,
+  botSeatsFromView,
   characterName,
   intentToMinigameInput,
   minigameStageOf,
@@ -106,6 +108,29 @@ function colorStyle(slot: SlotNumber): CSSProperties {
   return { '--player-color': PLAYER_SLOTS[slot].color } as CSSProperties;
 }
 
+/**
+ * Zweite Zeile unter dem Namen: Figur, bei KI stattdessen das KI-Abzeichen (CHAOS-182). Eine KI
+ * heißt schon nach ihrer Figur.
+ */
+function WhoDetail({
+  className,
+  slot,
+  character,
+  ai,
+}: {
+  readonly className: string;
+  readonly slot: SlotNumber;
+  readonly character: string;
+  readonly ai: string | null;
+}) {
+  if (ai === null) return <span className={className}>{character}</span>;
+  return (
+    <span className={`${className} ai-badge`} data-testid={`minigame-ai-${String(slot)}`}>
+      {ai}
+    </span>
+  );
+}
+
 function PlayerBadge({ slot }: { readonly slot: SlotNumber }) {
   return (
     <span className="minigame-badge" aria-hidden="true" style={colorStyle(slot)}>
@@ -127,6 +152,8 @@ export function MinigameScreen(props: MinigameScreenProps) {
   // Beim Einhängen festgelegt: Spieler, Seed, Runde, Spielzeit (bzw. Restzeit nach Neuladen).
   const [setup] = useState(() => ({
     players: playersFromView(view),
+    // KI-Plätze spielen über die Bots der Laufzeit mit (CHAOS-182, ADR-020 §3).
+    bots: botSeatsFromView(view),
     seed: minigame?.seed ?? 0,
     // CHAOS-89: Aufstellung bei Teams bzw. Koop, fest ab der Anleitung.
     teams: minigame?.teams ?? null,
@@ -168,6 +195,7 @@ export function MinigameScreen(props: MinigameScreenProps) {
       canvas,
       module,
       players: setup.players,
+      bots: setup.bots,
       seed: setup.seed,
       teams: setup.teams,
       timeLimitMs: plan.kind === 'play' ? plan.timeLimitMs : module.info.durationMs,
@@ -566,9 +594,12 @@ function IntroCard({
               >
                 <PlayerBadge slot={player.slot} />
                 <span className="minigame-roster-name">{player.name}</span>
-                <span className="minigame-roster-character">
-                  {characterName(view, player.slot)}
-                </span>
+                <WhoDetail
+                  className="minigame-roster-character"
+                  slot={player.slot}
+                  character={characterName(view, player.slot)}
+                  ai={aiTaglineOf(view, player.slot)}
+                />
               </li>
             ))}
           </ul>
@@ -641,7 +672,12 @@ function ReadinessRow({ readiness }: { readonly readiness: Readiness }) {
             <span className="minigame-ready-who">
               <span className="minigame-ready-line">
                 <span className="minigame-ready-name">{player.name}</span>
-                <span className="minigame-ready-character">{player.character}</span>
+                <WhoDetail
+                  className="minigame-ready-character"
+                  slot={player.slot}
+                  character={player.character}
+                  ai={player.ai}
+                />
               </span>
               <span className="minigame-ready-state">
                 {player.state !== 'waiting' && (
@@ -719,7 +755,12 @@ function PlayHud({
               <PlayerBadge slot={player.slot} />
               <span className="minigame-score-who">
                 <span className="minigame-score-name">{player.name}</span>
-                <span className="minigame-score-character">{characterName(view, player.slot)}</span>
+                <WhoDetail
+                  className="minigame-score-character"
+                  slot={player.slot}
+                  character={characterName(view, player.slot)}
+                  ai={aiTaglineOf(view, player.slot)}
+                />
               </span>
               <span className="minigame-score-value">
                 {entry?.score ?? 0}
@@ -776,7 +817,12 @@ function ResultsCard({
                 <PlayerBadge slot={row.slot} />
                 <span className="minigame-rank-who">
                   <span className="minigame-rank-name">{row.name}</span>
-                  <span className="minigame-rank-character">{row.character}</span>
+                  <WhoDetail
+                    className="minigame-rank-character"
+                    slot={row.slot}
+                    character={row.character}
+                    ai={row.ai}
+                  />
                 </span>
                 <span className="minigame-rank-score">{row.scoreText}</span>
                 <span

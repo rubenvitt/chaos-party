@@ -7,10 +7,15 @@ import type { MinigameInfo } from '@chaos-party/minigame-sdk';
 import type { MinigameHud } from '@chaos-party/minigame-sdk/babylon';
 import { PLAYER_SLOTS, type BoardView } from '@chaos-party/protocol';
 import { ITEM_NAMES } from '../../host/src/board/texts.ts';
-import { characterName, phaseSecondsLeft } from '../../host/src/minigame/plan.ts';
+import { aiTaglineOf, characterName, phaseSecondsLeft } from '../../host/src/minigame/plan.ts';
 import { introReadiness, readyProgress, waitsForReady } from '../../host/src/minigame/readiness.ts';
 
 export { readyProgress };
+
+/** KI-Abzeichen als optionales Vertragsfeld (CHAOS-182): fehlt bei Menschen. */
+function aiField(ai: string | null): { ai?: string } {
+  return ai === null ? {} : { ai };
+}
 import { PRACTICE_NOTE, resultsDisplay } from '../../host/src/minigame/results.ts';
 import { teamLineup } from '../../host/src/minigame/teams.ts';
 import { playerName } from '../../host/src/board/texts.ts';
@@ -58,6 +63,7 @@ export function readinessView(view: BoardView): MinigameReadiness | null {
       character: player.character,
       color: player.color,
       symbol: player.symbol,
+      ...aiField(player.ai),
       ready: player.ready,
       connected: player.connected,
       state: player.state,
@@ -87,6 +93,7 @@ export function teamsView(view: BoardView): MinigameTeamsView | null {
         character: characterName(view, slot),
         color: PLAYER_SLOTS[slot].color,
         symbol: PLAYER_SLOTS[slot].symbol,
+        ...aiField(aiTaglineOf(view, slot)),
       })),
     })),
   };
@@ -114,6 +121,7 @@ export function scoreboardView(
           character: characterName(view, player.slot),
           color: PLAYER_SLOTS[player.slot].color,
           symbol: PLAYER_SLOTS[player.slot].symbol,
+          ...aiField(aiTaglineOf(view, player.slot)),
           score: entry?.score ?? 0,
           status: player.connected ? (entry?.status ?? null) : '⚠ getrennt',
           connected: player.connected,
@@ -138,6 +146,7 @@ export function resultsView(
       character: row.character,
       color: row.color,
       symbol: row.symbol,
+      ...aiField(row.ai),
       place: row.place,
       tied: row.tied,
       scoreText: row.scoreText,

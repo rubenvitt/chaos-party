@@ -24,6 +24,7 @@ import { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
 import { Logger } from '@babylonjs/core/Misc/logger.js';
 import { Scene } from '@babylonjs/core/scene.js';
 import type {
+  MinigameBotSeat,
   MinigameCue,
   MinigamePlacement,
   MinigameTeams,
@@ -73,6 +74,8 @@ import {
 export interface HeadlessStageOptions {
   readonly module: MinigameModule;
   readonly players: readonly MinigamePlayer[];
+  /** KI-Plätze, deren Eingaben die Laufzeit erzeugt (CHAOS-182, `botSeatsFromView`). */
+  readonly bots?: readonly MinigameBotSeat[];
   readonly seed: number;
   /** Aufstellung bei Teams bzw. Koop vom Server (CHAOS-89/230); fehlt/`null` = jeder gegen jeden. */
   readonly teams?: MinigameTeams | null;
@@ -344,6 +347,7 @@ export function createHeadlessStage(options: HeadlessStageOptions): HeadlessStag
   const runner = createMinigameRunner(options.module, {
     scene,
     players: options.players,
+    ...(options.bots && options.bots.length > 0 ? { bots: options.bots } : {}),
     seed: options.seed,
     ...(options.teams ? { teams: options.teams } : {}),
     timeLimitMs: options.timeLimitMs,

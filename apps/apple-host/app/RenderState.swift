@@ -75,6 +75,12 @@ struct RenderState: Decodable, Equatable {
         var connected: Bool?
         var ready: Bool?
         var character: String?
+        /// `human` or `ai` (CHAOS-179/182, ADR-020); nil from an older core = human.
+        var kind: String?
+        /// AI strength (`leicht`/`mittel`/`schwer`/`dynamisch`), nil for humans.
+        var strength: String?
+
+        var isAi: Bool { kind == "ai" }
     }
 
     struct Board: Decodable, Equatable {
@@ -210,6 +216,8 @@ struct RenderState: Decodable, Equatable {
             var items: [Item]?
             var connected: Bool?
             var active: Bool?
+            /// AI badge „KI“ / „KI · Saboteur“ (CHAOS-182); nil for humans.
+            var ai: String?
         }
 
         struct Item: Decodable, Equatable {
@@ -406,6 +414,8 @@ struct RenderState: Decodable, Equatable {
 
     struct Score: Decodable, Equatable {
         var slot: Int
+        /// AI badge „KI“ / „KI · Saboteur“ (CHAOS-182); nil for humans.
+        var ai: String?
         var name: String?
         var character: String?
         var color: String?
@@ -423,6 +433,8 @@ struct RenderState: Decodable, Equatable {
 
     struct ReadyPlayer: Decodable, Equatable {
         var slot: Int
+        /// AI badge „KI“ / „KI · Saboteur“ (CHAOS-182); nil for humans.
+        var ai: String?
         var name: String?
         var character: String?
         var color: String?
@@ -458,6 +470,8 @@ struct RenderState: Decodable, Equatable {
 
     struct TeamMember: Decodable, Equatable {
         var slot: Int
+        /// AI badge „KI“ / „KI · Saboteur“ (CHAOS-182); nil for humans.
+        var ai: String?
         var name: String?
         var character: String?
         var color: String?
@@ -476,6 +490,8 @@ struct RenderState: Decodable, Equatable {
 
     struct ResultRow: Decodable, Equatable {
         var slot: Int
+        /// AI badge „KI“ / „KI · Saboteur“ (CHAOS-182); nil for humans.
+        var ai: String?
         var name: String?
         var character: String?
         var color: String?
@@ -532,6 +548,8 @@ struct RenderState: Decodable, Equatable {
     /// Tally card, values already counted up.
     struct FinaleCard: Decodable, Equatable {
         var slot: Int
+        /// AI badge „KI“ / „KI · Saboteur“ (CHAOS-182); nil for humans.
+        var ai: String?
         var name: String?
         var character: String?
         var characterName: String?
@@ -556,6 +574,8 @@ struct RenderState: Decodable, Equatable {
 
     struct FinaleRank: Decodable, Equatable {
         var slot: Int
+        /// AI badge „KI“ / „KI · Saboteur“ (CHAOS-182); nil for humans.
+        var ai: String?
         var name: String?
         var character: String?
         var characterName: String?

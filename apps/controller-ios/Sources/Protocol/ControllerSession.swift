@@ -284,6 +284,9 @@ protocol ControllerSessionProtocol: AnyObject, Observable {
     /// action `ready` (CHAOS-214).
     func setReady(slot: Int)
     func pickCharacter(slot: Int, _ character: CharacterId)
+    /// Lobby, lead only (CHAOS-182, ADR-020 §2): `ai-seat` – put an AI on `seat` / change its strength
+    /// (`leicht`/`mittel`/`schwer`/`dynamisch`) or remove it (`nil`). The server checks lead and phase.
+    func setAiSeat(slot: Int, seat: Int, strength: String?)
     /// Sends `choose` for the slot's current prompt; `false` if not offered, already locked
     /// or not connected. A sent choice locks the prompt (`state.choices`).
     @discardableResult
@@ -342,6 +345,10 @@ final class FakeControllerSession: ControllerSessionProtocol {
     func pickCharacter(slot: Int, _ character: CharacterId) {
         sent.append("pick-character \(slot) \(character.rawValue)")
         state.picks[slot] = character
+    }
+
+    func setAiSeat(slot: Int, seat: Int, strength: String?) {
+        sent.append("ai-seat \(slot) \(seat) \(strength ?? "aus")")
     }
 
     @discardableResult
