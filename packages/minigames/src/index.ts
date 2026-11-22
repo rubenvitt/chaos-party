@@ -16,6 +16,14 @@ import { pumpRiese } from './pump-riese/index.ts';
 import { pumpSolo } from './pump-solo/index.ts';
 import { schnellfeuer } from './schnellfeuer/index.ts';
 import { sockenregen } from './sockenregen/index.ts';
+import { toasterTiming } from './toaster-timing/index.ts';
+import { nussregenNetz } from './nussregen-netz/index.ts';
+import { matschmaler } from './matschmaler/index.ts';
+import { rasensprengerRodeo } from './rasensprenger-rodeo/index.ts';
+import { schnappDenKaese } from './schnapp-den-kaese/index.ts';
+import { eiswuerfelSumo } from './eiswuerfel-sumo/index.ts';
+import { bienenstockHonig } from './bienenstock-honig/index.ts';
+import { dreiTueren } from './drei-tueren/index.ts';
 import { wackelturm } from './wackelturm/index.ts';
 
 export * from './catalog.ts';
@@ -28,6 +36,14 @@ export const MINIGAME_MODULES: readonly MinigameModule[] = [
   kuckucksKlatsche,
   kruemelKehraus,
   halloBaukasten,
+  toasterTiming,
+  nussregenNetz,
+  matschmaler,
+  rasensprengerRodeo,
+  schnappDenKaese,
+  eiswuerfelSumo,
+  bienenstockHonig,
+  dreiTueren,
   pumpDuell,
   pumpSolo,
   pumpRiese,

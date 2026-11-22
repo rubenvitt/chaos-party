@@ -15,6 +15,21 @@ import { PAWN_BOT_SKILLS } from '@chaos-party/minigame-kit';
 import { createMinigameRng, type Slot } from '@chaos-party/minigame-sdk';
 import { runMinigameHeadless } from '@chaos-party/minigame-sdk/testing';
 import { KRUEMEL_KEHRAUS_INFO } from '../kruemel-kehraus/info.ts';
+import { TOASTER_BOT_ADAPTER } from '../toaster-timing/bot.ts';
+import { TOASTER_TIMING_INFO } from '../toaster-timing/info.ts';
+import { NUSS_BOT_ADAPTER } from '../nussregen-netz/bot.ts';
+import { NUSSREGEN_NETZ_INFO } from '../nussregen-netz/info.ts';
+import { MATSCH_BOT_ADAPTER } from '../matschmaler/bot.ts';
+import { MATSCHMALER_INFO } from '../matschmaler/info.ts';
+import { RODEO_BOT_ADAPTER, RODEO_INTRUDERS } from '../rasensprenger-rodeo/bot.ts';
+import { RASENSPRENGER_RODEO_INFO } from '../rasensprenger-rodeo/info.ts';
+import { KAESE_BOT_ADAPTER, KAESE_INTRUDERS } from '../schnapp-den-kaese/bot.ts';
+import { SCHNAPP_DEN_KAESE_INFO } from '../schnapp-den-kaese/info.ts';
+import { sumoDecision, type SumoStrategy } from '../eiswuerfel-sumo/bot.ts';
+import { EiswuerfelSumo, eiswuerfelSumo } from '../eiswuerfel-sumo/index.ts';
+import { EISWUERFEL_SUMO_INFO } from '../eiswuerfel-sumo/info.ts';
+import { HoneyBot, HONEY_BOT_ADAPTER } from '../bienenstock-honig/bot.ts';
+import { BIENENSTOCK_HONIG_INFO } from '../bienenstock-honig/info.ts';
 import { KUCKUCKS_KLATSCHE_INFO } from '../kuckucks-klatsche/info.ts';
 import { PUDDING_GERANGEL_INFO } from '../pudding-gerangel/info.ts';
 import { SOCKENREGEN_INFO } from '../sockenregen/info.ts';
@@ -44,6 +59,7 @@ import {
   type FairnessSeat,
   type FairnessSkill,
 } from './fairness.ts';
+import { dauerDruecker, kitHarness } from './kitHarness.ts';
 
 const ARCADE_PROFILES: Record<FairnessSkill, BotProfile> = {
   profi: BOT_PROFILES.profi,
@@ -208,6 +224,51 @@ async function playKruemel(seats: readonly FairnessSeat[], seed: number): Promis
   return { scores: record.seats.map((seat) => seat.score), leadChanges: record.leadChanges };
 }
 
+// --- Eiswürfel-Sumo (Pilotwelle CHAOS-91, echte Umsetzung mit Havok) ----------------------
+
+/** Wie `playPudding`: echtes Modul headless, Bots über die sichtbare Lage (`view`). */
+async function playEiswuerfel(
+  seats: readonly FairnessSeat[],
+  seed: number,
+): Promise<FairnessMatch> {
+  let game: EiswuerfelSumo | null = null;
+  const module = {
+    ...eiswuerfelSumo,
+    create: () => (game = new EiswuerfelSumo()),
+  };
+  const rng = createMinigameRng(seed * 7919 + 13);
+  const lead = new LeadCounter();
+  let step = 0;
+  const run = await runMinigameHeadless(module, {
+    players: seats.length,
+    seed,
+    script: (_elapsed, send, runner) => {
+      const view = game?.view();
+      lead.update(runner.hud().scores.map((entry) => entry.score));
+      for (const me of view?.pawns ?? []) {
+        const seat = seats[me.slot - 1];
+        const skill = PHYSICS_SKILLS[seat?.skill ?? 'normal'];
+        if (!view || me.out || (step + me.slot * 3) % skill.replanSteps !== 0) continue;
+        const strategy = (seat?.strategy ?? 'normal') as SumoStrategy;
+        const decision = sumoDecision(me, view, skill, rng, strategy);
+        send(me.slot, { type: 'move', x: decision.x, y: decision.y });
+        if (decision.dash) {
+          send(me.slot, { type: 'press', button: 'a' });
+          send(me.slot, { type: 'release', button: 'a' });
+        }
+      }
+      step++;
+    },
+  });
+  const placements = run.outcome?.result.placements;
+  if (!placements) throw new Error('Eiswürfel-Sumo lieferte kein Ergebnis');
+  const bySlot = new Map(placements.map((p) => [p.slot, p.score]));
+  return {
+    scores: slotsFor(seats.length).map((slot) => bySlot.get(slot) ?? 0),
+    leadChanges: lead.changes,
+  };
+}
+
 export const FAIRNESS_HARNESSES: Readonly<Record<string, FairnessHarness>> = {
   [SOCKENREGEN_INFO.id]: {
     id: SOCKENREGEN_INFO.id,
@@ -247,4 +308,57 @@ export const FAIRNESS_HARNESSES: Readonly<Record<string, FairnessHarness>> = {
     ciSeeds: 8,
     play: playKruemel,
   },
+  // Pilotwelle (CHAOS-91): Baukasten-Spiele über `kitHarness`.
+  [TOASTER_TIMING_INFO.id]: kitHarness({
+    info: TOASTER_TIMING_INFO,
+    adapter: TOASTER_BOT_ADAPTER,
+    intruders: [dauerDruecker(['a'], 'Dauerdrücken (Toast sofort raus)')],
+  }),
+  [NUSSREGEN_NETZ_INFO.id]: kitHarness({
+    info: NUSSREGEN_NETZ_INFO,
+    adapter: NUSS_BOT_ADAPTER,
+    intruders: [dauerDruecker(['a'], 'Dauerdrücken (immer weit schwingen)')],
+  }),
+  [MATSCHMALER_INFO.id]: kitHarness({
+    info: MATSCHMALER_INFO,
+    adapter: MATSCH_BOT_ADAPTER,
+    intruders: [dauerDruecker(['a'], 'Dauerdrücken (Bauchplatscher, sobald bereit)')],
+  }),
+  [RASENSPRENGER_RODEO_INFO.id]: kitHarness({
+    info: RASENSPRENGER_RODEO_INFO,
+    adapter: RODEO_BOT_ADAPTER,
+    intruders: [dauerDruecker(['a'], 'Dauerdrücken (A ist ohne Wirkung)'), ...RODEO_INTRUDERS],
+  }),
+  [SCHNAPP_DEN_KAESE_INFO.id]: kitHarness({
+    info: SCHNAPP_DEN_KAESE_INFO,
+    adapter: KAESE_BOT_ADAPTER,
+    intruders: [dauerDruecker(['a'], 'Dauerdrücken (greift sofort)'), ...KAESE_INTRUDERS],
+  }),
+  [EISWUERFEL_SUMO_INFO.id]: {
+    id: EISWUERFEL_SUMO_INFO.id,
+    scoring: EISWUERFEL_SUMO_INFO.scoring,
+    intruders: [
+      { id: 'dauer', label: 'Dauerrempler' },
+      { id: 'mitte', label: 'Mittelsteher (rempelt nie)' },
+    ] satisfies { id: SumoStrategy; label: string }[],
+    ciSeeds: 8,
+    play: playEiswuerfel,
+  },
+  [BIENENSTOCK_HONIG_INFO.id]: kitHarness({
+    info: BIENENSTOCK_HONIG_INFO,
+    adapter: HONEY_BOT_ADAPTER,
+    intruders: [
+      dauerDruecker(['a'], 'Dauerdrücken (nur zapfen)'),
+      {
+        id: 'gierhals',
+        label: 'Gierhals (sichert spät)',
+        bot: (slot, rng, normal) => new HoneyBot(slot, normal.profile, rng, 'gierig'),
+      },
+      {
+        id: 'angsthase',
+        label: 'Angsthase (sichert jeden Zapfer)',
+        bot: (slot, rng, normal) => new HoneyBot(slot, normal.profile, rng, 'aengstlich'),
+      },
+    ],
+  }),
 };

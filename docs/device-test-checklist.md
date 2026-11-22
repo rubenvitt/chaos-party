@@ -958,3 +958,20 @@ Automatisch geprüft: PC-Lobby mit 1 Mensch (synthetischer Controller) und KI pe
 | KI9 | Native Controller-App als Spielleitung | Wie KI7 | | Video |
 | KI10 | Apple TV: Lobby per Siri Remote | Fokus erreicht „+ KI“, Stärke und „Entfernen“; Start erst mit einem Menschen; im Brett-HUD, Minispiel und Endstand das Abzeichen „KI“ | | Video |
 | KI11 | Mac-App: dieselbe Lobby mit der Maus | Wie KI10 | | Foto |
+
+## 50. Pilotwelle: acht neue Minispiele (für CHAOS-91, Zwischenabnahme CHAOS-92)
+
+**Stand:** 2026-11-22 · **Aufgabe:** CHAOS-91 · **Bericht:** [`minigames/pilotwelle.md`](minigames/pilotwelle.md) · **Experiment:** EXP-042
+
+Automatisch geprüft (Mac/Linux): Vertragstest, Vielfalt, Fairness (200 Seeds), KI-Stärke, Darstellungs-Rollen und Apple-Darstellungs-Vertrag je Spiel; Linux-Bildbaselines der sieben Rotationsspiele; Swift-Harness `run.sh full` (16 Runden, alle zwölf Rotationsspiele, auch mit 10 Hz); Bot-Partie im **tvOS-Simulator** (Apple TV 4K, `--minispiele=<alle acht>`, vier Bot-Controller): alle acht Spiele aufgebaut, Ergebnisse angenommen, Bilder in `docs/screenshots/chaos91-pilotwelle-pc-tvos.jpg`. **Nicht** geprüft: Spielspaß und Tempo mit Menschen, echte iPhones/iPads, Bildrate auf dem Ziel-PC und auf der echten Apple TV.
+
+| ID  | Schritt | Erwartung | Ergebnis | Nachweis |
+| --- | ------- | --------- | -------- | -------- |
+| PW1 | Lobby „Minispiele ›“: alle acht Pilotspiele nacheinander „Üben“ (4 Personen) | Jede Anleitung in einem Blick verständlich, Bedienung am iPhone passt (Rodeo nur Stick, Toaster/Käse nur A, Bienen A+B) | | Video |
+| PW2 | Abbruchkriterium README §5.5 | Die Spiele fühlen sich verschieden an; besonders Toaster-Timing ↔ Schnapp den Käse | | Notiz |
+| PW3 | Eiswürfel-Sumo und Bienenstock-Honig | Tempo lustig, nicht frustig; Stich-Anflug rechtzeitig erkennbar | | Notiz |
+| PW4 | Matschmaler | Eigene Felder auch ohne Farbe am Muster erkennbar | | Foto |
+| PW5 | Drei Türen am iPhone | Wahl per Stickrichtung + A ist verständlich, obwohl das iPhone die gewählte Tür nicht zeigt (CHAOS-242) | | Notiz |
+| PW6 | iPad-Zone: Toaster-Timing, Schnapp den Käse, Bienenstock-Honig | Knöpfe in beiden Zonen gleichzeitig bedienbar | | Video |
+| PW7 | Partie mit Rotation am Mac oder auf der Apple TV | Pilotspiele erscheinen, Requisiten als Grundkörper sichtbar, kein Ruckeln beim Aufbau | | Log |
+||||||| c306265

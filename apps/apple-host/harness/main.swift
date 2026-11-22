@@ -353,8 +353,9 @@ var resultsSeenAfterAccept = false
 var frame = 0
 var maxRound = 0
 var plannedRounds = 0
-/// Rundenzahl über `configure` (CHAOS-166); `full` bleibt bei 10, damit alle Minispiele der Rotation drankommen.
-let configuredRounds = full ? 10 : 12
+/// Rundenzahl über `configure` (CHAOS-166); `full` spielt 16 Runden, damit alle zwölf Minispiele der
+/// Rotation (seit der Pilotwelle CHAOS-91) trotz Schnellfeuer-Runde drankommen.
+let configuredRounds = full ? 16 : 12
 var configured = false
 /// `renderState` mit dem Typ der App dekodieren und die Lobby-Einstellungen prüfen.
 func expectSettings(_ rounds: Int, _ more: Bool, _ label: String) {

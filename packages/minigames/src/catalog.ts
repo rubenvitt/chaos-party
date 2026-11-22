@@ -20,6 +20,14 @@ import { PUMP_RIESE_INFO } from './pump-riese/info.ts';
 import { PUMP_SOLO_INFO } from './pump-solo/info.ts';
 import { SCHNELLFEUER_INFO } from './schnellfeuer/info.ts';
 import { SOCKENREGEN_INFO } from './sockenregen/info.ts';
+import { TOASTER_TIMING_INFO } from './toaster-timing/info.ts';
+import { NUSSREGEN_NETZ_INFO } from './nussregen-netz/info.ts';
+import { MATSCHMALER_INFO } from './matschmaler/info.ts';
+import { RASENSPRENGER_RODEO_INFO } from './rasensprenger-rodeo/info.ts';
+import { SCHNAPP_DEN_KAESE_INFO } from './schnapp-den-kaese/info.ts';
+import { EISWUERFEL_SUMO_INFO } from './eiswuerfel-sumo/info.ts';
+import { BIENENSTOCK_HONIG_INFO } from './bienenstock-honig/info.ts';
+import { DREI_TUEREN_INFO } from './drei-tueren/info.ts';
 import { WACKELTURM_INFO } from './wackelturm/info.ts';
 
 /** Vielfalts-Steckbriefe (ADR-021): rein, auch für Server und Rotation (CHAOS-85). */
@@ -33,6 +41,16 @@ export const MINIGAME_INFOS: readonly MinigameInfo[] = [
   KUCKUCKS_KLATSCHE_INFO,
   KRUEMEL_KEHRAUS_INFO,
   HALLO_BAUKASTEN_INFO,
+  // Pilotwelle der Minispiel-Fabrik (CHAOS-91).
+  TOASTER_TIMING_INFO,
+  NUSSREGEN_NETZ_INFO,
+  MATSCHMALER_INFO,
+  RASENSPRENGER_RODEO_INFO,
+  SCHNAPP_DEN_KAESE_INFO,
+  EISWUERFEL_SUMO_INFO,
+  BIENENSTOCK_HONIG_INFO,
+  // Spielbar, nicht in der Rotation: KI-Stärke schwer/leicht zu knapp (CHAOS-91).
+  DREI_TUEREN_INFO,
   // Testspiele der Spielformen (CHAOS-89), nicht in der Rotation.
   PUMP_DUELL_INFO,
   PUMP_SOLO_INFO,
@@ -50,6 +68,14 @@ export const ROTATION: readonly string[] = [
   WACKELTURM_INFO.id,
   KUCKUCKS_KLATSCHE_INFO.id,
   KRUEMEL_KEHRAUS_INFO.id,
+  // Pilotwelle (CHAOS-91), hinten angehängt: Integrationstests nutzen ROTATION[0]/[1].
+  TOASTER_TIMING_INFO.id,
+  NUSSREGEN_NETZ_INFO.id,
+  MATSCHMALER_INFO.id,
+  RASENSPRENGER_RODEO_INFO.id,
+  SCHNAPP_DEN_KAESE_INFO.id,
+  EISWUERFEL_SUMO_INFO.id,
+  BIENENSTOCK_HONIG_INFO.id,
 ];
 
 /**

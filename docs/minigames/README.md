@@ -90,7 +90,7 @@ Umgesetzt in `CHAOS-84`; Regeln, Tische, Schwellen mit Begründung und Ausnahmen
 
 1. `info.ts` mit Anleitung ≤ 3 Zeilen, Bedienung, Dauer, Kategorie, Familie, Spielform; Vielfalts-Steckbrief in `packages/minigames/src/steckbriefe.ts` (Felder: ADR-021 §3).
 2. Logik rein und deterministisch (Seed), Unit-Tests für Wertung und Sonderfälle. Unterbau aus dem Baukasten (`@chaos-party/minigame-kit`), Bot über `MinigameBot`/`BotMatchAdapter` (Muster: `hallo-baukasten/`).
-3. Besteht Vertragstest und Bot-Fairness-Schwellen. **Hat einen KI-Bot** (`createBot`, CHAOS-180, ADR-020), Pflicht für die Rotation: spielt in allen Stärken fehlerfrei und punktet (Vertragstest `catalog.test.ts`), „schwer“ schlägt „leicht“ messbar (`checks/botStrength.test.ts`). Siehe §5.6.
+3. Besteht Vertragstest und Bot-Fairness-Schwellen (Baukasten-Spiele: Eintrag in `checks/harnesses.ts` über `kitHarness` aus dem `BotMatchAdapter`, Muster `toaster-timing/`, CHAOS-91). **Hat einen KI-Bot** (`createBot`, CHAOS-180, ADR-020), Pflicht für die Rotation: spielt in allen Stärken fehlerfrei und punktet (Vertragstest `catalog.test.ts`), „schwer“ schlägt „leicht“ messbar (`checks/botStrength.test.ts`). Siehe §5.6.
 4. Läuft am geteilten iPad (Zone) bedienbar, sonst als „nur iPhone“ markiert und von der Rotation bei iPad-Zonen ausgeschlossen.
 5. Screenshot-Baseline, kurzer Eintrag im Katalog (Status, Zahlen).
 6. Grafikstufe `niedrig` hält auf dem Ziel-PC mindestens die Bildrate der bestehenden Spiele.
@@ -139,6 +139,8 @@ Muster für neue Spiele: `hallo-baukasten/bot.ts` (`createHalloBot` = `kitBotDri
 | Wackelturm | `wackelturm/bot.ts` (aus EXP-007, Kippgefühl K3 aus EXP-039) | `WACKELTURM_SKILL_CORNERS` |
 | Kuckucks-Klatsche | `kuckucks-klatsche/bot.ts` (aus EXP-016) | `profileForStrength` |
 | Krümel-Kehraus | `kruemel-kehraus/bot.ts` (aus EXP-023) | `pawnSkillForStrength` |
+| Pilotwelle (CHAOS-91): Toaster-Timing, Nussregen-Netz, Matschmaler, Rasensprenger-Rodeo, Schnapp den Käse, Bienenstock-Honig, Drei Türen | `<id>/bot.ts` (Baukasten-Bot, Fairness über `checks/kitHarness.ts`) | `profileForStrength` |
+| Eiswürfel-Sumo (CHAOS-91) | `eiswuerfel-sumo/bot.ts` (Havok, eigener Harness) | `pawnSkillForStrength` |
 
 Stärke-Kennzahl (EXP-040, je zwei KI schwer gegen zwei leicht, Siegquote schwer): Sockenregen 0,97, Pudding-Gerangel 1,00, Wackelturm 0,79, Kuckucks-Klatsche 0,84, Krümel-Kehraus 1,00. Das sind Bot-gegen-Bot-Werte. Wie sich die Stärken gegen Menschen anfühlen, klären CHAOS-183 und Rubens Playtest (CHAOS-185).
 

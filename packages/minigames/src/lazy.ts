@@ -26,6 +26,14 @@ import { PUMP_RIESE_INFO } from './pump-riese/info.ts';
 import { PUMP_SOLO_INFO } from './pump-solo/info.ts';
 import { SCHNELLFEUER_INFO } from './schnellfeuer/info.ts';
 import { SOCKENREGEN_INFO } from './sockenregen/info.ts';
+import { TOASTER_TIMING_INFO } from './toaster-timing/info.ts';
+import { NUSSREGEN_NETZ_INFO } from './nussregen-netz/info.ts';
+import { MATSCHMALER_INFO } from './matschmaler/info.ts';
+import { RASENSPRENGER_RODEO_INFO } from './rasensprenger-rodeo/info.ts';
+import { SCHNAPP_DEN_KAESE_INFO } from './schnapp-den-kaese/info.ts';
+import { EISWUERFEL_SUMO_INFO } from './eiswuerfel-sumo/info.ts';
+import { BIENENSTOCK_HONIG_INFO } from './bienenstock-honig/info.ts';
+import { DREI_TUEREN_INFO } from './drei-tueren/info.ts';
 import { WACKELTURM_INFO } from './wackelturm/info.ts';
 
 export * from './catalog.ts';
@@ -56,6 +64,27 @@ export const MINIGAME_LOADERS: ReadonlyMap<string, MinigameLoader> = new Map<
     HALLO_BAUKASTEN_INFO.id,
     () => import('./hallo-baukasten/index.ts').then((m) => m.halloBaukasten),
   ],
+  // Pilotwelle (CHAOS-91).
+  [TOASTER_TIMING_INFO.id, () => import('./toaster-timing/index.ts').then((m) => m.toasterTiming)],
+  [NUSSREGEN_NETZ_INFO.id, () => import('./nussregen-netz/index.ts').then((m) => m.nussregenNetz)],
+  [MATSCHMALER_INFO.id, () => import('./matschmaler/index.ts').then((m) => m.matschmaler)],
+  [
+    RASENSPRENGER_RODEO_INFO.id,
+    () => import('./rasensprenger-rodeo/index.ts').then((m) => m.rasensprengerRodeo),
+  ],
+  [
+    SCHNAPP_DEN_KAESE_INFO.id,
+    () => import('./schnapp-den-kaese/index.ts').then((m) => m.schnappDenKaese),
+  ],
+  [
+    EISWUERFEL_SUMO_INFO.id,
+    () => import('./eiswuerfel-sumo/index.ts').then((m) => m.eiswuerfelSumo),
+  ],
+  [
+    BIENENSTOCK_HONIG_INFO.id,
+    () => import('./bienenstock-honig/index.ts').then((m) => m.bienenstockHonig),
+  ],
+  [DREI_TUEREN_INFO.id, () => import('./drei-tueren/index.ts').then((m) => m.dreiTueren)],
   // Testspiele der Spielformen (CHAOS-89).
   [PUMP_DUELL_INFO.id, () => import('./pump-duell/index.ts').then((m) => m.pumpDuell)],
   [PUMP_SOLO_INFO.id, () => import('./pump-solo/index.ts').then((m) => m.pumpSolo)],

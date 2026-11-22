@@ -1,8 +1,8 @@
 # Minispiel-Katalog (Skizzen MG-001 … MG-226)
 
-**Stand:** 2026-11-21 · Rahmen und Kürzel: [`README.md`](README.md) · Nachschub: `CHAOS-93`
+**Stand:** 2026-11-22 · Rahmen und Kürzel: [`README.md`](README.md) · Nachschub: `CHAOS-93`
 
-Alle Einträge haben den Status **Skizze**. Eine Skizze ist eine Idee mit Kniff, noch keine geprüfte Regel. Beim Schärfen dürfen Name, Regeln und Kategorie sich ändern; Dubletten werden zusammengelegt. Wer eine Skizze umsetzt, trägt hier Status, Zunder-Kennung und Kennzahlen nach.
+Alle Einträge ohne Vermerk haben den Status **Skizze**; umgesetzte Spiele tragen Status und Kennung am Ende der Zeile. Eine Skizze ist eine Idee mit Kniff, noch keine geprüfte Regel. Beim Schärfen dürfen Name, Regeln und Kategorie sich ändern; Dubletten werden zusammengelegt. Wer eine Skizze umsetzt, trägt hier Status, Zunder-Kennung und Kennzahlen nach.
 
 Verworfene Skizzen bleiben mit ✗ und durchgestrichenem Namen stehen, damit Nummern und Verweise gültig bleiben; ihre Nummer wird nicht neu vergeben. Neue Skizzen bekommen Nummern ab MG-201 und stehen in der Tabelle ihrer Familie. Die Familien-Wellen (`CHAOS-94` … `CHAOS-113`) umfassen auch diese Nachschub-Nummern.
 
@@ -12,7 +12,7 @@ Schon vorhanden (nicht im Katalog gezählt): Sockenregen, Pudding-Gerangel, Wack
 
 **Gemeinsame Prüfungen (CHAOS-84):** Bot-Fairness, Vielfalts-Steckbrief und Screenshots je Spiel der Rotation, Regeln in [`pruefungen.md`](pruefungen.md), Messwerte in [`pruefbericht.md`](pruefbericht.md). Begründete Ausnahmen: keine. Die frühere Wackelturm-Ausnahme (Neuling 32 %, Profi 17 %) war ein Bot-Artefakt und ist mit `CHAOS-215` (EXP-039) entfallen.
 
-**Pilotwelle** (von Ruben freigegeben, 2026-11-16): MG-001, MG-011, MG-023, MG-033, MG-045, MG-101, MG-111, MG-121 – im Katalog mit ★ markiert.
+**Pilotwelle** (von Ruben freigegeben, 2026-11-16): MG-001, MG-011, MG-023, MG-033, MG-045, MG-101, MG-111, MG-121 – im Katalog mit ★ markiert. **Umgesetzt (CHAOS-91, 2026-11-22):** sieben in der Rotation, MG-111 Drei Türen spielbar (Galerie), Zahlen in EXP-042, Bericht für die Zwischenabnahme in [`pilotwelle.md`](pilotwelle.md).
 
 ---
 
@@ -20,7 +20,7 @@ Schon vorhanden (nicht im Katalog gezählt): Sockenregen, Pudding-Gerangel, Wack
 
 | Nr | Name | Kat | Bed. | Idee | Kniff |
 |---|---|---|---|---|---|
-| MG-001 ★ | Nussregen-Netz | Hy | SA | Eichhörnchen werfen Nüsse vom Baum, fang sie mit dem Kescher. | A schwingt den Kescher weit, danach 1 s lahm. Faule Nüsse stinken: kurz langsamer. |
+| MG-001 ★ | Nussregen-Netz | Hy | SA | Eichhörnchen werfen Nüsse vom Baum, fang sie mit dem Kescher. | A schwingt den Kescher weit, danach 1 s lahm. Faule Nüsse stinken: kurz langsamer. · **Rotation** (`nussregen-netz`, CHAOS-91, EXP-042) |
 | MG-002 | Glühwürmchen-Glas | Ar | SA | Nachts Glühwürmchen ins Glas fangen und am eigenen Nest abgeben. | Ein volles Glas leuchtet und lockt Motten, die Würmchen klauen. Rechtzeitig abliefern. |
 | MG-003 | Pilzpflücker | Ar | SA | Pilze sprießen im Moos, pflücken, bevor sie platzen. | Fliegenpilze platzen in eine Sporenwolke: Wer drinsteht, niest und stolpert. |
 | MG-004 | Krümelkarussell | Ar | S | Eine Riesentorte dreht sich, Krümel rutschen nach außen. | Einsammeln durch Drüberlaufen; die Fliehkraft schiebt auch euch Richtung Rand. |
@@ -36,7 +36,7 @@ Schon vorhanden (nicht im Katalog gezählt): Sockenregen, Pudding-Gerangel, Wack
 
 | Nr | Name | Kat | Bed. | Idee | Kniff |
 |---|---|---|---|---|---|
-| MG-011 ★ | Rasensprenger-Rodeo | Ar | S | Rasensprenger drehen sich, wer nass wird, verliert ein Herz. | Nasse rutschen nach. In den letzten Sekunden drehen sich alle Sprenger gleichzeitig. |
+| MG-011 ★ | Rasensprenger-Rodeo | Ar | S | Rasensprenger drehen sich, wer nass wird, verliert ein Herz. | Nasse rutschen nach. In den letzten Sekunden drehen sich alle Sprenger gleichzeitig. · **Rotation** (`rasensprenger-rodeo`, CHAOS-91, EXP-042) |
 | MG-012 | Kegelkugel-Allee | Ar | SA | Riesige Kugeln rollen über eine Bahn. | A springt über kleine Kugeln; große muss man umlaufen. |
 | MG-013 | Pendel-Parade | Ar | S | Schwere Pendel schwingen über eine schmale Plattform. | Die Pendel werden schneller und wechseln plötzlich den Takt. |
 | MG-014 | Igel-Kreuzung | Ar | SA | Rollende Igel kreuzen das Feld. | A rollt dich selbst ein: unverwundbar, aber du kullerst ungesteuert weiter. |
@@ -54,7 +54,7 @@ Schon vorhanden (nicht im Katalog gezählt): Sockenregen, Pudding-Gerangel, Wack
 |---|---|---|---|---|---|
 | MG-021 | Wackelfloß | Ph | SA | Ein Floß treibt durch Stromschnellen. Runterfallen kostet Punkte. | Das Floß neigt sich dorthin, wo die meisten stehen; Baumstämme rammen von der Seite. |
 | MG-022 | Kissenburg | Ph | SA | Kissenschlacht auf einem Riesenbett. | A gedrückt halten lädt den Schwung. Federn verdecken nach jedem Treffer kurz die Sicht. |
-| MG-023 ★ | Eiswürfel-Sumo | Ph | SA | Rempeln auf einem Eiswürfel in der Limo. | Der Würfel schmilzt und wird kleiner. Wer rempelt, rutscht selbst ein Stück nach. |
+| MG-023 ★ | Eiswürfel-Sumo | Ph | SA | Rempeln auf einem Eiswürfel in der Limo. | Der Würfel schmilzt und wird kleiner. Wer rempelt, rutscht selbst ein Stück nach. · **Rotation** (`eiswuerfel-sumo`, CHAOS-91, EXP-042) |
 | MG-024 | Hüpfburg-Hoppla | Ph | SA | Rangeln in der Hüpfburg. | Landet jemand neben dir, katapultiert es dich hoch. Gleichzeitige Landung = Doppelwurf. |
 | MG-025 | Pinguin-Kegeln | Ph | S | Auf dem Bauch übers Eis rutschen und andere umstoßen. | Schwung nur durch Anlauf; Banden prallen ab wie beim Billard. |
 | MG-026 | Spieluhr-Tanzfläche | Ph | SA | Rempeln auf einer drehenden Spieluhr. | Stoppt die Musik, ruckt die Scheibe zurück und schleudert alle nach außen. |
@@ -70,7 +70,7 @@ Schon vorhanden (nicht im Katalog gezählt): Sockenregen, Pudding-Gerangel, Wack
 |---|---|---|---|---|---|
 | MG-031 | Specht-Trommel | Ar | AB | Ein Specht klopft einen Rhythmus vor, alle klopfen nach. | B ist ein Doppelschlag. Der Takt wird schneller; Fehler = Holzsplitter-Pause. |
 | MG-032 | Frosch-Chor | Ar | A | Im Takt der Seerosen quaken. | Wer genau trifft, bekommt ein Solo: Die nächste Phrase zählt doppelt. |
-| MG-033 ★ | Toaster-Timing | Ar | A | Toast springt aus dem Toaster, im richtigen Moment schnappen. | Bräunung = Punkte: zu früh blass, zu spät verkohlt. Jeder Toaster hat ein anderes Tempo. |
+| MG-033 ★ | Toaster-Timing | Ar | A | Toast springt aus dem Toaster, im richtigen Moment schnappen. | Bräunung = Punkte: zu früh blass, zu spät verkohlt. Jeder Toaster hat ein anderes Tempo. · **Rotation** (`toaster-timing`, CHAOS-91, EXP-042) |
 | MG-034 | Schlangen-Seilspringen | Ar | A | Eine lange Schlange dient als Springseil. | Die Schlange wird schneller und zögert manchmal (Finte). |
 | MG-035 | Wäscheleine im Wind | Ar | A | Wäsche fliegt vorbei, im richtigen Moment anklammern. | Windböen machen einzelne Stücke schneller oder langsamer. |
 | MG-036 | Raupen-Metronom | Ar | AB | Eine Raupe frisst im Takt: A linkes Blatt, B rechtes. | Zum Schluss verschwinden die Bilder, nur noch der Ton zählt. |
@@ -88,7 +88,7 @@ Schon vorhanden (nicht im Katalog gezählt): Sockenregen, Pudding-Gerangel, Wack
 | MG-042 | Wasserpistolen-Duell | Ar | A | Bei „Los!“ als Erstes spritzen. | Fehlstart = selbst nass. Die Fahne zeigt manchmal „Lasso!“ statt „Los!“. |
 | MG-043 | Ampel-Raser | Ar | A | Grün: A halten und fahren. Rot: loslassen. | Gelb blinkt unterschiedlich lange. Wer bei Rot fährt, muss zurück. |
 | MG-044 | Farbklatsch | Ar | AB | Eine Farbe erscheint: deine Farbe A, fremde B. | Farbe und Schriftzug widersprechen sich absichtlich. |
-| MG-045 ★ | Schnapp den Käse | Ar | A | Käse aus der Mausefalle schnappen, bevor sie zuschnappt. | Die Falle zuckt (Finte). Erwischt = Pfote gezwickt, 1 s Pause. |
+| MG-045 ★ | Schnapp den Käse | Ar | A | Käse aus der Mausefalle schnappen, bevor sie zuschnappt. | Die Falle zuckt (Finte). Erwischt = Pfote gezwickt, 1 s Pause. · **Rotation** (`schnapp-den-kaese`, CHAOS-91, EXP-042) |
 | MG-046 | Fliegenklatsche | Ar | SA | Fliegen landen auf dem Kuchen, mit der Klatsche zielen. | Wespen nicht treffen: Stich = langsamer. |
 | MG-047 | Popcorn-Topf | Ar | A | Popcorn poppt, A schnappt das Korn über deinem Kopf. | Verbrannte Körner kosten Punkte. |
 | MG-048 | Eulen-Starren | Ar | A | Nur drücken, wenn die Glühbirne angeht. | Die Ablenkungen werden immer lauter und bunter. |
@@ -181,7 +181,7 @@ Schon vorhanden (nicht im Katalog gezählt): Sockenregen, Pudding-Gerangel, Wack
 
 | Nr | Name | Kat | Bed. | Idee | Kniff |
 |---|---|---|---|---|---|
-| MG-101 ★ | Bienenstock-Honig | Hy | AB | A zapft Honig, B bringt ihn in Sicherheit. | Die Bienen werden wütender. Wer gestochen wird, verliert den ungesicherten Honig. |
+| MG-101 ★ | Bienenstock-Honig | Hy | AB | A zapft Honig, B bringt ihn in Sicherheit. | Die Bienen werden wütender. Wer gestochen wird, verliert den ungesicherten Honig. · **Rotation** (`bienenstock-honig`, CHAOS-91, EXP-042) |
 | MG-102 | Schatzgrube | Hy | AB | A gräbt tiefer (mehr Schatz), B steigt aus. | Grundwasser steigt; ein Maulwurf klaut aus der tiefsten Grube. |
 | MG-103 | Grillmeister | Hy | SA | Würstchen wenden und rechtzeitig vom Grill nehmen. | Länger = mehr Punkte bis verbrannt. Fertige Würstchen kann man klauen. |
 | MG-104 | Kühlschrank-Glück | Hy | AB | A öffnet die Kühlschranktür: Leckerei oder Schreck. | B hört auf und behält alles. Der Schreck (Gurkenmonster) nimmt die Runde weg. |
@@ -200,7 +200,7 @@ Nutzt die privaten Bildschirme der iPhones. Am geteilten iPad sieht die Nachbari
 
 | Nr | Name | Kat | Bed. | Idee | Kniff |
 |---|---|---|---|---|---|
-| MG-111 ★ | Drei Türen | Hy | SA | Alle wählen geheim eine Tür. | Nur Türen mit genau einer Person zahlen aus; volle Türen gehen leer aus. |
+| MG-111 ★ | Drei Türen | Hy | SA | Alle wählen geheim eine Tür. | Nur Türen mit genau einer Person zahlen aus; volle Türen gehen leer aus. · **Spielbar**, nicht in der Rotation: KI-Stärke mittel/leicht verfehlt (`drei-tueren`, CHAOS-91, EXP-042) |
 | MG-112 ✗ | ~~Brücke für zwei~~ | Hy | SA | **Verworfen** (Dublette von MG-111 ★, ersetzt durch MG-214). Geheim eine von drei Brücken wählen. | Mehr als zwei auf einer Brücke: Sie bricht und alle fallen in den Bach. |
 | MG-113 | Schere-Stein-Socke | Hy | SA | Vier Personen wählen gleichzeitig aus vier Zeichen. | Die Socke schlägt alles, verliert aber, wenn zwei sie wählen. |
 | MG-114 | Eichel-Auktion | Hy | SA | Geheim Eicheln auf einen Preis bieten. | Das höchste Gebot gewinnt, aber alle zahlen ihr Gebot. |
@@ -217,7 +217,7 @@ Nutzt die privaten Bildschirme der iPhones. Am geteilten iPad sieht die Nachbari
 
 | Nr | Name | Kat | Bed. | Idee | Kniff |
 |---|---|---|---|---|---|
-| MG-121 ★ | Matschmaler | Ar | SA | Über die Wiese laufen und sie mit Matsch in deiner Farbe färben. | A macht einen Bauchplatscher (großer Fleck). Ein Regenschauer wäscht einen Streifen weg. |
+| MG-121 ★ | Matschmaler | Ar | SA | Über die Wiese laufen und sie mit Matsch in deiner Farbe färben. | A macht einen Bauchplatscher (großer Fleck). Ein Regenschauer wäscht einen Streifen weg. · **Rotation** (`matschmaler`, CHAOS-91, EXP-042) |
 | MG-122 | Rasenmäher-Muster | Ar | S | Rasen in deiner Farbe mähen. | Das Gras wächst nach; Steine stoppen den Mäher. |
 | MG-123 | Schneeengel | Ar | SA | A legt einen Schneeengel in deiner Farbe. | Neuschnee rieselt über alte Engel. |
 | MG-124 | Gartenzaun | Hy | SA | Zaunpfähle setzen; umzäunte Fläche gehört dir. | Ziegen fressen Zaunlatten. |
