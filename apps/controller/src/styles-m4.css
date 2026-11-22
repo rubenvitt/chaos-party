@@ -1224,3 +1224,81 @@
     font-size: 12px;
   }
 }
+
+/* Reihe „Mitspieler“ in einer iPad-Zone (CHAOS-238): Chips absolut an den Tracker-Rechtecken. */
+.zone-seats {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.zone .zone-seat {
+  position: absolute;
+  display: flex;
+  border-top: 3px solid var(--seat-color);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.zone .zone-seat .lobby-seat-body {
+  height: 100%;
+  min-height: 0;
+  border-top: 0;
+  border-radius: 0;
+}
+
+.zone .zone-seat .lobby-seat-body .ui-text {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.1;
+  text-align: center;
+  /* Neben dem „✕“ bricht „KI · Schwer“ in zwei Zeilen um, statt abgeschnitten zu werden. */
+  overflow-wrap: anywhere;
+}
+
+.zone .zone-seat .lobby-seat-body[data-pressed='true'],
+.zone .zone-seat-remove[data-pressed='true'] {
+  filter: brightness(1.25);
+}
+
+.zone-seat-remove {
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-left: 1px solid rgba(246, 239, 226, 0.25);
+  background: #2b2e42;
+  color: #f6efe2;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* Kompakte Reihe (schmale Zonen): kein Symbol, Text darf umbrechen. */
+.zone-seats[data-compact='true'] .lobby-seat-body .player-symbol {
+  display: none;
+}
+
+.zone-seats[data-compact='true'] .lobby-seat-body .ui-text {
+  white-space: normal;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.15;
+}
+
+/* Symbol und Text nebeneinander: eine Zeile passt in 48 px (Symbol ohne Pille). */
+.zone .zone-seat .lobby-seat-body {
+  flex-direction: row;
+  gap: 6px;
+  padding: 0 6px;
+}
+
+.zone .zone-seat .lobby-seat-body .player-symbol {
+  flex: none;
+  width: auto;
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}

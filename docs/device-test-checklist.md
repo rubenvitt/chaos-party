@@ -943,7 +943,7 @@ Automatisch geprüft (Mac): Mikro-Vertrag, Kette, Bots und Fairness-Vorlage (Uni
 
 **Stand:** 2026-11-22 · **Aufgabe:** CHAOS-182 (Epic CHAOS-177) · **Entscheidung:** ADR-020 (Nachtrag 4) · **Playtest:** CHAOS-185
 
-Automatisch geprüft: PC-Lobby mit 1 Mensch (synthetischer Controller) und KI per Maus und Tastatur bis zum Endstand (Playwright, SwiftShader), Spielleitung am Browser-iPhone (Chromium-Emulation) setzt, ändert und entfernt eine KI, ein zweites iPhone sieht sie nur; Apple-Host-Kern (Node) mit KI-Platz bis zum ersten Minispiel-Ergebnis. Swift-Teile (Apple-Host-Lobby, native Controller-App) nur im macOS-CI gebaut und mit Logik-Tests. Bilder: `docs/screenshots/chaos182-host-lobby-ki.jpg`, `chaos182-host-brett-ki.jpg`, `chaos182-host-endstand-ki.jpg`. **Nicht** geprüft: echte Geräte, Siri Remote, Lesbarkeit am Fernseher, ob die KI Spaß macht.
+Automatisch geprüft: PC-Lobby mit 1 Mensch (synthetischer Controller) und KI per Maus und Tastatur bis zum Endstand (Playwright, SwiftShader), Spielleitung am Browser-iPhone (Chromium-Emulation) setzt, ändert und entfernt eine KI, ein zweites iPhone sieht sie nur; Apple-Host-Kern (Node) mit KI-Platz bis zum ersten Minispiel-Ergebnis. Geteiltes iPad (CHAOS-238, Chromium-Emulation iPad Pro 11 hoch/quer, Touch per CDP): Zone der Spielleitung setzt, ändert und entfernt eine KI, Nachbarzone sieht sie nur (`tests/e2e/ipad-ki-spieler.spec.ts`). Swift-Teile (Apple-Host-Lobby, native Controller-App) nur im macOS-CI gebaut und mit Logik-Tests. Bilder: `docs/screenshots/chaos182-host-lobby-ki.jpg`, `chaos182-host-brett-ki.jpg`, `chaos182-host-endstand-ki.jpg`. **Nicht** geprüft: echte Geräte, Siri Remote, Lesbarkeit am Fernseher, ob die KI Spaß macht.
 
 | ID  | Schritt | Erwartung | Ergebnis | Nachweis |
 | --- | ------- | --------- | -------- | -------- |
@@ -958,6 +958,8 @@ Automatisch geprüft: PC-Lobby mit 1 Mensch (synthetischer Controller) und KI pe
 | KI9 | Native Controller-App als Spielleitung | Wie KI7 | | Video |
 | KI10 | Apple TV: Lobby per Siri Remote | Fokus erreicht „+ KI“, Stärke und „Entfernen“; Start erst mit einem Menschen; im Brett-HUD, Minispiel und Endstand das Abzeichen „KI“ | | Video |
 | KI11 | Mac-App: dieselbe Lobby mit der Maus | Wie KI10 | | Foto |
+| KI12 | Geteiltes iPad (2 Zonen, CHAOS-238), Zone der Spielleitung (niedrigste Platznummer) | Reihe „Mitspieler“ unter dem Titel; Tippen auf „+ KI“ setzt eine KI, erneutes Tippen wechselt die Stärke, „✕“ entfernt; die Nachbarzone sieht die KI nur und ihr Tippen bewirkt nichts; zwei Finger gleichzeitig (Figur wählen + KI setzen) stören sich nicht | | Video |
+| KI13 | iPad mini mit 4 Zonen (kompakte Reihe) | Chips ohne „✕“, Text lesbar (zweizeilig); Tippen auf eine KI nach „Dynamisch“ gibt den Platz frei | | Foto |
 
 ## 50. Pilotwelle: acht neue Minispiele (für CHAOS-91, Zwischenabnahme CHAOS-92)
 

@@ -7,8 +7,10 @@ import {
   HIT_SLOP,
   lobbyZoneFrames,
   parsePickControl,
+  parseSeatControl,
   pickControl,
   rectCenter,
+  seatControl,
   toScreen,
   ZONE_PADDING,
   type ControlKind,
@@ -213,5 +215,134 @@ describe('Zonen-Tracker: Figurenwahl', () => {
     t.start(5, at(zones, 2, 'ready'));
     expect(t.view(2).readyHeld).toBe(true);
     expect(t.end(5)).toEqual([{ type: 'ready', slot: 2 }]);
+  });
+});
+
+/** Lobby mit KI-Plätzen (CHAOS-238): Platz 1+2 Menschen (iPad), Platz 3 KI. */
+function seatContext(lead: boolean) {
+  return lobbyContext({
+    lead,
+    seats: [
+      { slot: 1, kind: 'human' },
+      { slot: 2, kind: 'human' },
+      { slot: 3, kind: 'ai', strength: 'mittel' },
+    ],
+  });
+}
+
+describe('Reihe „Mitspieler“ in der Zone (CHAOS-238)', () => {
+  it('Kennung der Platz-Knöpfe', () => {
+    expect(seatControl(3)).toBe('seat:3');
+    expect(seatControl(3, true)).toBe('seat-remove:3');
+    expect(parseSeatControl('seat:3')).toEqual({ seat: 3, remove: false });
+    expect(parseSeatControl('seat-remove:4')).toEqual({ seat: 4, remove: true });
+    expect(parseSeatControl('seat:5' as ControlKind)).toBeNull();
+    expect(parseSeatControl('pick:robot')).toBeNull();
+    expect(parseSeatControl(null)).toBeNull();
+  });
+
+  it('Reihe liegt zwischen Kopf und Figurenkarten', () => {
+    const f = lobbyZoneFrames({ width: 589, height: 409 }, true);
+    if (!f.seats) throw new Error('Reihe fehlt');
+    expect(f.seats.y).toBeGreaterThanOrEqual(f.head.y + f.head.height);
+    expect(f.grid.y).toBeGreaterThan(f.seats.y + f.seats.height);
+    expect(lobbyZoneFrames({ width: 589, height: 409 }).seats).toBeNull();
+  });
+
+  it('nur die Zone der Spielleitung hat Knöpfe: freie Plätze, KI und ✕', () => {
+    const zones = zonesFor(IPAD_PRO_11_QUER, [1, 2], (slot) => seatContext(slot === 1));
+    const [lead, other] = zones;
+    if (!lead || !other) throw new Error('Zone fehlt');
+    const seatKinds = (zone: ZoneGeometry) =>
+      zone.controls.map((c) => c.kind).filter((kind) => parseSeatControl(kind) !== null);
+    expect(seatKinds(lead)).toEqual(['seat:3', 'seat-remove:3', 'seat:4']);
+    expect(seatKinds(other)).toEqual([]);
+  });
+
+  it('ohne KI und ohne Spielleitung keine Reihe; älterer Server ohne `seats` auch nicht', () => {
+    const [zone] = zonesFor(IPAD_PRO_11_QUER, [1, 2], () =>
+      lobbyContext({ lead: false, seats: [{ slot: 1, kind: 'human' }] }),
+    );
+    expect(zoneControlsInput(lobbyContext(), undefined, 1).lobby?.seats).toBeUndefined();
+    expect(zone?.controls.some((c) => parseSeatControl(c.kind) !== null)).toBe(false);
+  });
+
+  for (const seats of [2, 3, 4] as const) {
+    for (const [name, viewport] of SIZES) {
+      it(`${String(seats)} Zonen, ${name}: Reihe, Karten und „Bereit!“ groß genug, ohne Überlappen`, () => {
+        const slots = ([1, 2, 3, 4] as const).slice(0, seats);
+        // Platz 1 leitet; KI auf Platz 4 (bei 4 Zonen ist kein Platz frei: dann nur Anzeige).
+        const zones = zonesFor(viewport, [...slots], (slot) =>
+          lobbyContext({
+            lead: slot === 1,
+            seats: [
+              ...slots.map((s) => ({ slot: s, kind: 'human' as const })),
+              ...(seats < 4
+                ? [{ slot: 4 as const, kind: 'ai' as const, strength: 'leicht' as const }]
+                : []),
+            ],
+          }),
+        );
+        for (const zone of zones) {
+          for (const c of zone.controls) {
+            const seat = parseSeatControl(c.kind) !== null;
+            expect(c.rect.height).toBeGreaterThanOrEqual(MIN_TOUCH);
+            expect(c.rect.width).toBeGreaterThanOrEqual(seat ? 36 : MIN_TOUCH * 2);
+            if (!seat) expect(c.rect.height).toBeGreaterThanOrEqual(MIN_TOUCH * 1.5);
+            expect(c.rect.x).toBeGreaterThanOrEqual(ZONE_PADDING);
+            expect(c.rect.y).toBeGreaterThanOrEqual(ZONE_PADDING);
+            expect(c.rect.x + c.rect.width).toBeLessThanOrEqual(zone.local.width - ZONE_PADDING);
+            expect(c.rect.y + c.rect.height).toBeLessThanOrEqual(zone.local.height - ZONE_PADDING);
+          }
+          const hits = zone.controls.map((c) => c.hit);
+          for (let i = 0; i < hits.length; i++) {
+            for (let j = i + 1; j < hits.length; j++) {
+              const [a, b] = [hits[i], hits[j]];
+              if (a && b) expect(overlaps(a, b)).toBe(false);
+            }
+          }
+        }
+      });
+    }
+  }
+});
+
+describe('Reihe „Mitspieler“ kompakt (CHAOS-238)', () => {
+  it('breite Zonen haben ein ✕, die kleinste Fläche mit 4 Zonen nicht (Platz für die Karten)', () => {
+    const wide = zonesFor(IPAD_PRO_11_QUER, [1, 2], (slot) => seatContext(slot === 1));
+    expect(wide[0]?.controls.some((c) => c.kind === 'seat-remove:3')).toBe(true);
+    const narrow = zonesFor(SMALLEST, [1, 2, 3], (slot) => seatContext(slot === 1));
+    const lead = narrow.find((z) => z.slot === 1);
+    expect(lead?.controls.some((c) => c.kind === 'seat:3')).toBe(true);
+    expect(lead?.controls.some((c) => c.kind === 'seat-remove:3')).toBe(false);
+  });
+});
+
+describe('Zonen-Tracker: KI-Plätze (CHAOS-238)', () => {
+  it('Spielleitung tippt Platz und ✕ beim Abheben; gedrehte Zone trifft richtig', () => {
+    const zones = zonesFor(IPAD_PRO_11_QUER, [1, 2, 3], (slot) => seatContext(slot === 3));
+    const t = createZoneTracker(zones);
+    t.start(1, at(zones, 3, 'seat:4'));
+    expect(t.view(3).seatsHeld).toEqual(['seat:4']);
+    expect(t.end(1)).toEqual([{ type: 'seat', slot: 3, seat: 4, remove: false }]);
+    t.start(2, at(zones, 3, 'seat-remove:3'));
+    expect(t.end(2)).toEqual([{ type: 'seat', slot: 3, seat: 3, remove: true }]);
+  });
+
+  it('Wegrutschen wirkt nicht; andere Zone trifft keinen Platz-Knopf', () => {
+    const zones = zonesFor(IPAD_PRO_11_QUER, [1, 2], (slot) => seatContext(slot === 1));
+    const t = createZoneTracker(zones);
+    t.start(1, at(zones, 1, 'seat:4'));
+    t.move(1, at(zones, 1, 'pick:robot'));
+    expect(t.end(1)).toEqual([]);
+    const other = zones.find((z) => z.slot === 2);
+    if (!other) throw new Error('Zone fehlt');
+    // Gleiche lokale Stelle in Zone 2: dort gibt es keinen Knopf.
+    const lead = zones.find((z) => z.slot === 1);
+    const local = lead?.controls.find((c) => c.kind === 'seat:4');
+    if (!local) throw new Error('Knopf fehlt');
+    t.start(2, toScreen(other, rectCenter(local.rect)));
+    expect(t.owner(2)).toEqual({ slot: 2, control: null });
+    expect(t.end(2)).toEqual([]);
   });
 });
