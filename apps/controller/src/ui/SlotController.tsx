@@ -16,7 +16,12 @@ import { readableTextColor } from './color.ts';
 import { FinalCard, PauseCard } from './final.tsx';
 import { Joystick } from './Joystick.tsx';
 import { CharacterLobby } from './lobby.tsx';
-import { IntroReadyControl, MinigameCard, MinigameHeader } from './minigame.tsx';
+import {
+  IntroReadyControl,
+  MinigameCard,
+  MinigameHeader,
+  MinigameSecretStrip,
+} from './minigame.tsx';
 
 export interface SlotControllerProps {
   player: PlayerInfo;
@@ -244,9 +249,16 @@ function PlayPanel({ context, slot, send }: PanelProps) {
       data-stick={view.stick ? 'true' : 'false'}
       data-buttons={view.buttons.length}
     >
-      {view.title !== null && (
-        <MinigameHeader title={view.title} cue={view.cue} className="play-header" />
-      )}
+      {view.title !== null &&
+        (view.secret ? (
+          // CHAOS-242: eigene geheime Wahl unter dem Kopf (nur dieser Controller sieht sie).
+          <div className="play-header play-header-stack">
+            <MinigameHeader title={view.title} cue={view.cue} />
+            <MinigameSecretStrip secret={view.secret} />
+          </div>
+        ) : (
+          <MinigameHeader title={view.title} cue={view.cue} className="play-header" />
+        ))}
       {(view.stick || !labelled) && (
         <div className="stick-area">
           {view.stick && (

@@ -313,6 +313,27 @@ struct MinigameCue: Codable, Equatable, Sendable {
     var double: Bool
 }
 
+/// `MinigameSecretOptionSchema` (v4 addendum CHAOS-242): one option of a secret choice.
+struct MinigameSecretOption: Codable, Equatable, Sendable {
+    var id: String
+    var icon: String
+    var label: String
+}
+
+/// `MinigameSecretSchema` (v4 addendum CHAOS-242): private feedback for exactly this slot during
+/// a secret choice – the options, where the stick points (`aim`) and what is locked in (`pick`).
+/// The server only puts it into this slot's context; the host screen never shows it.
+struct MinigameSecret: Codable, Equatable, Sendable {
+    var prompt: String
+    var options: [MinigameSecretOption]
+    /// Option the stick points at (not locked in yet); `nil` (wire `null`) = none.
+    var aim: String?
+    /// Locked-in choice; `nil` (wire `null`) = none yet.
+    var pick: String?
+    /// Choosing is closed (reveal); `pick` stays visible.
+    var locked: Bool
+}
+
 /// `ControllerMinigameTeamSchema` (v4 addendum CHAOS-89, Swift: CHAOS-229): own role in a
 /// team or koop minigame, from the intro on; `result`/`tier` only in `results`.
 struct ControllerMinigameTeam: Codable, Equatable, Sendable {
@@ -363,6 +384,9 @@ struct ControllerMinigameInfo: Codable, Equatable, Sendable {
     /// v4 addendum (CHAOS-231, optional), only in `play`: picture word and controls of the running
     /// section. Missing = no sections or an older host; then `controls` apply.
     var cue: MinigameCue?
+    /// v4 addendum (CHAOS-242, optional), only in `play`: private feedback of a secret choice for
+    /// this slot only. Missing = none (or an older host).
+    var secret: MinigameSecret?
     /// v4 addendum (CHAOS-89, optional): own role in a team or koop minigame. Missing = every
     /// player for themselves (and older servers): no role card, no team outcome.
     var team: ControllerMinigameTeam?

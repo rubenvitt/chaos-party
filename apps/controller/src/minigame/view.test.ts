@@ -5,6 +5,7 @@ import {
   controlLegend,
   DEFAULT_STICK_HINT,
   describePlay,
+  describeSecret,
   describeResult,
   describeVote,
   formatScore,
@@ -84,6 +85,7 @@ describe('describePlay', () => {
       ],
       title: null,
       cue: null,
+      secret: null,
     });
   });
 
@@ -95,6 +97,7 @@ describe('describePlay', () => {
       buttons: [{ button: 'a', label: 'Springen' }],
       title: 'Kartoffel-Hüpfen',
       cue: null,
+      secret: null,
     });
   });
 
@@ -141,6 +144,37 @@ describe('describePlay', () => {
       buttons: [{ button: 'a', label: 'Los!' }],
       cue: null,
     });
+  });
+
+  it('geheime Wahl (CHAOS-242): Optionen mit Ziel und Wahl, Bedienung unverändert', () => {
+    const tueren = info({
+      id: 'drei-tueren',
+      title: 'Drei Türen',
+      controls: { joystick: 'Tür zeigen', a: 'Wählen', b: null },
+    });
+    const secret = {
+      prompt: 'Runde 1/8: deine Tür?',
+      options: [
+        { id: 'links', icon: '←', label: '5 Münzen' },
+        { id: 'mitte', icon: '↑', label: '9 Münzen' },
+        { id: 'rechts', icon: '→', label: '2 Münzen' },
+      ],
+      aim: 'mitte',
+      pick: null,
+      locked: false,
+    };
+    const actions: Action[] = ['move', 'button-a'];
+    const aimed = describePlay(play(actions, { ...tueren, secret }));
+    expect(aimed).toMatchObject({ stick: true, buttons: [{ button: 'a', label: 'Wählen' }] });
+    expect(aimed.secret?.options.map((option) => option.state)).toEqual(['idle', 'aimed', 'idle']);
+    expect(aimed.secret?.spoken).toBe('Zeigt auf: ↑ 9 Münzen');
+    const picked = describeSecret({ ...secret, aim: null, pick: 'rechts', locked: true });
+    expect(picked.options.map((option) => option.state)).toEqual(['idle', 'idle', 'picked']);
+    expect(picked).toMatchObject({ locked: true, spoken: 'Deine Wahl: → 2 Münzen' });
+    expect(describeSecret({ ...secret, aim: null }).spoken).toBe('Noch keine Wahl');
+    // Außerhalb von `play` keine Rückmeldung.
+    const intro = { ...tueren, stage: 'intro' as const, secret };
+    expect(describePlay(play(actions, intro)).secret).toBeNull();
   });
 
   it('Joystick null: kein Joystick, auch wenn der Server move anbietet', () => {

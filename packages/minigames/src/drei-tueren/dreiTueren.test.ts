@@ -1,7 +1,14 @@
 import { lineup, matchMetrics, runBotMatch, BOT_PROFILES } from '@chaos-party/minigame-kit';
-import { createMinigameRng } from '@chaos-party/minigame-sdk';
+import {
+  checkSecret,
+  createMinigameRng,
+  type MinigameSecret,
+  type Slot,
+} from '@chaos-party/minigame-sdk';
+import { runMinigameHeadless } from '@chaos-party/minigame-sdk/testing';
 import { describe, expect, it } from 'vitest';
 import { DOOR_BOT_ADAPTER, DoorBot, predict } from './bot.ts';
+import { dreiTueren } from './index.ts';
 import { DOOR_RULES, DoorLogic, doorOf, type RoundRecord } from './logic.ts';
 
 const STEP = 1 / 60;
@@ -79,6 +86,61 @@ describe('Drei Türen – Wahl und Auszahlung', () => {
     expect(logic.highlights(new Map([[1, 'Blau']]))).toContain(
       'Blau öffnet die letzte Tür allein.',
     );
+  });
+});
+
+describe('Drei Türen – private Rückmeldung (CHAOS-242)', () => {
+  it('zeigt jedem nur Ziel und Wahl des eigenen Slots, nach dem Aufdecken gesperrt', () => {
+    const logic = new DoorLogic([1, 2], createMinigameRng(3), DURATION);
+    expect(logic.secretOf(1)).toBeNull();
+    untilOpen(logic, 0);
+    const fresh = logic.secretOf(1);
+    expect(fresh).toMatchObject({ prompt: 'Runde 1/8: deine Tür?', aim: null, pick: null });
+    expect(fresh?.options.map((option) => option.label)).toEqual(
+      logic.values.map((value) => `${String(value)} Münzen`),
+    );
+    logic.aim(1, 1, 0);
+    expect(logic.secretOf(1)).toMatchObject({ aim: 'rechts', pick: null, locked: false });
+    logic.choose(1);
+    expect(logic.secretOf(1)).toMatchObject({
+      prompt: 'Runde 1/8: gewählt',
+      aim: null,
+      pick: 'rechts',
+    });
+    // Slot 2 sieht nichts von Slot 1.
+    expect(logic.secretOf(2)).toMatchObject({ aim: null, pick: null });
+    for (const slot of [1, 2] as const) {
+      const secret = logic.secretOf(slot);
+      expect(secret && checkSecret(secret)).toEqual({ ok: true });
+    }
+    untilReveal(logic);
+    expect(logic.secretOf(1)).toMatchObject({ pick: 'rechts', locked: true });
+    expect(logic.secretOf(2)).toMatchObject({ pick: null, locked: true });
+    expect(logic.secretOf(3)).toBeNull();
+  });
+
+  it('das Modul meldet je Slot nur dessen Wahl an die Laufzeit', async () => {
+    const seen = new Map<Slot, (MinigameSecret | null)[]>();
+    const run = await runMinigameHeadless(dreiTueren, {
+      players: 2,
+      seed: 5,
+      onSecret: (slot, secret) => seen.set(slot, [...(seen.get(slot) ?? []), secret]),
+      script: (elapsedMs, send) => {
+        // Slot 1 zeigt nach links und wählt in jeder Runde; Slot 2 bleibt still.
+        if (elapsedMs % 500 < 17) {
+          send(1, { type: 'move', x: -1, y: 0 });
+          send(1, { type: 'press', button: 'a' });
+          send(1, { type: 'release', button: 'a' });
+        }
+      },
+    });
+    expect(run.outcome?.forced).toBe(false);
+    const one = seen.get(1) ?? [];
+    const two = seen.get(2) ?? [];
+    expect(one.some((secret) => secret?.pick === 'links')).toBe(true);
+    expect(two.length).toBeGreaterThan(0);
+    expect(two.every((secret) => (secret?.pick ?? null) === null)).toBe(true);
+    expect(two.every((secret) => (secret?.aim ?? null) === null)).toBe(true);
   });
 });
 

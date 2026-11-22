@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { checkResult, rankByScore } from './result.ts';
+import type { MinigameSecret } from './info.ts';
+import { checkResult, checkSecret, rankByScore } from './result.ts';
 
 describe('rankByScore', () => {
   it('vergibt Plätze mit Gleichstand (1224) und sortiert stabil nach Slot', () => {
@@ -102,5 +103,38 @@ describe('checkResult', () => {
     ['zu langer Höhepunkt', { ...valid, highlights: ['x'.repeat(65)] }],
   ])('lehnt ab: %s', (_name, result) => {
     expect(checkResult(result, expected).ok).toBe(false);
+  });
+});
+
+describe('checkSecret (CHAOS-242)', () => {
+  const links = { id: 'links', icon: '←', label: '5 Münzen' };
+  const mitte = { id: 'mitte', icon: '↑', label: '9 Münzen' };
+  const secret: MinigameSecret = {
+    prompt: 'Runde 1/8: deine Tür',
+    options: [links, mitte, { id: 'rechts', icon: '→', label: '2 Münzen' }],
+    aim: 'mitte',
+    pick: null,
+    locked: false,
+  };
+
+  it('nimmt eine gültige Rückmeldung an', () => {
+    expect(checkSecret(secret)).toEqual({ ok: true });
+    expect(checkSecret({ ...secret, aim: null, pick: 'links', locked: true })).toEqual({
+      ok: true,
+    });
+  });
+
+  it.each<[string, Partial<MinigameSecret>]>([
+    ['leere Frage', { prompt: '' }],
+    ['Frage zu lang', { prompt: 'x'.repeat(25) }],
+    ['nur eine Option', { options: secret.options.slice(0, 1) }],
+    ['fünf Optionen', { options: [...secret.options, ...secret.options.slice(0, 2)] }],
+    ['doppelte Kennung', { options: [links, links] }],
+    ['Kennung mit Großbuchstaben', { options: [{ ...links, id: 'Links' }, mitte] }],
+    ['Text mit Rand-Leerraum', { options: [{ ...links, label: ' x' }, mitte] }],
+    ['Ziel außerhalb', { aim: 'oben' }],
+    ['Wahl außerhalb', { pick: 'oben' }],
+  ])('lehnt ab: %s', (_name, patch) => {
+    expect(checkSecret({ ...secret, ...patch }).ok).toBe(false);
   });
 });

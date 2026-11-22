@@ -19,8 +19,8 @@ import {
   type MinigameBotDriver,
   type MinigameBotSeat,
 } from '../bot.ts';
-import type { MinigameCue, MinigameInput, MinigameResult, Slot } from '../info.ts';
-import { checkCue, checkResult, rankByScore } from '../result.ts';
+import type { MinigameCue, MinigameInput, MinigameResult, MinigameSecret, Slot } from '../info.ts';
+import { checkCue, checkResult, checkSecret, rankByScore } from '../result.ts';
 import { createMinigameRng } from '../rng.ts';
 import { teamPlacements, type MinigameTeams } from '../teams.ts';
 import { markVisual } from './visual.ts';
@@ -80,6 +80,11 @@ export interface RunnerOptions {
    * `running`, nur geprüfte Hinweise (`checkCue`), nur bei einer Änderung.
    */
   readonly onCue?: (cue: MinigameCue | null) => void;
+  /**
+   * Private Rückmeldung eines Slots hat gewechselt (CHAOS-242): nur für Minispiele mit
+   * `getSecret`, nur in `running`, nur geprüft (`checkSecret`), nur bei einer Änderung.
+   */
+  readonly onSecret?: (slot: Slot, secret: MinigameSecret | null) => void;
   /**
    * Taktgeber für einen verteilten Aufbau (CHAOS-141). Fehlt er, rechnet `prepare` am Stück
    * (`ctx.pace()` löst sofort auf; Tests bleiben deterministisch und schnell).
@@ -180,6 +185,8 @@ export function createMinigameRunner(
   let cue: MinigameCue | null = null;
   /** Vergleichsschlüssel des gemeldeten Hinweises (Objekte dürfen je Aufruf neu sein). */
   let cueKey = 'null';
+  /** Vergleichsschlüssel der gemeldeten privaten Rückmeldung je Slot (CHAOS-242). */
+  const secretKeys = new Map<Slot, string>();
   let accumulator = 0;
   const maxSteps = Math.max(1, Math.floor(options.maxStepsPerAdvance ?? MAX_STEPS_PER_ADVANCE));
   let steps = 0;
@@ -282,6 +289,31 @@ export function createMinigameRunner(
     options.onCue(next);
   };
 
+  /** Private Rückmeldungen fragen und Wechsel je Slot melden (CHAOS-242). */
+  const pollSecrets = () => {
+    if (!game.getSecret || !options.onSecret || state !== 'running') return;
+    for (const slot of slots) {
+      let next: MinigameSecret | null;
+      try {
+        next = game.getSecret(slot);
+      } catch (error) {
+        console.error(error);
+        continue;
+      }
+      const key = JSON.stringify(next);
+      if (key === (secretKeys.get(slot) ?? 'null')) continue;
+      if (next) {
+        const check = checkSecret(next);
+        if (!check.ok) {
+          console.error(`Minispiel ${info.id}: ungültige Rückmeldung (${check.reason})`);
+          continue;
+        }
+      }
+      secretKeys.set(slot, key);
+      options.onSecret(slot, next);
+    }
+  };
+
   const tickBots = () => {
     for (const bot of bots) {
       if (bot.failed) continue;
@@ -312,6 +344,7 @@ export function createMinigameRunner(
     physicsStep?.(FIXED_STEP_SECONDS);
     steps++;
     pollCue();
+    pollSecrets();
     if (state === 'running') settle(game.getResult());
   };
 
@@ -431,6 +464,7 @@ export function createMinigameRunner(
         }
       }
       pollCue();
+      pollSecrets();
     },
     finishNow() {
       if (state !== 'running') return;

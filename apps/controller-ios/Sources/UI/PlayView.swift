@@ -72,6 +72,8 @@ struct PlayLayout: Equatable {
     let title: String?
     /// Picture word of the running section (CHAOS-231, Schnellfeuer), `nil` otherwise.
     let cue: MinigameCue?
+    /// Private feedback of a secret choice (CHAOS-242), `nil` otherwise. Only this slot gets it.
+    let secret: MinigameSecret?
 
     /// Like `describePlay`: a cue's controls replace the minigame's (only what the section needs).
     init(actions: [Action], minigame: ControllerMinigameInfo?) {
@@ -87,11 +89,12 @@ struct PlayLayout: Equatable {
         }
         title = playing?.title
         cue = playing?.cue
+        secret = playing?.secret
     }
 
     static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.stick == rhs.stick && lhs.stickHint == rhs.stickHint && lhs.title == rhs.title
-            && lhs.cue == rhs.cue
+            && lhs.cue == rhs.cue && lhs.secret == rhs.secret
             && lhs.buttons.map(\.button) == rhs.buttons.map(\.button)
             && lhs.buttons.map(\.label) == rhs.buttons.map(\.label)
     }
@@ -119,6 +122,7 @@ struct PlayPanel: View {
         VStack(spacing: 12) {
             if let title = layout.title, !landscape {
                 MinigameHeader(title: title, cue: layout.cue)
+                if let secret = layout.secret { SecretStrip(secret: secret, tint: tint) }
             }
             if landscape {
                 HStack(spacing: 16) {
@@ -127,6 +131,7 @@ struct PlayPanel: View {
                         VStack {
                             if let title = layout.title {
                                 MinigameHeader(title: title, cue: layout.cue).padding(.top, 52)
+                                if let secret = layout.secret { SecretStrip(secret: secret, tint: tint) }
                             }
                             buttons
                         }
@@ -182,6 +187,64 @@ struct MinigameHeader: View {
 
     static func spoken(title: String, cue: MinigameCue) -> String {
         "\(title): \(cue.word)\(cue.double ? " – zählt doppelt" : "")"
+    }
+}
+
+/// Private feedback of a secret choice (CHAOS-242, web: `MinigameSecretStrip`): the options with
+/// where the stick points (dashed) and the locked-in choice (filled in the player colour). Not
+/// tappable – choosing stays stick plus A.
+struct SecretStrip: View {
+    let secret: MinigameSecret
+    let tint: Tint
+
+    enum OptionState: Equatable { case picked, aimed, idle }
+
+    static func state(of option: MinigameSecretOption, in secret: MinigameSecret) -> OptionState {
+        if option.id == secret.pick { return .picked }
+        if option.id == secret.aim { return .aimed }
+        return .idle
+    }
+
+    /// Spoken summary like the web („Deine Wahl: → 2 Münzen“).
+    static func spoken(_ secret: MinigameSecret) -> String {
+        let find = { (id: String?) in secret.options.first { $0.id == id } }
+        if let picked = find(secret.pick) { return "Deine Wahl: \(picked.icon) \(picked.label)" }
+        if let aimed = find(secret.aim) { return "Zeigt auf: \(aimed.icon) \(aimed.label)" }
+        return secret.locked ? "Keine Wahl" : "Noch keine Wahl"
+    }
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Text("🔒 \(secret.prompt)").font(.caption.bold()).opacity(0.8).lineLimit(1)
+            HStack(spacing: 6) {
+                ForEach(secret.options, id: \.id) { option in
+                    let state = Self.state(of: option, in: secret)
+                    VStack(spacing: 0) {
+                        Text(option.icon).font(.title3.weight(.heavy))
+                        Text(option.label).font(.caption2.bold()).lineLimit(1)
+                    }
+                    .frame(minWidth: 64)
+                    .padding(.vertical, 4)
+                    .padding(.horizontal, 8)
+                    .foregroundStyle(state == .picked ? tint.on : Color.primary)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(state == .picked ? tint.color : Color.clear))
+                    .glass(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .strokeBorder(
+                                state == .idle ? Color.clear : tint.color,
+                                style: StrokeStyle(lineWidth: 2, dash: state == .aimed ? [5, 3] : [])))
+                    .scaleEffect(state == .picked ? 1.1 : state == .aimed ? 1.05 : 1)
+                    .opacity(secret.locked && state != .picked ? 0.45 : 1)
+                }
+            }
+        }
+        .animation(.easeOut(duration: 0.12), value: secret)
+        .allowsHitTesting(false)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(secret.prompt). \(Self.spoken(secret))")
     }
 }
 

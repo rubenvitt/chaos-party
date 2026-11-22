@@ -351,6 +351,45 @@ export const MinigameCueSchema = z
     'Hinweis ohne Bedienung',
   );
 
+/** Grenzen der privaten Rückmeldung (gleich `MINIGAME_SECRET_LIMITS` im minigame-sdk). */
+export const MAX_MINIGAME_SECRET_PROMPT_LENGTH = 24;
+export const MAX_MINIGAME_SECRET_OPTIONS = 4;
+export const MAX_MINIGAME_SECRET_ICON_LENGTH = 8;
+export const MAX_MINIGAME_SECRET_LABEL_LENGTH = 16;
+
+/** Kennung einer Option der geheimen Wahl (gleich `MINIGAME_SECRET_OPTION_PATTERN`). */
+export const MinigameSecretOptionIdSchema = z.string().regex(/^[a-z0-9-]{1,16}$/);
+
+export const MinigameSecretOptionSchema = z.strictObject({
+  id: MinigameSecretOptionIdSchema,
+  icon: displayText(MAX_MINIGAME_SECRET_ICON_LENGTH),
+  label: displayText(MAX_MINIGAME_SECRET_LABEL_LENGTH),
+});
+
+/**
+ * v4-Nachtrag (CHAOS-242): private Rückmeldung an genau einen Controller (geheime Wahl):
+ * Optionen, worauf die Eingabe zeigt (`aim`) und was festgelegt ist (`pick`).
+ */
+export const MinigameSecretSchema = z
+  .strictObject({
+    prompt: displayText(MAX_MINIGAME_SECRET_PROMPT_LENGTH),
+    options: z.array(MinigameSecretOptionSchema).min(2).max(MAX_MINIGAME_SECRET_OPTIONS),
+    aim: MinigameSecretOptionIdSchema.nullable(),
+    pick: MinigameSecretOptionIdSchema.nullable(),
+    locked: z.boolean(),
+  })
+  .refine(
+    (secret) => new Set(secret.options.map((option) => option.id)).size === secret.options.length,
+    'Option doppelt',
+  )
+  .refine(
+    (secret) =>
+      [secret.aim, secret.pick].every(
+        (id) => id === null || secret.options.some((option) => option.id === id),
+      ),
+    'Ziel oder Wahl außerhalb der Optionen',
+  );
+
 /** v4-Nachtrag (CHAOS-89): Spielformen mit Teams bzw. Koop (gleich `TEAM_FORMS` im SDK). */
 export const MINIGAME_TEAM_FORMS = ['1v3', '2v2', 'koop'] as const;
 /** Tatsächliche Aufstellung; `1v2`/`1v1` sind die Ersatzformen zu dritt bzw. zu zweit. */
@@ -448,6 +487,11 @@ export const ControllerMinigameInfoSchema = z.strictObject({
    * Controller zeigt dann `controls`.
    */
   cue: MinigameCueSchema.optional(),
+  /**
+   * v4-Nachtrag (CHAOS-242, optional), nur in `play`: private Rückmeldung an genau diesen Slot
+   * (geheime Wahl). Andere Slots bekommen sie nie. Fehlt = keine (bzw. älterer Host).
+   */
+  secret: MinigameSecretSchema.optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -769,12 +813,27 @@ export const MinigameCueMessageSchema = z.strictObject({
   cue: MinigameCueSchema.nullable(),
 });
 
+/**
+ * v4-Nachtrag (CHAOS-242): Der Host meldet die private Rückmeldung eines Slots (nur bei einem
+ * Wechsel, `null` = keine mehr). Passt der Lauf nicht, spielt der Slot nicht mit oder läuft
+ * kein Spiel, verwirft der Server die Meldung still (kein Fehler, keine Antwort).
+ */
+export const MinigameSecretMessageSchema = z.strictObject({
+  v: VersionSchema,
+  type: z.literal('minigame-secret'),
+  minigameId: MinigameIdSchema,
+  round: CountSchema,
+  slot: SlotSchema,
+  secret: MinigameSecretSchema.nullable(),
+});
+
 const hostOnlyMessageOptions = [
   HostHelloMessageSchema,
   HostReadyMessageSchema,
   StartMessageSchema,
   MinigameResultMessageSchema,
   MinigameCueMessageSchema,
+  MinigameSecretMessageSchema,
   ConfigureMessageSchema,
   PauseMessageSchema,
   ResumeMessageSchema,

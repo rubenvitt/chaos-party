@@ -12,7 +12,7 @@ import {
   tallyFacts,
   type HighlightRule,
 } from '@chaos-party/minigame-kit';
-import type { MinigameRng, Slot } from '@chaos-party/minigame-sdk';
+import type { MinigameRng, MinigameSecret, Slot } from '@chaos-party/minigame-sdk';
 
 export const DOOR_RULES = {
   rounds: 8,
@@ -42,6 +42,13 @@ export type DoorEvent =
   | { readonly type: 'round'; readonly index: number }
   | { readonly type: 'chosen'; readonly slot: Slot }
   | { readonly type: 'reveal'; readonly record: RoundRecord };
+
+/** Kennung, Piktogramm und Name je Tür für die private Rückmeldung (CHAOS-242). */
+export const DOOR_OPTIONS = [
+  { id: 'links', icon: '←', name: 'Links' },
+  { id: 'mitte', icon: '↑', name: 'Mitte' },
+  { id: 'rechts', icon: '→', name: 'Rechts' },
+] as const;
 
 /** Stick → Tür: links 0, oben 1, rechts 2; Stick in Ruhe (oder nach unten) = keine. */
 export function doorOf(x: number, y: number): Door | null {
@@ -178,6 +185,35 @@ export class DoorLogic {
     this.history.push(record);
     this.#choices.clear();
     return record;
+  }
+
+  /**
+   * Private Rückmeldung an den Controller von `slot` (CHAOS-242): Türen mit Wert, wohin der
+   * Stick zeigt und was gewählt ist. Nach dem Aufdecken bleibt die Wahl der Runde stehen
+   * (`locked`). **Nur** für diesen Controller, nie für Host-Bildschirm oder Bots.
+   */
+  secretOf(slot: Slot): MinigameSecret | null {
+    if (this.round < 0 || this.finished || !this.slots.includes(slot)) return null;
+    const options = DOOR_OPTIONS.map((door, index) => ({
+      id: door.id,
+      icon: door.icon,
+      label: `${String(this.values[index] ?? 0)} Münzen`,
+    }));
+    const idOf = (door: Door | null | undefined) =>
+      door === null || door === undefined ? null : DOOR_OPTIONS[door].id;
+    const prefix = `Runde ${String(this.round + 1)}/${String(DOOR_RULES.rounds)}`;
+    if (this.open) {
+      const pick = idOf(this.#choices.get(slot));
+      return {
+        prompt: pick ? `${prefix}: gewählt` : `${prefix}: deine Tür?`,
+        options,
+        aim: pick ? null : idOf(this.#aim.get(slot)),
+        pick,
+        locked: false,
+      };
+    }
+    const pick = idOf(this.history.at(-1)?.choices.get(slot));
+    return { prompt: `${prefix}: aufgedeckt`, options, aim: null, pick, locked: true };
   }
 
   highlights(names: ReadonlyMap<Slot, string>): string[] {

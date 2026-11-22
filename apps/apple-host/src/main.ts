@@ -50,6 +50,7 @@ import { RAPID_FIRE_CHOICES, parseRapidFire } from '../../server/src/rapidFire.t
 import { eventText, playerName } from '../../host/src/board/texts.ts';
 import {
   connectHost,
+  secretPayload,
   type HostConnection,
   type SocketLike,
 } from '../../host/src/net/hostConnection.ts';
@@ -466,6 +467,10 @@ function create(env: HostEnv): ChaosHostInstance {
           // CHAOS-231: Bildwort und Bedienung des laufenden Abschnitts an die Controller.
           onCue: (cue) => {
             connection.sendMinigameCue({ minigameId: module.info.id, round, cue });
+          },
+          // CHAOS-242: private Rückmeldung (geheime Wahl) nur an den Controller des Slots.
+          onSecret: (slot, secret) => {
+            connection.sendMinigameSecret(secretPayload(module.info.id, round, slot, secret));
           },
         });
         stage = { key, headless };

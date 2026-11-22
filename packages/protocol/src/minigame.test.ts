@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   createMessage,
+  parseControllerMessage,
   parseHostMessage,
   parseServerToControllerMessage,
   parseServerToHostMessage,
@@ -235,6 +236,97 @@ describe('v4-Nachtrag CHAOS-231: Hinweis des laufenden Abschnitts', () => {
     expect(parseServerToControllerMessage(context({ cue })).ok).toBe(true);
     expect(parseServerToControllerMessage(context({})).ok).toBe(true);
     expect(parseServerToControllerMessage(context({ cue: { ...cue, double: 'ja' } })).ok).toBe(
+      false,
+    );
+  });
+});
+
+describe('v4-Nachtrag CHAOS-242: private Rückmeldung bei geheimer Wahl', () => {
+  const secret = {
+    prompt: 'Runde 2/8: deine Tür',
+    options: [
+      { id: 'links', icon: '←', label: '5 Münzen' },
+      { id: 'mitte', icon: '↑', label: '9 Münzen' },
+      { id: 'rechts', icon: '→', label: '2 Münzen' },
+    ],
+    aim: 'mitte',
+    pick: null,
+    locked: false,
+  };
+  const message = (patch: object = {}, secretPatch: object = {}) => ({
+    v: PROTOCOL_VERSION,
+    type: 'minigame-secret',
+    minigameId: 'drei-tueren',
+    round: 2,
+    slot: 3,
+    secret: { ...secret, ...secretPatch },
+    ...patch,
+  });
+
+  it('nimmt minigame-secret vom Host an, auch `null` (keine Rückmeldung mehr)', () => {
+    const ok = createMessage('minigame-secret', {
+      minigameId: 'drei-tueren',
+      round: 2,
+      slot: 3,
+      secret,
+    });
+    expect(parseHostMessage(ok)).toEqual({ ok: true, message: ok });
+    expect(parseHostMessage(message({ secret: null })).ok).toBe(true);
+    expect(parseHostMessage(message({}, { pick: 'links', aim: null, locked: true })).ok).toBe(true);
+  });
+
+  it.each([
+    ['Slot 0', { slot: 0 }],
+    ['Slot 5', { slot: 5 }],
+    ['ohne Slot', { slot: undefined }],
+    ['Slot als Text', { slot: '1' }],
+    ['ohne Lauf', { round: undefined }],
+  ])('lehnt einen falschen Umschlag ab: %s', (_name, patch) => {
+    expect(parseHostMessage(message(patch)).ok).toBe(false);
+  });
+
+  it.each([
+    ['eine Option', { options: secret.options.slice(0, 1) }],
+    ['fünf Optionen', { options: [...secret.options, ...secret.options.slice(0, 2)] }],
+    ['doppelte Option', { options: [secret.options[0], secret.options[0]] }],
+    ['Ziel außerhalb', { aim: 'oben' }],
+    ['Wahl außerhalb', { pick: 'oben' }],
+    ['Kennung zu lang', { pick: 'x'.repeat(17) }],
+    ['Frage zu lang', { prompt: 'x'.repeat(25) }],
+    ['Leerraum am Rand', { prompt: ' Tür' }],
+    ['ohne locked', { locked: undefined }],
+    ['unbekanntes Feld', { hint: 'x' }],
+  ])('lehnt eine kaputte Rückmeldung ab: %s', (_name, patch) => {
+    expect(parseHostMessage(message({}, patch)).ok).toBe(false);
+  });
+
+  it('kommt nicht vom Controller', () => {
+    expect(parseControllerMessage(message()).ok).toBe(false);
+  });
+
+  it('trägt die Rückmeldung optional im Minispiel-Kontext des Controllers', () => {
+    const minigame = {
+      id: 'drei-tueren',
+      title: 'Drei Türen',
+      tagline: 'Wähl geheim eine Tür – aber stehst du dort allein?',
+      instructions: ['Stick zeigt auf eine Tür, A wählt.'],
+      controls: { joystick: 'Tür zeigen', a: 'Wählen', b: null },
+      stage: 'play' as const,
+      scoreUnit: 'Münzen',
+      tied: false,
+      aborted: false,
+    };
+    const context = (extra: object) =>
+      createMessage('context', {
+        slot: 1,
+        phase: 'board',
+        layout: 'joystick-buttons',
+        actions: ['move', 'button-a'],
+        minigame: { ...minigame, ...extra },
+      });
+    expect(parseServerToControllerMessage(context({ secret })).ok).toBe(true);
+    expect(parseServerToControllerMessage(context({})).ok).toBe(true);
+    expect(parseServerToControllerMessage(context({ secret: { ...secret, aim: 'x' } })).ok).toBe(
       false,
     );
   });

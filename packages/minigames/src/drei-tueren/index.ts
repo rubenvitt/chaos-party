@@ -19,7 +19,12 @@ import {
   createCamera,
   type StageMaterialOptions,
 } from '@chaos-party/minigame-kit/babylon';
-import type { MinigameInput, MinigameResult, Slot } from '@chaos-party/minigame-sdk';
+import type {
+  MinigameInput,
+  MinigameResult,
+  MinigameSecret,
+  Slot,
+} from '@chaos-party/minigame-sdk';
 import type * as Sdk from '@chaos-party/minigame-sdk/babylon';
 import { createDoorBot } from './bot.ts';
 import { DREI_TUEREN_INFO as INFO } from './info.ts';
@@ -191,6 +196,11 @@ class DreiTueren implements Sdk.Minigame {
       scores: logic.board.hud(status),
       ...(banner && !this.result ? { banner } : {}),
     };
+  }
+
+  /** CHAOS-242: eigene Tür nur am eigenen Controller (Host zeigt nur den Haken). */
+  getSecret(slot: Slot): MinigameSecret | null {
+    return this.running && !this.result ? (this.logic?.secretOf(slot) ?? null) : null;
   }
 
   dispose(): void {
