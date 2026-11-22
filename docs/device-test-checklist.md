@@ -958,6 +958,7 @@ Automatisch geprüft: PC-Lobby mit 1 Mensch (synthetischer Controller) und KI pe
 | KI9 | Native Controller-App als Spielleitung | Wie KI7 | | Video |
 | KI10 | Apple TV: Lobby per Siri Remote | Fokus erreicht „+ KI“, Stärke und „Entfernen“; Start erst mit einem Menschen; im Brett-HUD, Minispiel und Endstand das Abzeichen „KI“ | | Video |
 | KI11 | Mac-App: dieselbe Lobby mit der Maus | Wie KI10 | | Foto |
+| KI12 | Partie mit einer KI auf „Dynamisch“ (CHAOS-187), mindestens 6 Runden; einmal klar führen, einmal klar zurückliegen | Führen die Menschen, wird die KI spürbar zäher; liegt sie vorn, lässt sie nach. Kein Sprung innerhalb einer Runde, kein Gummiband-Gefühl (Frage für CHAOS-185) | | Notiz |
 
 ## 50. Pilotwelle: acht neue Minispiele (für CHAOS-91, Zwischenabnahme CHAOS-92)
 

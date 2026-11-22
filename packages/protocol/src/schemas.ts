@@ -1133,8 +1133,18 @@ export const BoardPlayerSchema = z
     strength: AiStrengthSchema.optional(),
     /** v4-Nachtrag (CHAOS-179/186): Spielstil, nur bei `kind: 'ai'`; fehlt, solange keiner vergeben ist. */
     personality: AiPersonalitySchema.optional(),
+    /**
+     * v4-Nachtrag (CHAOS-187, ADR-020 §4): aktuelle Stärke `s` (0 = leicht … 1 = schwer) einer KI
+     * mit `strength: 'dynamisch'`; ändert sich nur am Rundenende. Nur und immer dort; der Host
+     * gibt sie an die Minispiel-Bots weiter.
+     */
+    strengthLevel: z.number().min(0).max(1).optional(),
   })
-  .refine(hasConsistentSeatKind, SEAT_KIND_ISSUE);
+  .refine(hasConsistentSeatKind, SEAT_KIND_ISSUE)
+  .refine((player) => (player.strength === 'dynamisch') === (player.strengthLevel !== undefined), {
+    message: 'strengthLevel nur und immer bei strength "dynamisch"',
+    path: ['strengthLevel'],
+  });
 
 export const RankingEntrySchema = z.strictObject({
   slot: SlotSchema,

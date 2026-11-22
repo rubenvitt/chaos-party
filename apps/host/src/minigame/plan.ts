@@ -201,10 +201,12 @@ export function aiTaglineOf(view: Pick<BoardView, 'players'>, slot: SlotNumber):
 }
 
 /**
- * Stärke `s` eines KI-Platzes für die Minispiel-Bots (ADR-020 §4). „Dynamisch“ startet bei
- * „mittel“; die Anpassung je Runde kommt mit CHAOS-187.
+ * Stärke `s` eines KI-Platzes für die Minispiel-Bots (ADR-020 §4). „Dynamisch“ nimmt die
+ * aktuelle Stärke aus dem Brett-Stand (`strengthLevel`, CHAOS-187; ändert sich nur am
+ * Rundenende), ohne sie „mittel“.
  */
-export function botStrength(strength: AiStrength | undefined): number {
+export function botStrength(strength: AiStrength | undefined, strengthLevel?: number): number {
+  if (strength === 'dynamisch' && strengthLevel !== undefined) return strengthLevel;
   if (strength === undefined || strength === 'dynamisch') return BOT_LEVEL_STRENGTH.mittel;
   return BOT_LEVEL_STRENGTH[strength];
 }
@@ -218,7 +220,10 @@ export function botSeatsFromView(view: Pick<BoardView, 'players'>): MinigameBotS
   return [...view.players]
     .filter((player) => player.kind === 'ai')
     .sort((a, b) => a.slot - b.slot)
-    .map((player) => ({ slot: player.slot, strength: botStrength(player.strength) }));
+    .map((player) => ({
+      slot: player.slot,
+      strength: botStrength(player.strength, player.strengthLevel),
+    }));
 }
 
 /** Teilnehmer eines Minispiels aus dem Brett-Stand (nach Slot sortiert). */
