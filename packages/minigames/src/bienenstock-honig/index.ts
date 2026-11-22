@@ -5,29 +5,25 @@
  * (gesichert). Bienen (Requisit) kreisen um Töpfe, auf die sie wütend sind; eine Angriffsbiene
  * fliegt sichtbar vom Stock zum Ziel. Logik in `logic.ts`.
  */
-import { CreateBox } from '@babylonjs/core/Meshes/Builders/boxBuilder.js';
-import { CreateCylinder } from '@babylonjs/core/Meshes/Builders/cylinderBuilder.js';
-import { CreateSphere } from '@babylonjs/core/Meshes/Builders/sphereBuilder.js';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh.js';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
 import { arenaLayout } from '@chaos-party/minigame-kit';
 import {
-  MinigameStage,
+  KitMinigame,
   SlotFigure,
   buildArena,
-  celebrateFigures,
+  buildParts,
+  buildProp,
   createCamera,
+  fallbackParts,
   mix,
-  type StageMaterialOptions,
+  type MinigameStage,
+  type PropOptions,
+  type PropPart,
 } from '@chaos-party/minigame-kit/babylon';
-import {
-  rankByScore,
-  type MinigameInput,
-  type MinigameResult,
-  type Slot,
-} from '@chaos-party/minigame-sdk';
+import type { MinigameInput, Slot } from '@chaos-party/minigame-sdk';
 import type * as Sdk from '@chaos-party/minigame-sdk/babylon';
-import { createHoneyBot } from './bot.ts';
+import { HoneyBot } from './bot.ts';
 import { BIENENSTOCK_HONIG_INFO as INFO } from './info.ts';
 import { HoneyLogic, type HoneyEvent } from './logic.ts';
 
@@ -44,14 +40,6 @@ const SCALE = { hive: 2, pot: 1.9, bee: 0.75, attacker: 1.5 } as const;
 /** Oberkante des Topfdeckels im Modell (Meter). */
 const POT_TOP = 0.44;
 
-/** Grundkörper: Form, Maße, Farbe (`slot` = Slot-Farbe), Lage, Material. */
-type Part = readonly [
-  shape: 'box' | 'cyl' | 'ball',
-  size: readonly number[],
-  color: string,
-  at: readonly number[],
-  options?: StageMaterialOptions,
-];
 const glow = { emissive: 0.15 };
 /**
  * Grundkörper je Teil. Katalog-Requisiten (`bienenstock`, `honigtopf`, `biene`) nur als Rückfall
@@ -88,59 +76,24 @@ const PARTS = {
     ['box', [0.2, 0.02, 0.12], '#ffffff', [-0.14, 0.33, -0.03], { alpha: 0.7 }],
     ['box', [0.2, 0.02, 0.12], '#ffffff', [0.14, 0.33, -0.03], { alpha: 0.7 }],
   ],
-} as const satisfies Record<string, readonly Part[]>;
+} as const satisfies Record<string, readonly PropPart[]>;
 
-/** Grundkörper aus `PARTS` unter `parent`; liefert alle und die in Slot-Farbe. */
-function build(
-  stage: MinigameStage,
-  parent: TransformNode,
-  kind: keyof typeof PARTS,
-  key: number,
-  slot = '',
-) {
-  const meshes: Mesh[] = [];
-  const slotted: Mesh[] = [];
-  for (const [index, [shape, size, hex, at, options]] of (
-    PARTS[kind] as readonly Part[]
-  ).entries()) {
-    const name = stage.name(kind, key, index);
-    const [a = 1, b = a, c = a] = size;
-    const mesh =
-      shape === 'box'
-        ? CreateBox(name, { width: a, height: b, depth: c }, stage.scene)
-        : shape === 'cyl'
-          ? CreateCylinder(name, { diameterTop: a, diameterBottom: b, height: c }, stage.scene)
-          : CreateSphere(name, { diameterX: a, diameterY: b, diameterZ: c }, stage.scene);
-    const part = stage.add(mesh, hex === 'slot' ? slot : hex, { ...options, parent });
-    part.position.set(at[0] ?? 0, at[1] ?? 0, at[2] ?? 0);
-    meshes.push(part);
-    if (hex === 'slot') slotted.push(part);
-  }
-  return { meshes, slotted };
-}
+/** Eigener Grundkörper-Teil aus `PARTS` als Rollen-Knoten (Rolle = Name). */
+const part = (stage: MinigameStage, role: keyof typeof PARTS, key: number, at: PropOptions = {}) =>
+  buildProp(stage, role, PARTS[role], key, at);
 
-/** Grundkörper-Teil als Rollen-Knoten (Rolle = Name) an (x, z). */
-function part(
-  stage: MinigameStage,
-  role: keyof typeof PARTS,
-  key: number,
-  x = 0,
-  z = 0,
-  slot = '',
-) {
-  const node = stage.node(role, role, key);
-  node.position.set(x, 0, z);
-  build(stage, node, role, key, slot);
-  return node;
-}
+/** Requisit aus dem Katalog mit Rückfall aus `PARTS` (Rolle = Requisit). */
+const prop = (stage: MinigameStage, id: keyof typeof PARTS, key: number, slotColor?: string) =>
+  stage.prop(id, {
+    role: id,
+    key,
+    ...(slotColor ? { akzent: slotColor } : {}),
+    fallback: fallbackParts(stage, id, PARTS[id], key, slotColor),
+  }).root;
 
 /** Biene (Requisit `biene`), Ursprung am Bauch, vorn = +Z. */
 function bee(stage: MinigameStage, key: number, size: number): TransformNode {
-  const { root } = stage.prop('biene', {
-    role: 'biene',
-    key,
-    fallback: (parent) => void build(stage, parent, 'biene', key),
-  });
+  const root = prop(stage, 'biene', key);
   root.scaling.setAll(size);
   root.setEnabled(false);
   return root;
@@ -173,99 +126,55 @@ interface Station {
 const level = (value: number, steps: number) =>
   Math.max(0.01, Math.round(Math.min(1, value) * steps) / steps);
 
-class BienenstockHonig implements Sdk.Minigame {
-  private ctx: Sdk.MinigameContext | null = null;
-  private stage: MinigameStage | null = null;
-  private logic: HoneyLogic | null = null;
-  private result: MinigameResult | null = null;
-  private running = false;
+class BienenstockHonig extends KitMinigame<HoneyLogic, HoneyEvent> {
   private hive: TransformNode | null = null;
   private yard: Mesh | null = null;
   private readonly ambient: TransformNode[] = [];
   private readonly stations = new Map<Slot, Station>();
 
-  async prepare(ctx: Sdk.MinigameContext): Promise<void> {
-    this.ctx = ctx;
-    const slots = ctx.players.map((player) => player.slot);
-    this.logic = new HoneyLogic(slots, ctx.rng, ctx.timeLimitMs);
-    const stage = (this.stage = new MinigameStage(ctx, 'honig'));
+  constructor() {
+    super(INFO, 'honig', HoneyLogic, HoneyBot);
+  }
+
+  protected async build(stage: MinigameStage, _logic: HoneyLogic, ctx: Sdk.MinigameContext) {
     createCamera(stage, 'schraeg', ARENA);
     await buildArena(stage, ARENA, { ort: 'garten' });
-    const hive = stage.prop('bienenstock', {
-      role: 'bienenstock',
-      key: 0,
-      fallback: (root) => void build(stage, root, 'bienenstock', 0),
-    });
+    const hive = (this.hive = prop(stage, 'bienenstock', 0));
     // Flugloch (vorn = +Z im Modell) zur Kamera.
-    hive.root.rotation.y = Math.PI;
-    hive.root.scaling.setAll(SCALE.hive);
-    this.hive = hive.root;
-    this.yard = build(stage, stage.node('hof'), 'hof', 0).meshes[0] ?? null;
+    hive.rotation.y = Math.PI;
+    hive.scaling.setAll(SCALE.hive);
+    const yard = stage.node('hof');
+    buildParts(stage, yard, PARTS.hof, 'hof', 0);
+    this.yard = yard.getChildMeshes<Mesh>()[0] ?? null;
     for (let n = 0; n < 3; n++) this.ambient.push(bee(stage, 90 + n, SCALE.bee));
     for (const [index, player] of ctx.players.entries()) {
       this.stations.set(player.slot, await this.createStation(stage, player, index));
     }
-    this.sync(0);
   }
 
-  start(): void {
-    this.running = true;
-    this.ctx?.fx.sound('go');
+  protected input(slot: Slot, input: MinigameInput, logic: HoneyLogic) {
+    if (input.type !== 'press') return;
+    if (input.button === 'b') return void logic.secure(slot);
+    return logic.tap(slot);
   }
 
-  createBot: NonNullable<Sdk.Minigame['createBot']> = (options) =>
-    createHoneyBot(options, () => (this.running ? this.logic : null));
-
-  handleInput(slot: Slot, input: MinigameInput): void {
-    if (!this.running || !this.logic || input.type !== 'press') return;
-    if (input.button === 'b') return void this.logic.secure(slot);
-    const event = this.logic.tap(slot);
-    if (event) this.onEvent(event);
+  protected scores(logic: HoneyLogic) {
+    return logic.bank.scores();
   }
 
-  update(dt: number): void {
-    if (!this.logic) return;
-    if (this.running) for (const event of this.logic.step(dt)) this.onEvent(event);
-    if (this.running && this.logic.finished) this.finish();
-    this.sync(dt);
+  protected override status(slot: Slot, logic: HoneyLogic) {
+    const state = logic.keeper(slot)?.state;
+    if (state === 'stunned') return 'gestochen!';
+    if (state === 'secure') return 'sichert …';
+    const pot = logic.bank.pot(slot);
+    return pot > 0 ? `Topf ${pot} g` : undefined;
   }
 
-  getResult(): MinigameResult | null {
-    return this.result;
+  protected override banner(logic: HoneyLogic) {
+    return logic.clock.finale ? 'Die Bienen toben!' : undefined;
   }
 
-  getHud(): Sdk.MinigameHud {
-    const logic = this.logic;
-    if (!logic) return { remainingMs: INFO.durationMs, scores: [] };
-    const status = (slot: Slot) => {
-      const state = logic.keeper(slot)?.state;
-      if (state === 'stunned') return 'gestochen!';
-      if (state === 'secure') return 'sichert …';
-      const pot = logic.bank.pot(slot);
-      return pot > 0 ? `Topf ${pot} g` : undefined;
-    };
-    const scores = logic.bank.scores();
-    return {
-      remainingMs: logic.clock.remainingMs,
-      scores: scores.map((entry) => {
-        const text = status(entry.slot);
-        return text ? { ...entry, status: text } : entry;
-      }),
-      ...(logic.clock.finale && !this.result ? { banner: 'Die Bienen toben!' } : {}),
-    };
-  }
-
-  dispose(): void {
-    this.running = false;
-    for (const station of this.stations.values()) station.figure.dispose();
-    this.stations.clear();
-    this.stage?.dispose();
-    this.stage = null;
-  }
-
-  private onEvent(event: HoneyEvent): void {
-    const fx = this.ctx?.fx;
-    if (!fx) return;
+  protected onEvent(event: HoneyEvent, fx: Sdk.MinigameFx): void {
     if (event.type === 'finale' || event.type === 'launch') {
       fx.sound(event.type === 'finale' ? 'buzz' : 'whoosh', { volume: 0.7, pitch: 1.3 });
       return;
@@ -284,23 +193,7 @@ class BienenstockHonig implements Sdk.Minigame {
     }
   }
 
-  private finish(): void {
-    const { ctx, logic } = this;
-    if (!ctx || !logic || this.result) return;
-    this.running = false;
-    const placements = rankByScore(logic.bank.scores(), INFO.scoring);
-    celebrateFigures(
-      placements,
-      [...this.stations.values()].map((s) => s.figure),
-    );
-    ctx.fx.sound('win');
-    const highlights = logic.highlights(new Map(ctx.players.map((p) => [p.slot, p.name])));
-    this.result = { minigameId: INFO.id, placements, ...(highlights.length ? { highlights } : {}) };
-  }
-
-  private sync(dt: number): void {
-    const { logic, stage } = this;
-    if (!logic || !stage) return;
+  protected sync(dt: number, logic: HoneyLogic, stage: MinigameStage): void {
     const now = logic.clock.time;
     const anger = level(logic.hive ** 2, 4);
     if (this.yard)
@@ -335,7 +228,7 @@ class BienenstockHonig implements Sdk.Minigame {
       }
       const state = keeper.state;
       const figure = { stunned: state === 'stunned', dashing: state === 'secure', moving: false };
-      station.figure.show(figure, dt, this.result !== null);
+      station.figure.show(figure, dt, this.over);
     }
   }
 
@@ -349,31 +242,25 @@ class BienenstockHonig implements Sdk.Minigame {
     const [dx, dz] = [Math.cos(angle), Math.sin(angle)];
     const pot = { x: dx * 2.1, z: dz * 2.1 };
     const jar = { x: dx * 3.3 + Math.sign(dx) * 1.0, z: dz * 3.3 };
-    const honeyPot = stage.prop('honigtopf', {
-      role: 'honigtopf',
-      key: slot,
-      akzent: player.color,
-      fallback: (root) => ({ akzent: build(stage, root, 'honigtopf', slot, player.color).slotted }),
-    });
-    honeyPot.root.position.set(pot.x, 0, pot.z);
-    honeyPot.root.rotation.y = Math.PI;
-    honeyPot.root.scaling.setAll(SCALE.pot);
+    const honeyPot = prop(stage, 'honigtopf', slot, player.color);
+    honeyPot.position.set(pot.x, 0, pot.z);
+    honeyPot.rotation.y = Math.PI;
+    honeyPot.scaling.setAll(SCALE.pot);
     const coaster = stage.node('untersetzer');
     coaster.position.set(pot.x, 0, pot.z);
     coaster.scaling.setAll(SCALE.pot);
-    build(stage, coaster, 'untersetzer', slot, player.color);
+    buildParts(stage, coaster, PARTS.untersetzer, 'untersetzer', slot, player.color);
     // Honighaube auf dem Deckel (Grundkörper, wächst mit dem Topf-Honig; das Glas des Modells
     // ist selbst honigfarben, eine Füllung darin wäre nicht zu lesen).
-    const honey = part(stage, 'honig', slot, pot.x, pot.z);
-    honey.position.y = POT_TOP * SCALE.pot;
-    honey.scaling.setAll(SCALE.pot);
-    part(stage, 'vorratsglas', slot, jar.x, jar.z, player.color);
-    const stock = part(stage, 'vorrat', slot, jar.x, jar.z);
+    const honey = part(stage, 'honig', slot, { ...pot, y: POT_TOP * SCALE.pot, scale: SCALE.pot });
+    part(stage, 'vorratsglas', slot, { ...jar, slotColor: player.color });
+    const stock = part(stage, 'vorrat', slot, jar);
     await stage.pace();
     const swarm = Array.from({ length: SWARM }, (_, n) => bee(stage, slot * 10 + n, SCALE.bee));
     const attacker = bee(stage, slot * 10 + SWARM, SCALE.attacker);
     const figure = await SlotFigure.create(stage, player, { badgeHeight: 2.3 });
     figure.place(dx * 3.3, dz * 3.3, Math.atan2(-dx, -dz));
+    this.figures.set(slot, figure);
     return { pot, honey, stock, swarm, attacker, figure };
   }
 }

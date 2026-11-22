@@ -58,6 +58,8 @@ KI-Stärke: Siegquote zweier „schwer“ gegen zwei „leicht“ (40 Seeds, Toa
 
 Zum Vergleich die Bestandsspiele ohne Baukasten: Sockenregen ≈ 1 430, Krümel-Kehraus ≈ 1 880 Zeilen.
 
+**Nachtrag 2026-11-22 (CHAOS-240):** Mit Ablauf-Rahmen `KitMinigame`, Requisiten-Teilen `buildProp`/`fallbackParts` und Bot-Anschluss `kitBotAdapter` liegen zwei Spiele unter dem Ziel, bei gleichem Verhalten: Toaster-Timing 443, Schnapp den Käse 447 Zeilen (nach den Katalog-Requisiten aus CHAOS-237, vorher 535 und 527). Bienenstock-Honig sinkt von 693 auf 559 (ADR-021 Nachtrag 3). Eiswürfel-Sumo liegt mit CHAOS-241 bei 500, die übrigen vier folgen mit den restlichen Bausteinen (CHAOS-245).
+
 - **Tests ≤ 300:** erfüllt (Mittel 118).
 - **Spielcode ≤ 500:** verfehlt (Mittel 607). Größter Posten ist die Szene (Mittel 264 Zeilen): Jedes Spiel schreibt denselben Rahmen (prepare/start/createBot/update/getHud/finish/dispose, ≈ 50–90 Zeilen) und baut seine Requisiten aus Grundkörpern, die Prettier je Mesh auf fünf Zeilen bricht. Havok-Spiele bauen Figuren-Physik und Harness jeweils neu (≈ 150 Zeilen). Folgeaufgabe: Baukasten-Rahmen und Requisiten-Helfer (unten).
 - **Zeit je Spiel:** etwa 1,5 h (Spanne 0,75–2,5 h) von der Skizze bis „besteht alle Prüfungen, Bild angesehen“. Am längsten dauerte das Einstellen der Regeln, bis Können messbar zählt (Matschmaler, Drei Türen).

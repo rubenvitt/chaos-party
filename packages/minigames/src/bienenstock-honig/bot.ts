@@ -7,19 +7,12 @@
  */
 import {
   BotSenses,
-  kitBotDriver,
-  profileForStrength,
+  kitBotAdapter,
   type BotAction,
-  type BotMatchAdapter,
   type BotProfile,
   type MinigameBot,
 } from '@chaos-party/minigame-kit';
-import type {
-  MinigameBotDriver,
-  MinigameBotOptions,
-  MinigameRng,
-  Slot,
-} from '@chaos-party/minigame-sdk';
+import type { MinigameRng, Slot } from '@chaos-party/minigame-sdk';
 import { HONEY_RULES, HoneyLogic } from './logic.ts';
 
 export type HoneyStyle = 'normal' | 'gierig' | 'aengstlich';
@@ -74,25 +67,11 @@ export class HoneyBot implements MinigameBot<HoneyLogic> {
 }
 
 /** Bienenstock-Honig für `runBotMatch` und die Fairness-Prüfung (`kitHarness`). */
-export const HONEY_BOT_ADAPTER: BotMatchAdapter<HoneyLogic> = {
-  create: (slots, rng, durationMs) => new HoneyLogic(slots, rng, durationMs),
-  bot: (slot, profile, rng) => new HoneyBot(slot, profile, rng),
+export const HONEY_BOT_ADAPTER = kitBotAdapter(HoneyLogic, HoneyBot, {
   // B vor A: Wer im selben Moment sichert, zapft nicht mehr.
   apply: (game, slot, action) => {
     if (action.press?.includes('b')) game.secure(slot);
     if (action.press?.includes('a')) game.tap(slot);
   },
-  step: (game, dt) => void game.step(dt),
-  finished: (game) => game.finished,
   scores: (game) => game.bank.scores().map((entry) => entry.score),
-  elapsedMs: (game) => game.clock.time * 1000,
-};
-
-/** Laufzeit-Bot für einen KI-Platz (`Minigame.createBot`). */
-export function createHoneyBot(
-  options: MinigameBotOptions,
-  observe: () => HoneyLogic | null,
-): MinigameBotDriver {
-  const bot = new HoneyBot(options.slot, profileForStrength(options.strength), options.rng);
-  return kitBotDriver(bot, observe);
-}
+});

@@ -4,21 +4,23 @@
  * die Figur. Der Toast (Requisit `toast`) färbt sich mit der Bräunung, springt beim Drücken hoch;
  * Verkohltes qualmt. Logik in `logic.ts`.
  */
-import { CreateBox } from '@babylonjs/core/Meshes/Builders/boxBuilder.js';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
 import { arenaLayout, type Zone } from '@chaos-party/minigame-kit';
 import {
-  MinigameStage,
+  KitMinigame,
+  SLOT_COLOR,
   SlotFigure,
-  type StageProp,
   buildArena,
-  celebrateFigures,
   createCamera,
+  fallbackParts,
   mix,
+  type MinigameStage,
+  type PropPart,
+  type StageProp,
 } from '@chaos-party/minigame-kit/babylon';
-import type { MinigameInput, MinigameResult, Slot } from '@chaos-party/minigame-sdk';
+import type { MinigameInput, Slot } from '@chaos-party/minigame-sdk';
 import type * as Sdk from '@chaos-party/minigame-sdk/babylon';
-import { createToasterBot } from './bot.ts';
+import { ToasterBot } from './bot.ts';
 import { TOASTER_TIMING_INFO as INFO } from './info.ts';
 import { TOASTER_RULES, ToasterLogic, type ToastResult, type ToasterEvent } from './logic.ts';
 
@@ -37,6 +39,15 @@ const POP_S = 0.55;
 const SCALE = 1.75;
 /** Unterkante des Toasts im Schlitz (Welt); der Toaster ist ≈ 1,1 m hoch. */
 const TOAST_Y = 0.5;
+/** Grundkörper in Modell-Maßen (Rückfall ohne Requisiten-Modell). */
+const TOASTER: readonly PropPart[] = [
+  ['box', [0.86, 0.57, 0.46], SLOT_COLOR, [0, 0.285, 0]],
+  ['box', [0.8, 0.05, 0.4], '#c9ced6', [0, 0.6, 0], { finish: 'metall' }],
+  ['box', [0.07, 0.17, 0.11], '#3b3b44', [0.47, 0.34, 0]],
+];
+const TOAST: readonly PropPart[] = [
+  ['box', [0.38, 0.44, 0.1], BREAD.raw, [0, 0.22, 0], { finish: 'matt', tint: 'zustand' }],
+];
 
 interface Station {
   readonly zone: Zone;
@@ -56,22 +67,14 @@ function breadColor(browning: number): string {
     : mix(BREAD.golden, BREAD.coal, (level - golden) / (1 - golden));
 }
 
-class ToasterTiming implements Sdk.Minigame {
-  private ctx: Sdk.MinigameContext | null = null;
-  private stage: MinigameStage | null = null;
-  private logic: ToasterLogic | null = null;
-  private result: MinigameResult | null = null;
-  private running = false;
+class ToasterTiming extends KitMinigame<ToasterLogic, ToasterEvent> {
   private readonly stations = new Map<Slot, Station>();
 
-  async prepare(ctx: Sdk.MinigameContext): Promise<void> {
-    this.ctx = ctx;
-    this.logic = new ToasterLogic(
-      ctx.players.map((player) => player.slot),
-      ctx.rng,
-      ctx.timeLimitMs,
-    );
-    const stage = (this.stage = new MinigameStage(ctx, 'toaster'));
+  constructor() {
+    super(INFO, 'toaster', ToasterLogic, ToasterBot);
+  }
+
+  protected async build(stage: MinigameStage, _logic: ToasterLogic, ctx: Sdk.MinigameContext) {
     createCamera(stage, 'fest', ARENA, {
       position: { x: 0, y: 10.5, z: -7.6 },
       target: { x: 0, y: 0.6, z: 0.5 },
@@ -79,64 +82,29 @@ class ToasterTiming implements Sdk.Minigame {
     await buildArena(stage, ARENA, { ort: 'kueche', players: ctx.players, kulisse: true });
     for (const [index, player] of ctx.players.entries()) {
       const zone = ARENA.zones[index];
-      if (!zone) continue;
-      this.stations.set(player.slot, await this.createStation(stage, player, zone));
+      if (zone) this.stations.set(player.slot, await this.createStation(stage, player, zone));
     }
-    this.sync(0);
   }
 
-  start(): void {
-    this.running = true;
-    this.ctx?.fx.sound('go');
+  protected input(slot: Slot, input: MinigameInput, logic: ToasterLogic) {
+    return input.type === 'press' && input.button === 'a' ? logic.pop(slot) : null;
   }
 
-  createBot: NonNullable<Sdk.Minigame['createBot']> = (options) =>
-    createToasterBot(options, () => (this.running ? this.logic : null));
-
-  handleInput(slot: Slot, input: MinigameInput): void {
-    if (!this.running || !this.logic) return;
-    if (input.type !== 'press' || input.button !== 'a') return;
-    const event = this.logic.pop(slot);
-    if (event) this.onEvent(event);
+  protected scores(logic: ToasterLogic) {
+    return logic.board.entries();
   }
 
-  update(dt: number): void {
-    if (!this.logic) return;
-    if (this.running) for (const event of this.logic.step(dt)) this.onEvent(event);
-    if (this.running && this.logic.finished) this.finish();
-    this.sync(dt);
+  protected override status(slot: Slot, logic: ToasterLogic) {
+    const last = logic.toaster(slot)?.last;
+    return last ? STATUS[last.result] : undefined;
   }
 
-  getResult(): MinigameResult | null {
-    return this.result;
+  protected override banner(logic: ToasterLogic) {
+    return logic.clock.finale ? 'Turbo-Toaster!' : undefined;
   }
 
-  getHud(): Sdk.MinigameHud {
-    const logic = this.logic;
-    if (!logic) return { remainingMs: INFO.durationMs, scores: [] };
-    const status = (slot: Slot) => {
-      const last = logic.toaster(slot)?.last;
-      return last ? STATUS[last.result] : undefined;
-    };
-    return {
-      remainingMs: logic.clock.remainingMs,
-      scores: logic.board.hud(status),
-      ...(logic.clock.finale && !this.result ? { banner: 'Turbo-Toaster!' } : {}),
-    };
-  }
-
-  dispose(): void {
-    this.running = false;
-    for (const station of this.stations.values()) station.figure.dispose();
-    this.stations.clear();
-    this.stage?.dispose();
-    this.stage = null;
-  }
-
-  private onEvent(event: ToasterEvent): void {
-    const fx = this.ctx?.fx;
-    const now = this.logic?.clock.time ?? 0;
-    if (!fx) return;
+  protected onEvent(event: ToasterEvent, fx: Sdk.MinigameFx, logic: ToasterLogic): void {
+    const now = logic.clock.time;
     if (event.type === 'finale') {
       fx.sound('buzz');
       return;
@@ -158,23 +126,7 @@ class ToasterTiming implements Sdk.Minigame {
     }
   }
 
-  private finish(): void {
-    const { ctx, logic } = this;
-    if (!ctx || !logic || this.result) return;
-    this.running = false;
-    const placements = logic.board.placements();
-    celebrateFigures(
-      placements,
-      [...this.stations.values()].map((station) => station.figure),
-    );
-    ctx.fx.sound('win');
-    const highlights = logic.highlights(new Map(ctx.players.map((p) => [p.slot, p.name])));
-    this.result = { minigameId: INFO.id, placements, ...(highlights.length ? { highlights } : {}) };
-  }
-
-  private sync(dt: number): void {
-    const { logic, stage } = this;
-    if (!logic || !stage) return;
+  protected sync(dt: number, logic: ToasterLogic): void {
     const now = logic.clock.time;
     for (const toaster of logic.toasters) {
       const station = this.stations.get(toaster.slot);
@@ -189,11 +141,8 @@ class ToasterTiming implements Sdk.Minigame {
       const nervous = toaster.loaded && toaster.browning > TOASTER_RULES.golden + 0.1;
       station.toaster.rotation.z = nervous ? Math.sin(now * 40) * 0.04 : 0;
       const stunned = now - station.burntAt < TOASTER_RULES.burntReloadS;
-      station.figure.show(
-        { stunned, dashing: popped !== null && popped < POP_S, moving: false },
-        dt,
-        this.result !== null,
-      );
+      const dashing = popped !== null && popped < POP_S;
+      station.figure.show({ stunned, dashing, moving: false }, dt, this.over);
     }
   }
 
@@ -202,27 +151,12 @@ class ToasterTiming implements Sdk.Minigame {
     player: Sdk.MinigamePlayer,
     zone: Zone,
   ): Promise<Station> {
-    const { scene } = stage;
-    const box = (name: string, size: readonly [number, number, number], parent: TransformNode) => {
-      const [width, height, depth] = size;
-      const mesh = CreateBox(stage.name(name, player.slot), { width, height, depth }, scene);
-      mesh.parent = parent;
-      return mesh;
-    };
-    // Grundkörper in Modell-Maßen (Rückfall ohne Requisiten-Modell).
+    const key = player.slot;
     const toaster = stage.prop('toaster', {
       role: 'toaster',
-      key: player.slot,
+      key,
       akzent: player.color,
-      fallback: (root) => {
-        const body = stage.add(box('gehaeuse', [0.86, 0.57, 0.46], root), player.color);
-        body.position.y = 0.285;
-        const top = box('deckel', [0.8, 0.05, 0.4], root);
-        stage.add(top, '#c9ced6', { finish: 'metall' }).position.y = 0.6;
-        const lever = stage.add(box('hebel', [0.07, 0.17, 0.11], root), '#3b3b44');
-        lever.position.set(0.47, 0.34, 0);
-        return { akzent: [body] };
-      },
+      fallback: fallbackParts(stage, 'toaster', TOASTER, key, player.color),
     });
     toaster.root.position.set(zone.x, 0, zone.z - 0.3);
     // Vorderseite (+Z im Modell) zur Kamera.
@@ -231,14 +165,8 @@ class ToasterTiming implements Sdk.Minigame {
     await stage.pace();
     const toast = stage.prop('toast', {
       role: 'toast',
-      key: player.slot,
-      fallback: (root) => {
-        const bread = stage.add(box('brot', [0.38, 0.44, 0.1], root), BREAD.raw, {
-          finish: 'matt',
-        });
-        bread.position.y = 0.22;
-        return { zustand: [bread] };
-      },
+      key,
+      fallback: fallbackParts(stage, 'toast', TOAST, key),
     });
     toast.tint('zustand', BREAD.raw, { finish: 'matt' });
     toast.root.position.set(zone.x, TOAST_Y, zone.z - 0.3);
@@ -247,6 +175,7 @@ class ToasterTiming implements Sdk.Minigame {
     toast.root.setEnabled(false);
     const figure = await SlotFigure.create(stage, player, { badgeHeight: 2.2 });
     figure.place(zone.x, zone.z + 0.8, Math.PI);
+    this.figures.set(key, figure);
     return { zone, toaster: toaster.root, toast, figure, poppedAt: null, burntAt: -10 };
   }
 }

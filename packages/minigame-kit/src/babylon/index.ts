@@ -10,3 +10,5 @@ export * from './figures.ts';
 export * from './pawn.ts';
 export * from './pool.ts';
 export * from './stage.ts';
+export * from './minigame.ts';
+export * from './props.ts';

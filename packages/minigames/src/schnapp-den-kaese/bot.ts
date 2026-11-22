@@ -5,19 +5,12 @@
 import {
   BotSenses,
   gaussian,
-  kitBotDriver,
-  profileForStrength,
+  kitBotAdapter,
   type BotAction,
-  type BotMatchAdapter,
   type BotProfile,
   type MinigameBot,
 } from '@chaos-party/minigame-kit';
-import type {
-  MinigameBotDriver,
-  MinigameBotOptions,
-  MinigameRng,
-  Slot,
-} from '@chaos-party/minigame-sdk';
+import type { MinigameRng, Slot } from '@chaos-party/minigame-sdk';
 import { KAESE_RULES, KaeseLogic } from './logic.ts';
 
 /** Wartezeiten nach dem Hinlegen (s): gutes Urteil, gierig, ängstlich. */
@@ -72,17 +65,12 @@ export class KaeseBot implements MinigameBot<KaeseLogic> {
 }
 
 /** Schnapp den Käse für `runBotMatch` und die Fairness-Prüfung (`kitHarness`). */
-export const KAESE_BOT_ADAPTER: BotMatchAdapter<KaeseLogic> = {
-  create: (slots, rng, durationMs) => new KaeseLogic(slots, rng, durationMs),
-  bot: (slot, profile, rng) => new KaeseBot(slot, profile, rng),
+export const KAESE_BOT_ADAPTER = kitBotAdapter(KaeseLogic, KaeseBot, {
   apply: (game, slot, action) => {
     if (action.press?.includes('a')) game.grab(slot);
   },
-  step: (game, dt) => void game.step(dt),
-  finished: (game) => game.finished,
   scores: (game) => game.board.entries().map((entry) => entry.score),
-  elapsedMs: (game) => game.clock.time * 1000,
-};
+});
 
 /** Störer (`kitHarness`): „Signal → drücken“ wie im Reaktionsspiel (wartet nie von selbst). */
 export const KAESE_INTRUDERS = [
@@ -93,12 +81,3 @@ export const KAESE_INTRUDERS = [
   bot: (slot: Slot, rng: MinigameRng, normal: MinigameBot<KaeseLogic>) =>
     new KaeseBot(slot, { ...normal.profile, ...change }, rng),
 }));
-
-/** Laufzeit-Bot für einen KI-Platz (`Minigame.createBot`). */
-export function createKaeseBot(
-  options: MinigameBotOptions,
-  observe: () => KaeseLogic | null,
-): MinigameBotDriver {
-  const bot = new KaeseBot(options.slot, profileForStrength(options.strength), options.rng);
-  return kitBotDriver(bot, observe);
-}

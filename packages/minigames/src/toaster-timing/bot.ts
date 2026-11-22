@@ -8,19 +8,12 @@
 import {
   BotSenses,
   gaussian,
-  kitBotDriver,
-  profileForStrength,
+  kitBotAdapter,
   type BotAction,
-  type BotMatchAdapter,
   type BotProfile,
   type MinigameBot,
 } from '@chaos-party/minigame-kit';
-import type {
-  MinigameBotDriver,
-  MinigameBotOptions,
-  MinigameRng,
-  Slot,
-} from '@chaos-party/minigame-sdk';
+import type { MinigameRng, Slot } from '@chaos-party/minigame-sdk';
 import { TOASTER_RULES, ToasterLogic } from './logic.ts';
 
 /** Was der Bot für den aktuellen Toast vorhat: bei dieser Bräunung drücken, `null` = gar nicht. */
@@ -68,23 +61,9 @@ export class ToasterBot implements MinigameBot<ToasterLogic> {
 }
 
 /** Toaster-Timing für `runBotMatch` und die Fairness-Prüfung (`kitHarness`). */
-export const TOASTER_BOT_ADAPTER: BotMatchAdapter<ToasterLogic> = {
-  create: (slots, rng, durationMs) => new ToasterLogic(slots, rng, durationMs),
-  bot: (slot, profile, rng) => new ToasterBot(slot, profile, rng),
+export const TOASTER_BOT_ADAPTER = kitBotAdapter(ToasterLogic, ToasterBot, {
   apply: (game, slot, action) => {
     if (action.press?.includes('a')) game.pop(slot);
   },
-  step: (game, dt) => void game.step(dt),
-  finished: (game) => game.finished,
   scores: (game) => game.board.entries().map((entry) => entry.score),
-  elapsedMs: (game) => game.clock.time * 1000,
-};
-
-/** Laufzeit-Bot für einen KI-Platz (`Minigame.createBot`). */
-export function createToasterBot(
-  options: MinigameBotOptions,
-  observe: () => ToasterLogic | null,
-): MinigameBotDriver {
-  const bot = new ToasterBot(options.slot, profileForStrength(options.strength), options.rng);
-  return kitBotDriver(bot, observe);
-}
+});
