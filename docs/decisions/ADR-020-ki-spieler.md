@@ -211,3 +211,10 @@ Umsetzungsentscheidungen von Claude im Rahmen von §4 und §8:
 - **Zusammenspiel mit Aufholhilfe (EXP-022) und Rückenwind (CHAOS-125):** Beide helfen nur dem, der hinten liegt, nach festen Regeln für alle Plätze; die dynamische Stärke ändert nur, wie gut die KI entscheidet. Liegt die KI hinten, bekommt sie Rückenwind und wird stärker. Liegen Menschen hinten, schließt Rückenwind die Münzlücke, bevor sie gemessen wird, und die KI wird dann weniger schwächer. Doppelt wirkt also nichts in dieselbe Richtung gegen einen Menschen. Ob die Summe beim Aufholen zu viel wird, misst CHAOS-183 mit der Siegquoten-Spanne (Akzeptanzkriterium von CHAOS-187). Dafür braucht die Simulation eine Stärke je Platz (`simulate.ts` hat bisher eine Politik für alle).
 - **Anzeige:** Die Lobby zeigt weiter „Dynamisch“; den aktuellen Wert `s` zeigt kein Bildschirm (sonst lädt er zum Taktieren ein).
 
+## Nachtrag 6 (2026-11-22, CHAOS-243): Stärke-Test bei geheimer Wahl
+
+Ruben hat am 22.11.2026 eine Ausnahme für den KI-Stärke-Test (`packages/minigames/src/checks/botStrength.test.ts`) angenommen:
+
+- **Spiele mit `info.secretChoice`** messen **einen** stärkeren gegen drei leichte Plätze (Aufstellung `allein`, Sitz wechselt je Seed, 64 Seeds). Schwellen: schwer ≥ 0,375 Siege (1,5 × fairer Anteil 0,25), mittel > 0,25, jeweils mehr Punkte als leicht.
+- **Grund:** In Anti-Koordinations-Spielen (nur wer allein steht, punktet) stehen zwei gleich kluge Spieler ohne Absprache spieltheoretisch in ≥ 50 % der Runden an derselben Stelle. Das Duell 2 gegen 2 misst dort vor allem diese Kollision; selbst ein Orakel-Bot, der die Wahl der anderen kennt, gewinnt nur 0,81. Mehr Runden, Gedränge-Strafe, ohne Doppelrunde und ein Gleichgewichts-Bot mit Rang-Stil hoben Drei Türen nicht über 0,64 (EXP-043).
+- Alle anderen Spiele bleiben beim Duell 2 gegen 2 (schwer ≥ 0,65, mittel > 0,5).

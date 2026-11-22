@@ -421,6 +421,8 @@ export async function runBotMatch(options: BotMatchOptions): Promise<BotMatchRes
   let totalRounds = 0;
   let firstResults = false;
   const resultAfterPlayMs: number[] = [];
+  /** Gebaute Minispiele je Partie (game-core mischt den Beutel je Partie neu, CHAOS-243). */
+  const builtByMatch = new Map<number, string[]>();
   let playSeenAt: number | null = null;
   let logScanned = 0;
   const exercise = options.full && options.exercise === true;
@@ -504,6 +506,12 @@ export async function runBotMatch(options: BotMatchOptions): Promise<BotMatchRes
       const line = logLines[logScanned] ?? '';
       if (playSeenAt !== null && line.includes('angenommen')) {
         resultAfterPlayMs.push(Math.round(now - playSeenAt));
+      }
+      const built = /^Minispiel (\S+) \(Runde/.exec(line)?.[1];
+      if (built !== undefined) {
+        const list = builtByMatch.get(matchesPlayed + 1) ?? [];
+        list.push(built);
+        builtByMatch.set(matchesPlayed + 1, list);
       }
       const rapid = /^Minispiel schnellfeuer \(Runde (\d+)/.exec(line);
       if (rapid) rapidFireRounds.push({ match: matchesPlayed + 1, round: Number(rapid[1]) });
@@ -818,12 +826,15 @@ export async function runBotMatch(options: BotMatchOptions): Promise<BotMatchRes
       .filter((id): id is string => id !== undefined);
     const resultsAccepted = logLines.filter((line) => line.includes('angenommen')).length;
     const rotation = [...(minigames ?? internals.rotation)];
-    // Ziehen ohne Wiederholung (CHAOS-85): So viele verschiedene Spiele der Rotation, wie Runden
-    // dafür gespielt wurden, höchstens alle. Seit der Pilotwelle (CHAOS-91, zwölf Spiele) passt die
-    // ganze Rotation nicht mehr in eine Partie mit 10 Runden; `--matches 3` deckt sie weiter ab.
-    const builtRotation = minigamesBuilt.filter((id) => rotation.includes(id));
-    const allRotation =
-      new Set(builtRotation).size === Math.min(rotation.length, builtRotation.length);
+    // Ziehen ohne Wiederholung (CHAOS-85) gilt je Partie: game-core startet jede Partie mit
+    // frischem Beutel (`machine.ts`), über Partiegrenzen darf sich ein Spiel wiederholen. Je
+    // Partie also so viele verschiedene Spiele der Rotation, wie Runden dafür gespielt wurden,
+    // höchstens alle. Seit der Pilotwelle (CHAOS-91/243, 13 Spiele) passt die ganze Rotation nicht
+    // mehr in eine Partie mit 10 Runden.
+    const allRotation = [...builtByMatch.values()].every((list) => {
+      const builtRotation = list.filter((id) => rotation.includes(id));
+      return new Set(builtRotation).size === Math.min(rotation.length, builtRotation.length);
+    });
     const ok =
       exceptions.length === 0 &&
       problems.length === 0 &&

@@ -29,6 +29,8 @@ import { EiswuerfelSumo } from '../eiswuerfel-sumo/index.ts';
 import { EISWUERFEL_SUMO_INFO } from '../eiswuerfel-sumo/info.ts';
 import { HoneyBot, HONEY_BOT_ADAPTER } from '../bienenstock-honig/bot.ts';
 import { BIENENSTOCK_HONIG_INFO } from '../bienenstock-honig/info.ts';
+import { DoorBot, DOOR_BOT_ADAPTER } from '../drei-tueren/bot.ts';
+import { DREI_TUEREN_INFO } from '../drei-tueren/info.ts';
 import { KUCKUCKS_KLATSCHE_INFO } from '../kuckucks-klatsche/info.ts';
 import { PUDDING_GERANGEL_INFO } from '../pudding-gerangel/info.ts';
 import { SOCKENREGEN_INFO } from '../sockenregen/info.ts';
@@ -284,6 +286,28 @@ export const FAIRNESS_HARNESSES: Readonly<Record<string, FairnessHarness>> = {
         id: 'angsthase',
         label: 'Angsthase (sichert jeden Zapfer)',
         bot: (slot, rng, normal) => new HoneyBot(slot, normal.profile, rng, 'aengstlich'),
+      },
+    ],
+  }),
+  [DREI_TUEREN_INFO.id]: kitHarness({
+    info: DREI_TUEREN_INFO,
+    adapter: DOOR_BOT_ADAPTER,
+    intruders: [
+      dauerDruecker(['a'], 'Dauerdrücken (A sofort)'),
+      {
+        id: 'zufall',
+        label: 'Zufall (würfelt die Tür)',
+        bot: (slot, rng, normal) => DoorBot.habitual(slot, normal.profile, rng, 'bunt'),
+      },
+      {
+        id: 'gierhals',
+        label: 'Gierhals (immer höchste Tür)',
+        bot: (slot, rng, normal) => DoorBot.habitual(slot, normal.profile, rng, 'gierig'),
+      },
+      {
+        id: 'stur',
+        label: 'Stur (immer dieselbe Tür)',
+        bot: (slot, rng, normal) => DoorBot.habitual(slot, normal.profile, rng, 'treu'),
       },
     ],
   }),
