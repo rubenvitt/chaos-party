@@ -3059,7 +3059,24 @@ Diagnose (DoorLogic, 200 Seeds): Im Ausgang stehen die beiden starken Bots in **
 - Sabotage-Quote Saboteur ist 1,3–1,5× die des Sammlers (mittel 1,27×). Fuchs und Sammler heben deutlich mehr auf als Draufgänger und Saboteur.
 - Siegquote je Stil 20,8–27,8 % (Standardfehler ≈ 1,25 Prozentpunkte); am weitesten weg liegt der Sammler bei schwer (−4,2 Punkte). Wer Items aufhebt, liegt leicht unter 25 %: Items einzusetzen lohnt sich.
 - Getroffene Fallen unterscheiden sich kaum (0,43–0,55); „Fallen meiden“ greift nur an Gabeln und Fallen sind selten.
-- Minispiele: Die Neigung (`risk`, `mischief`) tauscht Tempo gegen Fehlstarts bzw. erhöht das Rempeln; Messung je Stil gegen neutral folgt im PR-Kommentar.
+- **Minispiele** (`botStyleDuel` in `packages/minigames/src/checks/botStrength.ts`): zwei KI mit Stil gegen zwei neutrale, alle mittel, Sitze wechselnd; Siegquote der Plätze mit Stil (0,5 = neutral). 60 Seeds für Logik-Spiele (Standardfehler ≈ 0,065), 12 für Havok-Spiele (≈ 0,14).
+
+| Minispiel | Saboteur | Sammler | Draufgänger | Fuchs |
+| --- | ---: | ---: | ---: | ---: |
+| Sockenregen | 0,58 | 0,47 | 0,42 | 0,45 |
+| Pudding-Gerangel (12) | 0,33 | 0,42 | 0,25 | 0,46 |
+| Wackelturm (ohne Stil) | 0,53 | 0,53 | 0,53 | 0,53 |
+| Kuckucks-Klatsche | 0,51 | 0,44 | 0,63 | 0,51 |
+| Krümel-Kehraus (12) | 0,46 | 0,54 | 0,67 | 0,38 |
+| Toaster-Timing | 0,45 | 0,52 | 0,38 | 0,47 |
+| Nussregen-Netz | 0,48 | 0,49 | 0,31 | 0,57 |
+| Matschmaler | 0,58 | 0,53 | 0,61 | 0,53 |
+| Rasensprenger-Rodeo | 0,45 | 0,38 | 0,53 | 0,45 |
+| Schnapp-den-Käse | 0,44 | 0,42 | 0,42 | 0,42 |
+| Eiswürfel-Sumo (12) | 0,33 | 0,42 | 0,42 | 0,42 |
+| Bienenstock-Honig | 0,53 | 0,43 | 0,48 | 0,48 |
+
+  Fast alle Werte liegen im Rauschen um 0,5. Auffällig ist nur der Draufgänger in Zeit-Spielen (Nussregen-Netz 0,31, Toaster-Timing 0,38): Mehr Fehlstarts kosten dort mehr, als das Tempo bringt. In Kuckucks-Klatsche und Krümel-Kehraus hilft ihm das Risiko. Die Havok-Werte (12 Seeds) sind zu unsicher für eine Aussage. Nachjustieren je Spiel gehört zu CHAOS-183.
 
 **Entscheidung:** **B behalten.** Grenze vorläufig ± 5 Prozentpunkte um 25 % bei vier gleich starken KI; die endgültige Grenze stellt CHAOS-183 ein. Bot gegen Bot ist eine Näherung, kein Spaß-Beweis.
 
