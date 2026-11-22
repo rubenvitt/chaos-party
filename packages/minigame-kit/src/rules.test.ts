@@ -240,4 +240,18 @@ describe('Arena-Grundrisse', () => {
       { x: 1, z: -4 },
     ]);
   });
+
+  it('eckige Insel: Kante an den Seiten, auch über die Ecke (CHAOS-241)', () => {
+    const block = arenaLayout({ form: 'insel', halfX: 3, halfZ: 2, height: 0 });
+    expect(block.edge).toBe(true);
+    expect(block.surfaceY).toBe(0);
+    expect(block.bounds).toEqual({ kind: 'rect', halfX: 3, halfZ: 2 });
+    expect(block.area).toEqual({ halfX: 4.5, halfZ: 3.5 });
+    expect(offEdge(block, 2.9, 1.9)).toBe(false);
+    expect(offEdge(block, 3.1, 0)).toBe(true);
+    expect(offEdge(block, 0, -2.1)).toBe(true);
+    // Rund wäre (2.9, 1.9) bei Radius 3 schon draußen; eckig zählt die Ecke mit.
+    expect(offEdge(arenaLayout({ form: 'insel', radius: 3 }), 2.9, 1.9)).toBe(true);
+    expect(arenaLayout({ form: 'insel', halfX: 1, halfZ: 1 }).surfaceY).toBe(0.6);
+  });
 });

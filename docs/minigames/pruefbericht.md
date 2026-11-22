@@ -20,7 +20,7 @@ PRUEFBERICHT=1 pnpm exec vitest run packages/minigames/src/checks --silent=false
 | matschmaler | 200 | 10 % | 14 % | 17,0 | 20 % | 45 % | 0,83 (Dauerdrücken (Bauchplatscher, sobald bereit)) | 11,6 |
 | rasensprenger-rodeo | 200 | 2 % | 2 % | 3,6 | 8 % | 52 % | 1,06 (Dauerdrücken (A ist ohne Wirkung)) | 4,9 |
 | schnapp-den-kaese | 200 | 6 % | 15 % | 5,9 | 11 % | 44 % | 0,76 (Greift beim Zucken) | 0,4 |
-| eiswuerfel-sumo | 200 | 3 % | 23 % | 2,0 | 7 % | 30 % | 0,88 (Dauerrempler) | 22,6 |
+| eiswuerfel-sumo | 200 | 3 % | 23 % | 2,1 | 8 % | 28 % | 1,06 (Dauerrempler) | 37,7 |
 | bienenstock-honig | 200 | 2 % | 13 % | 5,7 | 7 % | 51 % | 0,92 (Dauerdrücken (nur zapfen)) | 0,6 |
 
 ## Ergebnis je Spiel
@@ -63,8 +63,8 @@ PRUEFBERICHT=1 pnpm exec vitest run packages/minigames/src/checks --silent=false
 | rasensprenger-rodeo | Randläufer (im Kreis am Rand) | 0,01 |
 | schnapp-den-kaese | Dauerdrücken (greift sofort) | 0,22 |
 | schnapp-den-kaese | Greift beim Zucken | 0,76 |
-| eiswuerfel-sumo | Dauerrempler | 0,88 |
-| eiswuerfel-sumo | Mittelsteher (rempelt nie) | 0,11 |
+| eiswuerfel-sumo | Dauerrempler | 1,06 |
+| eiswuerfel-sumo | Mittelsteher (rempelt nie) | 0,01 |
 | bienenstock-honig | Dauerdrücken (nur zapfen) | 0,92 |
 | bienenstock-honig | Gierhals (sichert spät) | 0,00 |
 | bienenstock-honig | Angsthase (sichert jeden Zapfer) | 0,01 |

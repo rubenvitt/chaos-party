@@ -13,7 +13,6 @@
  */
 import { PAWN_BOT_SKILLS } from '@chaos-party/minigame-kit';
 import { createMinigameRng, type Slot } from '@chaos-party/minigame-sdk';
-import { runMinigameHeadless } from '@chaos-party/minigame-sdk/testing';
 import { KRUEMEL_KEHRAUS_INFO } from '../kruemel-kehraus/info.ts';
 import { TOASTER_BOT_ADAPTER } from '../toaster-timing/bot.ts';
 import { TOASTER_TIMING_INFO } from '../toaster-timing/info.ts';
@@ -26,7 +25,7 @@ import { RASENSPRENGER_RODEO_INFO } from '../rasensprenger-rodeo/info.ts';
 import { KAESE_BOT_ADAPTER, KAESE_INTRUDERS } from '../schnapp-den-kaese/bot.ts';
 import { SCHNAPP_DEN_KAESE_INFO } from '../schnapp-den-kaese/info.ts';
 import { sumoDecision, type SumoStrategy } from '../eiswuerfel-sumo/bot.ts';
-import { EiswuerfelSumo, eiswuerfelSumo } from '../eiswuerfel-sumo/index.ts';
+import { EiswuerfelSumo } from '../eiswuerfel-sumo/index.ts';
 import { EISWUERFEL_SUMO_INFO } from '../eiswuerfel-sumo/info.ts';
 import { HoneyBot, HONEY_BOT_ADAPTER } from '../bienenstock-honig/bot.ts';
 import { BIENENSTOCK_HONIG_INFO } from '../bienenstock-honig/info.ts';
@@ -51,8 +50,9 @@ import {
 } from '../prototypes/hybrid/wackelturm-sim.ts';
 import { KRUEMEL_VARIANTS, simulateKruemel } from '../prototypes/physics/experimentKruemel.ts';
 import type { KruemelStrategy } from '../kruemel-kehraus/bot.ts';
-import { createPuddingGerangelPrototype } from '../prototypes/physics/puddingGerangelView.ts';
-import { SKILLS, type BotDecision, type BotSkill } from '../prototypes/physics/shared.ts';
+import { PuddingGerangel } from '../pudding-gerangel/index.ts';
+import { puddingView } from '../prototypes/physics/puddingGerangelView.ts';
+import { SKILLS, type BotSkill } from '../prototypes/physics/shared.ts';
 import { wackelBot } from '../prototypes/physics/wackel.ts';
 import {
   LeadCounter,
@@ -61,6 +61,7 @@ import {
   type FairnessSeat,
   type FairnessSkill,
 } from './fairness.ts';
+import { havokHarness } from './havokHarness.ts';
 import { dauerDruecker, kitHarness } from './kitHarness.ts';
 
 const ARCADE_PROFILES: Record<FairnessSkill, BotProfile> = {
@@ -162,49 +163,34 @@ export function createWackelturmHarness(
   };
 }
 
-// --- Pudding-Gerangel (EXP-006, echte Umsetzung mit Havok) ---------------------------------
+// --- Havok-Spiele über `havokHarness` (CHAOS-241): echtes Modul, Bots über die sichtbare Lage --
 
-async function playPudding(seats: readonly FairnessSeat[], seed: number): Promise<FairnessMatch> {
-  const proto = createPuddingGerangelPrototype();
-  const rng = createMinigameRng(seed * 7919 + 13);
-  const plans = new Map<Slot, BotDecision>();
-  const lead = new LeadCounter();
-  let step = 0;
-  const run = await runMinigameHeadless(proto.module, {
-    players: seats.length,
-    seed,
-    script: (_elapsed, send, runner) => {
-      const view = proto.peek();
-      if (view) {
-        lead.update(runner.hud().scores.map((entry) => entry.score));
-        for (const me of view.pawns) {
-          if (me.out) continue;
-          const seat = seats[me.slot - 1];
-          const skill = PHYSICS_SKILLS[seat?.skill ?? 'normal'];
-          if ((step + me.slot * 3) % skill.replanSteps === 0 || !plans.has(me.slot)) {
-            const decision = wackelBot(me, view, skill, rng);
-            // Dauerdrücken: rempelt, sobald es geht, in die gewählte Richtung.
-            const dash = decision.dash || (seat?.strategy === DAUER.id && me.canDash);
-            plans.set(me.slot, decision);
-            send(me.slot, { type: 'move', x: decision.x, y: decision.y });
-            if (dash) {
-              send(me.slot, { type: 'press', button: 'a' });
-              send(me.slot, { type: 'release', button: 'a' });
-            }
-          }
-        }
-      }
-      step++;
-    },
-  });
-  const placements = run.outcome?.result.placements;
-  if (!placements) throw new Error('Pudding-Gerangel lieferte kein Ergebnis');
-  const bySlot = new Map(placements.map((p) => [p.slot, p.score]));
-  return {
-    scores: slotsFor(seats.length).map((slot) => bySlot.get(slot) ?? 0),
-    leadChanges: lead.changes,
-  };
-}
+const PUDDING_HARNESS = havokHarness({
+  info: PUDDING_GERANGEL_INFO,
+  create: () => new PuddingGerangel(),
+  view: puddingView,
+  pawns: (view) => view.pawns,
+  // Dauerdrücken: rempelt, sobald es geht, in die gewählte Richtung.
+  decide: (me, view, skill, rng, strategy) => {
+    const decision = wackelBot(me, view, skill, rng);
+    return { ...decision, dash: decision.dash || (strategy === DAUER.id && me.canDash) };
+  },
+  intruders: [{ ...DAUER, label: 'Dauerrempler' }],
+  ciSeeds: 12,
+});
+
+const EISWUERFEL_HARNESS = havokHarness({
+  info: EISWUERFEL_SUMO_INFO,
+  create: () => new EiswuerfelSumo(),
+  view: (game) => game.view(),
+  pawns: (view) => view.pawns,
+  decide: (me, view, skill, rng, strategy) =>
+    sumoDecision(me, view, skill, rng, strategy as SumoStrategy),
+  intruders: [
+    { id: 'dauer', label: 'Dauerrempler' },
+    { id: 'mitte', label: 'Mittelsteher (rempelt nie)' },
+  ] satisfies { id: SumoStrategy; label: string }[],
+});
 
 // --- Krümel-Kehraus (EXP-023, echte Umsetzung mit Havok) -----------------------------------
 
@@ -224,51 +210,6 @@ async function playKruemel(seats: readonly FairnessSeat[], seed: number): Promis
     })),
   );
   return { scores: record.seats.map((seat) => seat.score), leadChanges: record.leadChanges };
-}
-
-// --- Eiswürfel-Sumo (Pilotwelle CHAOS-91, echte Umsetzung mit Havok) ----------------------
-
-/** Wie `playPudding`: echtes Modul headless, Bots über die sichtbare Lage (`view`). */
-async function playEiswuerfel(
-  seats: readonly FairnessSeat[],
-  seed: number,
-): Promise<FairnessMatch> {
-  let game: EiswuerfelSumo | null = null;
-  const module = {
-    ...eiswuerfelSumo,
-    create: () => (game = new EiswuerfelSumo()),
-  };
-  const rng = createMinigameRng(seed * 7919 + 13);
-  const lead = new LeadCounter();
-  let step = 0;
-  const run = await runMinigameHeadless(module, {
-    players: seats.length,
-    seed,
-    script: (_elapsed, send, runner) => {
-      const view = game?.view();
-      lead.update(runner.hud().scores.map((entry) => entry.score));
-      for (const me of view?.pawns ?? []) {
-        const seat = seats[me.slot - 1];
-        const skill = PHYSICS_SKILLS[seat?.skill ?? 'normal'];
-        if (!view || me.out || (step + me.slot * 3) % skill.replanSteps !== 0) continue;
-        const strategy = (seat?.strategy ?? 'normal') as SumoStrategy;
-        const decision = sumoDecision(me, view, skill, rng, strategy);
-        send(me.slot, { type: 'move', x: decision.x, y: decision.y });
-        if (decision.dash) {
-          send(me.slot, { type: 'press', button: 'a' });
-          send(me.slot, { type: 'release', button: 'a' });
-        }
-      }
-      step++;
-    },
-  });
-  const placements = run.outcome?.result.placements;
-  if (!placements) throw new Error('Eiswürfel-Sumo lieferte kein Ergebnis');
-  const bySlot = new Map(placements.map((p) => [p.slot, p.score]));
-  return {
-    scores: slotsFor(seats.length).map((slot) => bySlot.get(slot) ?? 0),
-    leadChanges: lead.changes,
-  };
 }
 
 export const FAIRNESS_HARNESSES: Readonly<Record<string, FairnessHarness>> = {
@@ -292,13 +233,7 @@ export const FAIRNESS_HARNESSES: Readonly<Record<string, FairnessHarness>> = {
   },
   // Keine Ausnahme mehr: Die alte Neuling-/Profi-Abweichung war ein Bot-Artefakt (CHAOS-215, EXP-039).
   [WACKELTURM_INFO.id]: createWackelturmHarness(),
-  [PUDDING_GERANGEL_INFO.id]: {
-    id: PUDDING_GERANGEL_INFO.id,
-    scoring: PUDDING_GERANGEL_INFO.scoring,
-    intruders: [{ ...DAUER, label: 'Dauerrempler' }],
-    ciSeeds: 12,
-    play: playPudding,
-  },
+  [PUDDING_GERANGEL_INFO.id]: PUDDING_HARNESS,
   [KRUEMEL_KEHRAUS_INFO.id]: {
     id: KRUEMEL_KEHRAUS_INFO.id,
     scoring: KRUEMEL_KEHRAUS_INFO.scoring,
@@ -336,16 +271,7 @@ export const FAIRNESS_HARNESSES: Readonly<Record<string, FairnessHarness>> = {
     adapter: KAESE_BOT_ADAPTER,
     intruders: [dauerDruecker(['a'], 'Dauerdrücken (greift sofort)'), ...KAESE_INTRUDERS],
   }),
-  [EISWUERFEL_SUMO_INFO.id]: {
-    id: EISWUERFEL_SUMO_INFO.id,
-    scoring: EISWUERFEL_SUMO_INFO.scoring,
-    intruders: [
-      { id: 'dauer', label: 'Dauerrempler' },
-      { id: 'mitte', label: 'Mittelsteher (rempelt nie)' },
-    ] satisfies { id: SumoStrategy; label: string }[],
-    ciSeeds: 8,
-    play: playEiswuerfel,
-  },
+  [EISWUERFEL_SUMO_INFO.id]: EISWUERFEL_HARNESS,
   [BIENENSTOCK_HONIG_INFO.id]: kitHarness({
     info: BIENENSTOCK_HONIG_INFO,
     adapter: HONEY_BOT_ADAPTER,

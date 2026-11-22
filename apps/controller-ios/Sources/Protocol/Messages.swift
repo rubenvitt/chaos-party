@@ -283,6 +283,15 @@ struct ControllerBoardInfo: Codable, Equatable, Sendable {
     var endedEarly: Bool?
     /// Own tailwind coins after the minigame, only in `round-end` (CHAOS-125); `nil` = none.
     var tailwind: Int?
+    /// Name and seat kind of `activeSlot` (v4 addendum CHAOS-239); `nil` with older servers.
+    var activeSeat: ActiveSeat?
+}
+
+/// `ControllerBoardInfo.activeSeat` (CHAOS-239): who is on turn, for „Schraubi (KI) ist dran“.
+struct ActiveSeat: Codable, Equatable, Sendable {
+    var name: String
+    /// `SEAT_KINDS`: `human` or `ai`; unknown values decode as-is.
+    var kind: String
 }
 
 /// `MinigameControlsSchema`: label per control, `nil` (wire `null`) = not offered.

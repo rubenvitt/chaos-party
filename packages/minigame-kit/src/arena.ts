@@ -19,6 +19,13 @@ export type ArenaSpec =
     }
   /** Erhöhte runde Insel; wer über die Kante gerät, fällt hinunter. */
   | { readonly form: 'insel'; readonly radius: number; readonly height?: number }
+  /** Erhöhte eckige Insel (Eisscholle, Tisch, Kiste) mit Kante ringsum (CHAOS-241). */
+  | {
+      readonly form: 'insel';
+      readonly halfX: number;
+      readonly halfZ: number;
+      readonly height?: number;
+    }
   /** Vier getrennte Felder, je eines pro Slot (iPad-tauglich: jeder spielt bei sich). */
   | { readonly form: 'eigenbereiche'; readonly zoneHalf: number; readonly gap: number };
 
@@ -80,11 +87,16 @@ export function arenaLayout(spec: ArenaSpec): ArenaLayout {
     }
     case 'insel': {
       const height = spec.height ?? 0.6;
-      return {
-        ...layout(spec, { kind: 'circle', radius: spec.radius }, spec.radius, spec.radius),
-        edge: true,
-        surfaceY: height,
-      };
+      const base =
+        'radius' in spec
+          ? layout(spec, { kind: 'circle', radius: spec.radius }, spec.radius, spec.radius)
+          : layout(
+              spec,
+              { kind: 'rect', halfX: spec.halfX, halfZ: spec.halfZ },
+              spec.halfX,
+              spec.halfZ,
+            );
+      return { ...base, edge: true, surfaceY: height };
     }
     case 'eigenbereiche': {
       const offset = spec.zoneHalf + spec.gap / 2;
