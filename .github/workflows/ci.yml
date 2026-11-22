@@ -325,6 +325,18 @@ jobs:
           JSC_useJIT: 'false'
         run: apps/apple-host/harness/run.sh full hz=10
 
+      # Minispiel-Galerie (CHAOS-220): Übungsrunde starten, Ergebnis ohne Münzen, Daumen, zurück in
+      # die Lobby. Der zweite Lauf lädt die Stimmen-Datei des ersten wie nach einem App-Neustart.
+      - name: Apple-Host – Übungsrunde und Stimmen über einen Neustart (Swift-Harness)
+        if: hashFiles('apps/apple-host/project.yml') != ''
+        env:
+          JSC_useJIT: 'false'
+        run: |
+          stimmen="$RUNNER_TEMP/minispiel-stimmen.json"
+          rm -f "$stimmen"
+          apps/apple-host/harness/run.sh uebung "stimmen=$stimmen" vorher=0
+          apps/apple-host/harness/run.sh uebung "stimmen=$stimmen" vorher=2
+
       - name: Apple-Host bauen (macOS, tvOS, ohne Signatur)
         if: hashFiles('apps/apple-host/project.yml') != ''
         working-directory: apps/apple-host

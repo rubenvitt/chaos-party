@@ -55,6 +55,7 @@ const JOIN = {
   joinUrl: 'http://192.168.0.2:8787/?code=AB12',
   joinCode: 'AB12',
   settings: SETTINGS,
+  galleryRevision: 0,
 };
 
 const ANNA: LobbyPlayer = {
@@ -1051,6 +1052,8 @@ const EXAMPLES: Readonly<Record<string, ExampleBase>> = {
             prizes: [],
           },
         ],
+        practice: false,
+        practiceNote: null,
       },
     },
   },
@@ -1134,6 +1137,8 @@ const EXAMPLES: Readonly<Record<string, ExampleBase>> = {
             prizes: ['Schild'],
           },
         ],
+        practice: false,
+        practiceNote: null,
       },
     },
   },
@@ -1186,10 +1191,40 @@ const EXAMPLES: Readonly<Record<string, ExampleBase>> = {
   },
 };
 
+/**
+ * CHAOS-220: Ergebnis einer Übungsrunde aus der Galerie – eine Runde, keine Münzen, Hinweis statt
+ * Münzen; die Galerie hat drei gespeicherte Stimmen gesehen.
+ */
+function practiceResults(): ExampleBase {
+  const base = EXAMPLES['minigame-results'];
+  const minigame = base?.minigame;
+  const results = minigame?.results;
+  if (!base || !minigame || !results) throw new Error('minigame-results fehlt');
+  return {
+    ...base,
+    lobby: { ...base.lobby, galleryRevision: 3 },
+    board: base.board ? { ...base.board, round: 1, rounds: 1 } : null,
+    minigame: {
+      ...minigame,
+      round: 1,
+      results: {
+        ...results,
+        rows: results.rows.map((row) => ({ ...row, coins: null, prizes: [] })),
+        practice: true,
+        // Text wie `PRACTICE_NOTE` (`apps/host/src/minigame/results.ts`); hier fest, weil das Modul
+        // über die Host-Verbindung DOM-Typen braucht und das Export-Skript ohne DOM läuft.
+        practiceNote: 'Übungsrunde – keine Münzen. Daumen am Handy, dann zurück zur Lobby.',
+      },
+    },
+  };
+}
+
 /** Name (Dateiname ohne `.json`) → Beispiel. */
 export const RENDER_STATE_EXAMPLES: Readonly<Record<string, RenderState>> = Object.fromEntries(
-  Object.entries(EXAMPLES).map(([name, example]) => [
-    name,
-    { ...example, final: example.final ?? null, pause: example.pause ?? pauseFor(example) },
-  ]),
+  Object.entries({ ...EXAMPLES, 'minigame-practice-results': practiceResults() }).map(
+    ([name, example]) => [
+      name,
+      { ...example, final: example.final ?? null, pause: example.pause ?? pauseFor(example) },
+    ],
+  ),
 );

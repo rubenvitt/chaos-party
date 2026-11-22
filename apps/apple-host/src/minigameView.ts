@@ -11,7 +11,7 @@ import { characterName, phaseSecondsLeft } from '../../host/src/minigame/plan.ts
 import { introReadiness, readyProgress, waitsForReady } from '../../host/src/minigame/readiness.ts';
 
 export { readyProgress };
-import { resultsDisplay } from '../../host/src/minigame/results.ts';
+import { PRACTICE_NOTE, resultsDisplay } from '../../host/src/minigame/results.ts';
 import { teamLineup } from '../../host/src/minigame/teams.ts';
 import { playerName } from '../../host/src/board/texts.ts';
 import type {
@@ -144,5 +144,7 @@ export function resultsView(
       coins: row.coins,
       prizes: row.items.map((item) => ITEM_NAMES[item]),
     })),
+    practice: display.practice,
+    practiceNote: display.practice ? PRACTICE_NOTE : null,
   };
 }

@@ -9,6 +9,7 @@
  *   `configure:minigameBlocklist=a+b,minigameFavorites=` (ganze Listen der Minispiel-Rotation,
  *   `+` trennt, leer = keine, CHAOS-216), mehreres mit Komma verbunden:
  *   `configure:rounds=12,moreReactionTime=1` (Lobby-Einstellungen, CHAOS-166)
+ * - `practice:sockenregen` (Übungsrunde aus der Galerie, CHAOS-220): `start` mit `practice`
  * - `minigame:favorite=<id>`, `minigame:blocked=<id>` (CHAOS-216): Minispiel umschalten; wirkt
  *   im Kern (Stand ausrechnen, speichern) und geht als `configure` an den Server
  * - `configure:aiSeat=3:mittel` setzt eine KI auf Platz 3 bzw. ändert ihre Stärke
@@ -18,7 +19,7 @@
  * 1–`MAX_ROUNDS`, Brett-IDs außerhalb von `BoardChoiceSchema`, Minispiel-Kennungen außerhalb
  * von `MinigameIdSchema` oder doppelt in einer Liste, mehr als `MAX_ROTATION_MINIGAMES`, leeres
  * `configure:`. Ob es Brett oder Minispiel gibt, prüft der Server (`bad-message` bzw. er lässt
- * Unbekanntes weg).
+ * Unbekanntes weg); `practice:` prüft der Kern vorher gegen die Galerie.
  */
 import {
   AI_STRENGTHS,
@@ -34,6 +35,7 @@ import {
   CONFIGURE_PREFIX,
   HOST_COMMANDS,
   LOCAL_HOST_COMMANDS,
+  PRACTICE_PREFIX,
   MINIGAME_TOGGLE_KINDS,
   MINIGAME_TOGGLE_PREFIX,
   type HostCommandName,
@@ -50,6 +52,7 @@ export interface MinigameToggleCommand {
 
 export type ParsedHostCommand =
   | { readonly type: 'start' }
+  | { readonly type: 'practice'; readonly minigameId: string }
   | { readonly type: LocalHostCommandName }
   | MinigameToggleCommand
   | HostCommand;
@@ -142,6 +145,10 @@ function parseMinigameToggle(spec: string): MinigameToggleCommand | null {
 /** Zeichenkette → Befehl; `null` bei Unbekanntem oder Ungültigem. */
 export function parseHostCommand(cmd: string): ParsedHostCommand | null {
   if (cmd.startsWith(CONFIGURE_PREFIX)) return parseConfigure(cmd.slice(CONFIGURE_PREFIX.length));
+  if (cmd.startsWith(PRACTICE_PREFIX)) {
+    const id = MinigameIdSchema.safeParse(cmd.slice(PRACTICE_PREFIX.length));
+    return id.success ? { type: 'practice', minigameId: id.data } : null;
+  }
   if (cmd.startsWith(MINIGAME_TOGGLE_PREFIX)) {
     return parseMinigameToggle(cmd.slice(MINIGAME_TOGGLE_PREFIX.length));
   }

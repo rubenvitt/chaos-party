@@ -801,15 +801,17 @@ Automatisch geprüft (Mac): Regeln und Validierung (Unit- und Integrationstests,
 
 ## 42. Minispiel-Galerie und Daumen (für CHAOS-87)
 
-**Stand:** 2026-11-20 · **Aufgabe:** CHAOS-87 · **Protokoll:** v4-Nachtrag CHAOS-87 (`start.practice`, `rate`, `ratings`)
+**Stand:** 2026-11-21 · **Aufgabe:** CHAOS-87, Apple-Host CHAOS-220 · **Protokoll:** v4-Nachtrag CHAOS-87 (`start.practice`, `rate`, `ratings`)
 
 **Seit CHAOS-228 (2026-11-21):** Galerie und Rotations-Dialog (§40) sind eine Ansicht hinter dem Lobby-Knopf „Minispiele ›“; je Spiel der Rotation stehen „★ Favorit“ und „⦸ Sperren“ neben den Daumen, der Rauswurf-Vorschlag hat einen eigenen Sperren-Knopf.
 
-Automatisch geprüft (Linux): Übungsrunde in game-core (ohne Münzen, Siege, Items; Ende nach dem Ergebnis), Session (Übungsstart, Daumen nur in der Ergebnisanzeige, Umentscheiden ersetzt, Rückweg zum Brett bzw. in die Lobby genauso schnell mit und ohne Stimmen), Stimmen-Datei und Export `/ratings.json`, E2E: „Minispiele“ öffnen → Sockenregen üben → Ergebnis → Daumen am iPhone (Chromium-Emulation) → dieselbe Ansicht zeigt die Stimme → dort sperren → nächste Partie führt es als gesperrt; Rauswurf-Vorschlag sperrt erst auf Klick (`tests/e2e/minispiel-galerie.spec.ts`, `tests/e2e/host-minispiel-rotation.spec.ts`). **Nicht** automatisch geprüft: Tippen auf echtem iOS, Lesbarkeit am Fernseher, Datei nach Server-Neustart auf Rubens PC. **Noch nicht umgesetzt:** Galerie am Apple-Host (CHAOS-220); dort fehlt sie, alles andere läuft wie bisher.
+Automatisch geprüft (Linux): Übungsrunde in game-core (ohne Münzen, Siege, Items; Ende nach dem Ergebnis), Session (Übungsstart, Daumen nur in der Ergebnisanzeige, Umentscheiden ersetzt, Rückweg zum Brett bzw. in die Lobby genauso schnell mit und ohne Stimmen), Stimmen-Datei und Export `/ratings.json`, E2E: „Minispiele“ öffnen → Sockenregen üben → Ergebnis → Daumen am iPhone (Chromium-Emulation) → dieselbe Ansicht zeigt die Stimme → dort sperren → nächste Partie führt es als gesperrt; Rauswurf-Vorschlag sperrt erst auf Klick (`tests/e2e/minispiel-galerie.spec.ts`, `tests/e2e/host-minispiel-rotation.spec.ts`). **Nicht** automatisch geprüft: Tippen auf echtem iOS, Lesbarkeit am Fernseher, Datei nach Server-Neustart auf Rubens PC. Daumen gibt es inzwischen in allen Controllern (Web, iPad-Zonen, native App), die Galerie auch am Apple-Host (Nachträge unten).
 
 **Nachtrag 2026-11-21 (CHAOS-219):** Die native Controller-App zeigt die Daumen jetzt auch (Schritte GA10–GA14). Automatisch geprüft nur in der macOS-CI („Native Apps“): Kodierung von `rate` gegen die Fixtures aus dem TS-Parser, Sitzung (nur gesendet, solange `rate` angeboten wird; Lauf aus `minigame.id` und `board.round`), Ergebnis-Logik (Übungsrunde ohne Münzzeile, Hinweis auf die Lobby) und Screenshots `minigameVote`/`minigamePractice`. **Nicht** geprüft: Tippen am echten iPhone, Haptik, Lesbarkeit.
 
 **Nachtrag 2026-11-21 (CHAOS-218):** Die iPad-Zonen zeigen die Daumen jetzt auch (Schritte GA15–GA18). Automatisch geprüft (Linux): Geometrie und Zonen-Tracker per Unit-Test, E2E mit iPad-Emulation (zwei Zonen tippen gleichzeitig 👍 bzw. 👎, der echte Server zählt beide; Umentscheiden, gedrehte Zone im Hochformat). **Nicht** geprüft: Tippen mit zwei Fingern auf echtem iPadOS-Safari, Erreichbarkeit vom Platz gegenüber.
+
+**Mac und Apple TV (CHAOS-220, Stand 2026-11-21):** Galerie in der Lobby des nativen Hosts, Übungsrunde, Hinweis im Ergebnis, Stimmen über Neustarts (Mac: `~/Library/Application Support/Chaos Party/minispiel-stimmen.json`, App-Store-Build im Container der App; tvOS: `UserDefaults`, Pfad bzw. Ort steht beim Start im Log als „Stimmen: …“), Export am Mac über das Teilen-Menü (Schritte GA19–GA27). Automatisch geprüft (Linux): Bündel im nackten Kontext – `practice:<id>`, Ergebnis ohne Münzen, Daumen der Bots über `saveRatings`, zurück in die Lobby, zweiter Kern lädt die Stimmen (`apps/apple-host/test/practice.test.ts`); macOS-CI: Swift-Harness `run.sh uebung` zweimal mit derselben Datei über `RatingsStorage` (JavaScriptCore ohne JIT). **Nicht** automatisch geprüft: SwiftUI-Galerie (Layout, Fokus mit der Siri Remote, Teilen-Menü), echter App-Neustart auf Mac und Apple TV. Seit CHAOS-230 lassen sich auch die Team-Testspiele üben (der Bündel-Test übt Pump-Duell, 2 gegen 2).
 
 | ID  | Schritt | Erwartung | Ergebnis | Nachweis |
 | --- | ------- | --------- | -------- | -------- |
@@ -832,6 +834,15 @@ Automatisch geprüft (Linux): Übungsrunde in game-core (ohne Münzen, Siege, It
 | GA16 | Beide gleichzeitig tippen: links 👍, rechts 👎 | Jeder gewählte Daumen leuchtet sofort in der Farbe seiner Zone, der andere wird blass; Tipp in einer Zone wirkt nicht in der anderen | | |
 | GA17 | Links umentscheiden (👎), dann Galerie öffnen | Galerie zählt 👍 0 · 👎 2 („2 Stimmen“) | | |
 | GA18 | iPad im Hochformat (obere Zone gedreht) | Daumen der oberen Zone zeigen zur Person gegenüber und reagieren dort; Finger, der vom Daumen wegrutscht, stimmt nicht ab | | |
+| GA19 | Mac: App starten, ein iPhone verbinden, in der Lobby „Minispiele üben“ (Maus oder Taste G) | Galerie ersetzt die Lobby: alle Minispiele mit Status, Kategorie, Spielzeit, Bedienung, 👍/👎 und „Noch keine Stimmen“; Esc bzw. „Schließen“ führt zurück; ohne verbundenes Handy steht der Hinweis „Üben geht, sobald …“ und „Üben“ ist ausgegraut | | Foto |
+| GA20 | Mac: „Üben ▶“ bei Sockenregen, am Handy „Bereit!“, spielen | Anleitung, Spiel, Ergebnis ohne Münzen mit Hinweis „Übungsrunde – keine Münzen …“; iPhone zeigt 👍/👎; danach von selbst zurück in der Lobby (Galerie zu) | | Foto Ergebnis |
+| GA21 | Mac: 👍 am Handy, Galerie wieder öffnen | Sockenregen zeigt 👍 1 („1 Stimme“), oben „1 Stimme“ insgesamt | | |
+| GA22 | Mac: in der Galerie „Stimmen teilen“ | Teilen-Menü mit der Datei `chaos-party-minispiel-stimmen.json` (z. B. AirDrop, Mail, In Dateien sichern); Inhalt wie `/ratings.json` am PC | | Datei |
+| GA23 | Mac: App beenden (⌘Q), neu starten, Galerie öffnen | Stimme von GA21 ist noch da; im Log „Stimmen: …/Application Support/Chaos Party/minispiel-stimmen.json“ und JS „Stimmen geladen: 1“ | | |
+| GA24 | Apple TV: Lobby, mit der Siri Remote nach links zu „Minispiele üben“, Auswahl | Galerie mit Fokusrahmen; Wischen bewegt den Fokus von „Üben ▶“ zu „Üben ▶“, die Liste scrollt mit; Menü-Taste schließt die Galerie (nicht die App) | | Foto |
+| GA25 | Apple TV: ein Spiel üben, 👎 am Handy, zurück in der Lobby | wie GA20/GA21, Galerie zeigt 👎 1 | | |
+| GA26 | Apple TV: App ganz beenden (App-Umschalter, nach oben wischen), neu starten, Galerie öffnen | Stimme von GA25 ist noch da | | |
+| GA27 | Lobby am Fernseher (Mac im Vollbild oder Apple TV) | Linke Spalte mit kleinerem QR-Code und Galerie-Knopf passt ganz auf den Bildschirm; QR-Code lässt sich vom Sofa scannen | | Foto |
 
 ## 43. Frostgipfel: Eis, Seilbahn, Lawinen und Winterkulisse (für CHAOS-198)
 
