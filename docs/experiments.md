@@ -2984,6 +2984,8 @@ Reaktionszeit, Lenk-Drehrate, Zielstreuung, Greiftempo, Ausweichen und Strategie
 - **Bienenstock-Honig:** V1 (Stichrate niedriger): Gierhals Faktor 1,93, Profi 12 %; gewählt: Stichrate 8 × Stockwut × Wut^1,5, Anflug 1,1–0,8 s angekündigt.
 - **Drei Türen:** V1 Gewohnheits-Modell: Profi 14 %, Gierhals 2,00; V2–V4 Rang-Modell, Denken mit judgement³, 8 Runden: Fairness besteht, aber KI-Stärke mittel/leicht 0,50 (zwei gleich starke Bots kollidieren an derselben Tür); drei Versuche am Bot-Modell ohne Erfolg.
 
+**Grenze der Messung:** Drei Bots lesen feiner, als ein Mensch am Bildschirm sieht (Rasensprenger: Einschaltzeitpunkt während der Vorwarnung; Bienenstock: genauer Wutwert statt 0–3 Bienen; Toaster: Bräunung aus der Farbe). Die Zahlen sind dadurch eher optimistisch; der Spieltest (CHAOS-92) entscheidet.
+
 **Aufwand:** Mittel 607 Zeilen Spielcode (Ziel ≤ 500, verfehlt), 118 Zeilen Tests (≤ 300); Bestandsspiele ohne Baukasten 1 430–1 880. Etwa 1,5 h je Spiel (0,75–2,5 h). Größter Posten ist die Szene (Rahmen und Grundkörper-Requisiten), bei Havok die Figuren-Physik.
 
 **Entscheidung:** **Behalten**: sieben Spiele in die Rotation (`ROTATION`, hinten angehängt), Drei Türen **spielbar, nicht in der Rotation** (Galerie). Fabrik grundsätzlich bestätigt (Ausfall 1/8, alle Familien und Bedienungen machbar), Zeilenziel nur mit Baukasten-Rahmen erreichbar (Folgeaufgabe). Offen für Ruben (CHAOS-92): Fühlen sich die Spiele verschieden an (besonders Toaster-Timing ↔ Schnapp den Käse)? Tempo von Eiswürfel-Sumo und Bienenstock-Honig? Lohnt Drei Türen den Umbau?

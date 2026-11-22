@@ -64,6 +64,14 @@ Zum Vergleich die Bestandsspiele ohne Baukasten: Sockenregen ≈ 1 430, Krümel-
 - **Was der Baukasten abnimmt:** Uhr mit Endphase, Punkte und Plätze, Spawner und Vorwarnung, Gefahrenzonen, Laufen/Hechten/Rempeln, RiskBank, Bot-Profile mit Stärke und Laufzeit-Treiber, Höhepunkte, Arena und Kamera je Ort, Figuren mit Abzeichen und Animation. Neu mit der Pilotwelle: `checks/kitHarness.ts` (Fairness-Prüfung aus dem Bot-Adapter ohne eigene Spielschleife).
 - **Was fehlte** (gesammelt aus allen acht Spielen): gemeinsamer Minispiel-Rahmen, Mesh-/Requisiten-Helfer, Havok-Figur und Havok-Harness, Raster (Malen), drehende Gefahr, rutschiges Laufen und Hindernisse, Herzen-Zähler, Halten im Bot-Treiber, Baustein „geheime Wahl“, Ladeweg für die Requisiten-Modelle (CHAOS-237).
 
+## Bekannte Grenzen
+
+- **Bot-Wahrnehmung feiner als der Bildschirm** (README §5.6 „nur Beobachtbares“): Der Rasensprenger-Bot liest während der Vorwarnung den genauen Einschaltzeitpunkt (`sprayAt`), sichtbar ist nur die gleich lange Vorwarnung ohne Countdown; der Bienenstock-Bot liest den genauen Wutwert, sichtbar sind 0–3 kreisende Bienen; der Toaster-Bot liest Bräunung und Tempo aus der Farbe genauer als ein Mensch. Die Fairness-Zahlen sind dadurch eher optimistisch für Bots mit gutem Profil.
+- **Requisiten:** Grundkörper im Look statt der Art-Kit-Modelle (CHAOS-237).
+- **Drei Türen:** keine private Rückmeldung der Wahl am Controller (CHAOS-242), KI-Stärke verfehlt (CHAOS-243).
+- **Matschmaler:** 192 Feld-Körper mit Rolle; im Swift-Harness stieg `renderState` im Minispiel von max. 7,6 auf 11 ms. Bildrate auf dem Ziel-PC und der echten Apple TV ungeprüft (Gerätecheckliste §49).
+- **Eiswürfel-Sumo:** im Leerlauf passen alle vier Figuren bis zum Ende aufs Eis (Gleichstand ohne Eingaben).
+
 ## Ausfallquote
 
 1 von 8 (12,5 %): Drei Türen nicht in der Rotation. Keine Skizze wurde ganz verworfen. Der Katalog rechnet mit 25–40 % Ausfall; die Pilotwelle liegt darunter, weil jede Skizze beim Schärfen so lange umgebaut wurde, bis sie die Schwellen schaffte (verworfene Varianten in EXP-042).
