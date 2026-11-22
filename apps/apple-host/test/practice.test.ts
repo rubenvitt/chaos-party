@@ -239,6 +239,20 @@ describe('Minispiel-Galerie am Apple-Host (CHAOS-220)', () => {
     expect(restarted.unreadable).toEqual([]);
   }, 120_000);
 
+  it('holt die Galerie neu, wenn sich die Sperrliste der Rotation ändert (CHAOS-216)', async () => {
+    const h = await startHost(null);
+    const before = h.state().lobby.galleryRevision;
+    const game = h.state().lobby.settings?.minigames[0]?.id;
+    if (!game) throw new Error('keine Rotation in der Lobby');
+    h.host.hostCommand(`minigame:blocked=${game}`);
+    await settle();
+    h.drain();
+    expect(h.state().lobby.settings?.minigames.find((g) => g.id === game)?.blocked).toBe(true);
+    expect(h.state().lobby.galleryRevision).toBe(before + 1);
+    expect(h.gallery().revision).toBe(before + 1);
+    expect(problems(h.logs)).toEqual([]);
+  });
+
   it('meldet eine unlesbare Stimmen-Datei, beginnt ohne Stimmen und überschreibt nichts', async () => {
     const h = await startHost('{ kaputt');
     expect(h.unreadable).toHaveLength(1);

@@ -217,6 +217,8 @@ function create(env: HostEnv): ChaosHostInstance {
   }
   /** Steigt mit jeder gespeicherten Stimme; Swift holt dann `gallery()` neu. */
   let galleryRevision = 0;
+  /** Gesperrte Minispiele beim letzten Lobby-Stand, Kennungen mit Komma (CHAOS-216). */
+  let galleryBlocked = '';
   const ratings = createMemoryRatingStore(initialVotes, {
     onChange(votes) {
       galleryRevision += 1;
@@ -477,6 +479,16 @@ function create(env: HostEnv): ChaosHostInstance {
         if (status !== 'connected') resultSender.onDisconnected();
       },
       onLobby: (message) => {
+        // Sperrliste geändert (CHAOS-216): Der Rauswurf-Vorschlag der Galerie hängt daran, also
+        // muss Swift `gallery()` neu holen (CHAOS-220).
+        const blocked = (message.settings.minigames ?? [])
+          .filter((game) => game.blocked)
+          .map((game) => game.id)
+          .join(',');
+        if (blocked !== galleryBlocked) {
+          galleryBlocked = blocked;
+          galleryRevision += 1;
+        }
         lobby = message;
         if (!rotationSent && message.phase === 'lobby' && message.settings.minigames) {
           // CHAOS-216: gemerkten Stand der Minispiel-Rotation wieder setzen (wie `App.tsx` am PC).
@@ -731,6 +743,8 @@ function create(env: HostEnv): ChaosHostInstance {
         connected: player.connected,
         ready: player.ready,
         character: player.character,
+        kind: player.kind ?? 'human',
+        strength: player.strength ?? null,
       }));
       const state: RenderState = {
         phase: contractPhase(),
@@ -867,9 +881,23 @@ function create(env: HostEnv): ChaosHostInstance {
       const state: GalleryState = {
         revision: galleryRevision,
         votes: votes.length,
-        rows: galleryRows(summarizeRatings(votes)).map((row) => ({
-          ...row,
+        // Nur die Felder des Vertrags (`GalleryRowSchema`): Favorit und Sperre stehen am Apple-Host
+        // im eigenen Panel (CHAOS-216), nicht in der Galerie. Die Rotation geht trotzdem mit, damit
+        // der Rauswurf-Vorschlag gesperrte Spiele auslässt wie am PC (CHAOS-228).
+        rows: galleryRows(summarizeRatings(votes), lobby?.settings.minigames ?? []).map((row) => ({
+          id: row.id,
+          title: row.title,
+          tagline: row.tagline,
+          status: row.status,
+          statusLabel: row.statusLabel,
+          category: row.category,
+          family: row.family,
+          controls: row.controls,
+          seconds: row.seconds,
+          up: row.up,
+          down: row.down,
           votesText: votesText(row),
+          suggestRemoval: row.suggestRemoval,
         })),
       };
       return JSON.stringify(state);
