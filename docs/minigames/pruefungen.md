@@ -2,7 +2,7 @@
 
 **Stand:** 2026-11-20 · **Zunder:** `CHAOS-84` (Epic `CHAOS-80`) · **Rahmen:** [`README.md`](README.md) §5.2, §5.3, §5.5 · **Messwerte:** [`pruefbericht.md`](pruefbericht.md)
 
-Bei rund 200 Minispielen kann nicht jedes Spiel seine Rahmen-Tests selbst mitbringen. Vier gemeinsame Prüfungen sichern alle gleich ab, eine fünfte hält den Skizzen-Vorrat im Katalog groß und ausgewogen genug. Ein neues Spiel wird ohne eigenen Testcode mitgeprüft, sobald es im Katalog steht; für Fairness und Vielfalt braucht es je einen Eintrag (Bots, Steckbrief), sonst schlägt der Test fehl und sagt, was fehlt.
+Bei rund 200 Minispielen kann nicht jedes Spiel seine Rahmen-Tests selbst mitbringen. Fünf gemeinsame Prüfungen sichern alle gleich ab, eine sechste hält den Skizzen-Vorrat im Katalog groß und ausgewogen genug. Ein neues Spiel wird ohne eigenen Testcode mitgeprüft, sobald es im Katalog steht; für Fairness und Vielfalt braucht es je einen Eintrag (Bots, Steckbrief), sonst schlägt der Test fehl und sagt, was fehlt.
 
 | Prüfung | Datei | Für | Läuft |
 |---|---|---|---|
@@ -10,6 +10,7 @@ Bei rund 200 Minispielen kann nicht jedes Spiel seine Rahmen-Tests selbst mitbri
 | Bot-Fairness | `packages/minigames/src/checks/` (`fairness.ts`, `harnesses.ts`) | jedes Spiel in `ROTATION` | `pnpm test` (Stichprobe), Bericht mit `PRUEFBERICHT=1` |
 | Vielfalt | `packages/minigames/src/checks/variety.ts` mit den Steckbriefen aus `packages/minigames/src/steckbriefe.ts` (Baukasten, ADR-021) | jedes Spiel in `ROTATION` | `pnpm test` (CI) |
 | Screenshots | `tests/e2e/m3-minispiele-bild.spec.ts` | jedes Spiel in `ROTATION` | `pnpm test:e2e` (CI) |
+| Darstellung im Apple-Host | `apps/apple-host/test/darstellung.test.ts` (Prüffunktion `darstellung.ts`, `CHAOS-154`) | jedes Spiel in `MINIGAME_MODULES` | `pnpm test` (CI) |
 | Katalog-Bestand | `packages/minigames/src/sketchCatalog.test.ts` | Skizzen in `docs/minigames/katalog.md` (≥ 200 aktiv, ≥ 30 % ohne Stick, ≥ 25 % Physik, `CHAOS-93`) | `pnpm test` (CI) |
 
 ## 1. Vertragstest
@@ -100,3 +101,15 @@ Heute liegt der kleinste Abstand bei 3, und zwar dreimal: zwischen Sockenregen, 
 Neues Spiel: unter Linux `pnpm test:e2e m3-minispiele-bild --update-snapshots=missing`, die neuen PNGs ansehen, einchecken (siehe `docs/testing.md`, Screenshot-Baselines).
 
 **Gefunden beim Einführen (CHAOS-84):** Die Anleitungszeile „Lauf unter die Schatten und fang die Socken. Gold zählt 3.“ (58 Zeichen) lag bei 30 px Schrift genau an der Umbruchkante der Karte; erlaubt sind 64 Zeichen. Die Anleitungsschrift ist jetzt 26 px (`.minigame-instructions li`), damit 64-Zeichen-Zeilen einzeilig bleiben.
+
+## 5. Darstellung im Apple-Host
+
+Der native Host (Mac, Apple TV) zeichnet ein Minispiel aus dem, was die Headless-Bühne exportiert: Körper mit echter Geometrie, Figuren als USDZ, Kamera, Kulisse, Effekte (ADR-019 Nachtrag 5 und 7). `darstellung.test.ts` spielt jedes Modul 8 s lang in genau diesem Pfad (vier Spieler, Stick kreist, A und B im Wechsel) und scheitert bei:
+
+- **Körper ohne Geometrie:** Swift zeigte dann nur Kugel, Quader oder Zylinder. Die Meldung nennt die Rolle bzw. den Mesh-Namen.
+- **Bewegt ohne Rolle:** ein Körper ohne `markVisual`, der sich bewegt, dreht, skaliert, auftaucht oder verschwindet. Abhilfe: Wurzelknoten mit `markVisual(node, rolle, schlüssel)` oder `stage.node(name, rolle)` kennzeichnen. Ungekennzeichnetes ist Kulisse und muss stillstehen.
+- **Am Export vorbei:** Partikelsysteme, Sprites, GUI-Ebenen, Linien-Meshes, Texturen. Für Effekte gibt es `ctx.fx.burst`, für Text das HUD des Hosts.
+
+Laufzeit: alle Module zusammen unter 2 s. Der Test prüft die eigene Prüffunktion an einem absichtlich kaputten Mini-Spiel.
+
+**Gefunden beim Einführen (CHAOS-154):** Das erste Bild nach dem Aufbau zeigte statische Teile im Ursprung und ohne Skalierung (veraltete Weltmatrix in derselben Render-ID), behoben in `apps/apple-host/src/stage.ts`. Ohne Rolle bewegten sich die Ballons der Pump-Spiele und die Sterne der Kuckucks-Klatsche.

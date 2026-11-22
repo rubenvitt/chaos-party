@@ -1108,7 +1108,10 @@ export class KuckucksKlatsche implements Minigame {
       { emissive: 0.2 },
     );
     blade.position.y = 0.66;
-    const stars = this.track(new TransformNode(`kuckuck-sterne-${String(slot)}`, scene));
+    // Rolle für native Hosts (CHAOS-154): Die Sterne kreisen über der Figur.
+    const stars = this.track(
+      markVisual(new TransformNode(`kuckuck-sterne-${String(slot)}`, scene), 'sterne', slot),
+    );
     for (let index = 0; index < 3; index++) {
       await ctx.pace();
       const star = this.mesh(

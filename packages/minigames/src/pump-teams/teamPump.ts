@@ -35,6 +35,7 @@ import type {
   MinigameContext,
   MinigameHud,
 } from '@chaos-party/minigame-sdk/babylon';
+import { markVisual } from '@chaos-party/minigame-sdk/babylon';
 
 /** Koop: so viele Pumpstöße je Person füllen den Riesenballon ganz (Stufe 3). */
 export const KOOP_PUMPS_PER_PLAYER = 30;
@@ -138,10 +139,15 @@ class TeamPump implements Minigame {
         x += spacing;
       }
       await ctx.pace();
-      const balloon = CreateSphere(
-        `${this.info.id}-ballon-${String(index)}`,
-        { diameter: 1, segments: 20 },
-        scene,
+      // Rolle für native Hosts (CHAOS-154): Der Ballon wächst im Spiel.
+      const balloon = markVisual(
+        CreateSphere(
+          `${this.info.id}-ballon-${String(index)}`,
+          { diameter: 1, segments: 20 },
+          scene,
+        ),
+        'ballon',
+        index,
       );
       balloon.position.set((groupStart + x) / 2, 2.8, 0);
       const material =

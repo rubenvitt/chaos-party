@@ -226,6 +226,7 @@ Stand 2026-11-15 (M4), lokal Node 22 / pnpm 10.28; CI Node 24 (`.nvmrc`), `ubunt
 | `RELEASE_DRY_RUN=1 apps/apple-host/scripts/release-macos.sh` | Mac-App ad hoc mit Hardened Runtime archivieren, prüfen und `--selftest` starten (nur macOS, CI-Job „Native Apps“); ohne `RELEASE_DRY_RUN` mit Developer ID, Notarisierung und Heften (CHAOS-118, Workflow `release-macos.yml`) |
 | `pnpm notices` | Lizenzhinweise in vorhandene `apps/*/dist` schreiben (läuft am Ende von `pnpm build`, ADR-018) |
 | `pnpm vitest run --project @chaos-party/minigame-kit` | ok (2026-11-20, CHAOS-83) – 60 Tests der Baukasten-Helfer (rein und Babylon/NullEngine) in unter 2 s |
+| `pnpm vitest run apps/apple-host/test/darstellung.test.ts` | ok (2026-11-22, CHAOS-154) – Darstellungs-Vertrag: jedes Minispiel in `MINIGAME_MODULES` (auch Schnellfeuer) läuft durch die Headless-Bühne der Apple-App; scheitert bei Körpern ohne Geometrie, Bewegtem ohne `markVisual`-Rolle und Sichtbarem am Export vorbei (Partikel, Sprites, GUI, Linien, Texturen); dabei behoben: erstes Bild nach dem Aufbau mit Teilen im Ursprung, fehlende Rollen bei Pump-Ballons, Kuckucks-Sternen und Schnellfeuer-Gegenständen; ADR-019 Nachtrag 7, `docs/minigames/pruefungen.md` §5 |
 | `pnpm install --frozen-lockfile` | ok |
 | `pnpm check` (typecheck, lint, format, test, build, Lizenzen, Assets) | ok – 1098 Unit-/Integrationstests, 12 Laufzeit-Pakete auf der Positivliste, 22 Asset-Einträge |
 | `pnpm test:e2e --trace off` | ok – 108 Tests in 15 Specs (Desktop, iPhone hoch/quer, iPad quer/hoch), ~3,5 min |
