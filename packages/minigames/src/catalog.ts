@@ -25,6 +25,7 @@ import { NUSSREGEN_NETZ_INFO } from './nussregen-netz/info.ts';
 import { MATSCHMALER_INFO } from './matschmaler/info.ts';
 import { RASENSPRENGER_RODEO_INFO } from './rasensprenger-rodeo/info.ts';
 import { SCHNAPP_DEN_KAESE_INFO } from './schnapp-den-kaese/info.ts';
+import { EISWUERFEL_SUMO_INFO } from './eiswuerfel-sumo/info.ts';
 import { WACKELTURM_INFO } from './wackelturm/info.ts';
 
 /** Vielfalts-Steckbriefe (ADR-021): rein, auch für Server und Rotation (CHAOS-85). */
@@ -44,6 +45,7 @@ export const MINIGAME_INFOS: readonly MinigameInfo[] = [
   MATSCHMALER_INFO,
   RASENSPRENGER_RODEO_INFO,
   SCHNAPP_DEN_KAESE_INFO,
+  EISWUERFEL_SUMO_INFO,
   // Testspiele der Spielformen (CHAOS-89), nicht in der Rotation.
   PUMP_DUELL_INFO,
   PUMP_SOLO_INFO,
@@ -67,6 +69,7 @@ export const ROTATION: readonly string[] = [
   MATSCHMALER_INFO.id,
   RASENSPRENGER_RODEO_INFO.id,
   SCHNAPP_DEN_KAESE_INFO.id,
+  EISWUERFEL_SUMO_INFO.id,
 ];
 
 /**

@@ -127,6 +127,16 @@ export const STECKBRIEFE: Readonly<Record<string, Steckbrief>> = {
     tempo: 'hektisch',
     ort: 'kueche',
   },
+  'eiswuerfel-sumo': {
+    kernverb: 'rempeln',
+    ziel: 'letzter',
+    arena: 'insel',
+    kamera: 'fest',
+    bedienung: 'SA',
+    spielform: 'FFA',
+    tempo: 'hektisch',
+    ort: 'kueche',
+  },
   // Testspiel der Spielform 2v2 (CHAOS-89), nicht in der Rotation: bewusst nah an der Pump-Parade.
   'pump-duell': {
     kernverb: 'pumpen',

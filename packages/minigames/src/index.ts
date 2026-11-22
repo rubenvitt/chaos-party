@@ -21,6 +21,7 @@ import { nussregenNetz } from './nussregen-netz/index.ts';
 import { matschmaler } from './matschmaler/index.ts';
 import { rasensprengerRodeo } from './rasensprenger-rodeo/index.ts';
 import { schnappDenKaese } from './schnapp-den-kaese/index.ts';
+import { eiswuerfelSumo } from './eiswuerfel-sumo/index.ts';
 import { wackelturm } from './wackelturm/index.ts';
 
 export * from './catalog.ts';
@@ -38,6 +39,7 @@ export const MINIGAME_MODULES: readonly MinigameModule[] = [
   matschmaler,
   rasensprengerRodeo,
   schnappDenKaese,
+  eiswuerfelSumo,
   pumpDuell,
   pumpSolo,
   pumpRiese,

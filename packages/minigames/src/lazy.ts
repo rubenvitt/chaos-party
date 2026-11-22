@@ -31,6 +31,7 @@ import { NUSSREGEN_NETZ_INFO } from './nussregen-netz/info.ts';
 import { MATSCHMALER_INFO } from './matschmaler/info.ts';
 import { RASENSPRENGER_RODEO_INFO } from './rasensprenger-rodeo/info.ts';
 import { SCHNAPP_DEN_KAESE_INFO } from './schnapp-den-kaese/info.ts';
+import { EISWUERFEL_SUMO_INFO } from './eiswuerfel-sumo/info.ts';
 import { WACKELTURM_INFO } from './wackelturm/info.ts';
 
 export * from './catalog.ts';
@@ -72,6 +73,10 @@ export const MINIGAME_LOADERS: ReadonlyMap<string, MinigameLoader> = new Map<
   [
     SCHNAPP_DEN_KAESE_INFO.id,
     () => import('./schnapp-den-kaese/index.ts').then((m) => m.schnappDenKaese),
+  ],
+  [
+    EISWUERFEL_SUMO_INFO.id,
+    () => import('./eiswuerfel-sumo/index.ts').then((m) => m.eiswuerfelSumo),
   ],
   // Testspiele der Spielformen (CHAOS-89).
   [PUMP_DUELL_INFO.id, () => import('./pump-duell/index.ts').then((m) => m.pumpDuell)],
