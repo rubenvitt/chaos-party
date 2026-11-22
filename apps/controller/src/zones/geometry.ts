@@ -57,6 +57,13 @@ export type PickControlKind = `pick:${string}`;
 /** Daumen nach dem Minispiel (CHAOS-218): `vote:up` bzw. `vote:down`. */
 export type VoteControlKind = `vote:${Vote}`;
 
+/**
+ * Reihe „Mitspieler“ der Lobby (CHAOS-238, ADR-020 §2), nur in der Zone der Spielleitung:
+ * `seat:<n>` setzt eine KI auf den freien Platz bzw. wechselt ihre Stärke, `seat-remove:<n>`
+ * entfernt sie.
+ */
+export type SeatControlKind = `seat:${SlotNumber}` | `seat-remove:${SlotNumber}`;
+
 export type ControlKind =
   | 'stick'
   | 'button-a'
@@ -64,7 +71,8 @@ export type ControlKind =
   | 'ready'
   | ChoiceControlKind
   | PickControlKind
-  | VoteControlKind;
+  | VoteControlKind
+  | SeatControlKind;
 
 /** Ein Bedienelement in Zonen-lokalen Koordinaten. */
 export interface ControlGeometry {
@@ -113,6 +121,19 @@ export function parseVoteControl(kind: ControlKind | null): Vote | null {
   if (kind === 'vote:up') return 'up';
   if (kind === 'vote:down') return 'down';
   return null;
+}
+
+export function seatControl(seat: SlotNumber, remove = false): SeatControlKind {
+  return remove ? `seat-remove:${seat}` : `seat:${seat}`;
+}
+
+/** Platz und Art eines Knopfs der Reihe „Mitspieler“, sonst `null`. */
+export function parseSeatControl(
+  kind: ControlKind | null,
+): { readonly seat: SlotNumber; readonly remove: boolean } | null {
+  const match = /^seat(-remove)?:([1-4])$/.exec(kind ?? '');
+  if (!match?.[2]) return null;
+  return { seat: Number(match[2]) as SlotNumber, remove: match[1] !== undefined };
 }
 
 /** Vollständige Zone: Lage, lokale Größe, Bedienelemente. */
@@ -298,6 +319,20 @@ export interface ZoneLobbyInput {
   readonly characters: readonly { readonly id: CharacterId; readonly selectable: boolean }[];
   /** „Bereit!“-Knopf zeigen (angeboten und noch nicht gesendet). */
   readonly showReady: boolean;
+  /**
+   * Reihe „Mitspieler“ (CHAOS-238): vier Plätze in Reihenfolge 1–4. Fehlt = keine Reihe
+   * (älterer Server, bzw. keine KI und nicht Spielleitung).
+   */
+  readonly seats?: readonly ZoneSeatInput[];
+}
+
+/** Ein Platz der Reihe „Mitspieler“ in einer Zone. */
+export interface ZoneSeatInput {
+  readonly slot: SlotNumber;
+  /** Tippen wirkt (Spielleitung: KI setzen bzw. Stärke wechseln). */
+  readonly tap: boolean;
+  /** „✕“ entfernt die KI (nur Spielleitung). */
+  readonly removable: boolean;
 }
 
 /** Was eine Zone gerade anzeigen soll (aus dem Server-Kontext abgeleitet). */
@@ -743,28 +778,73 @@ export function lobbyFootHeight(local: Size): number {
   return Math.round(clamp(local.height * 0.14, 72, 112));
 }
 
+/** Höhe der Reihe „Mitspieler“ (CHAOS-238): Platz für Symbol und „KI · Mittel“, ≥ 44 pt. */
+export const SEAT_ROW_HEIGHT = 48;
+/** Abstand zwischen den Plätzen der Reihe (ohne Trefferzugabe: kein Überlappen). */
+export const SEAT_GAP = 8;
+/** Breite des „✕“ rechts in einem KI-Platz der Spielleitung. */
+export const SEAT_REMOVE_WIDTH = 40;
+/**
+ * Schmalster Platz mit eigenem „✕“. Schmaler (kleine iPads mit 3–4 Zonen) ist die Reihe
+ * kompakt: kein „✕“, das Tippen nach der letzten Stärke gibt den Platz frei. Zwei Reihen à zwei
+ * Plätze ließen den Figurenkarten zu wenig Höhe.
+ */
+export const MIN_SEAT_WIDTH = 112;
+
+/** Kompakte Reihe „Mitspieler“ (ohne „✕“, siehe {@link MIN_SEAT_WIDTH}). */
+export function seatsCompact(row: Rect): boolean {
+  return (row.width - 3 * SEAT_GAP) / 4 < MIN_SEAT_WIDTH;
+}
+
 export interface LobbyZoneFrames {
   readonly head: Rect;
+  /** Reihe „Mitspieler“ oder `null` (keine Reihe). */
+  readonly seats: Rect | null;
   /** Fläche für die Figurenkarten. */
   readonly grid: Rect;
   /** „Bereit!“ bzw. „✓ Bereit“. */
   readonly foot: Rect;
 }
 
-export function lobbyZoneFrames(local: Size): LobbyZoneFrames {
+export function lobbyZoneFrames(local: Size, withSeats = false): LobbyZoneFrames {
   const p = ZONE_PADDING;
   const width = Math.max(0, local.width - 2 * p);
   const head: Rect = { x: p, y: BADGE_STRIP - 4, width, height: LOBBY_HEAD_HEIGHT };
   const footHeight = lobbyFootHeight(local);
   const foot: Rect = { x: p, y: local.height - p - footHeight, width, height: footHeight };
-  const gridY = head.y + head.height + 6;
+  const seats: Rect | null = withSeats
+    ? { x: p, y: head.y + head.height + 4, width, height: SEAT_ROW_HEIGHT }
+    : null;
+  const above = seats ?? head;
+  const gridY = above.y + above.height + (seats ? 10 : 6);
   const grid: Rect = {
     x: p,
     y: gridY,
     width,
     height: Math.max(0, foot.y - 10 - gridY),
   };
-  return { head, grid, foot };
+  return { head, seats, grid, foot };
+}
+
+/** Vier gleich breite Plätze nebeneinander in der Reihe „Mitspieler“ (Platz 1–4). */
+export function seatRects(row: Rect): Rect[] {
+  const width = Math.max(0, (row.width - 3 * SEAT_GAP) / 4);
+  return [0, 1, 2, 3].map((i) => ({
+    x: row.x + i * (width + SEAT_GAP),
+    y: row.y,
+    width,
+    height: row.height,
+  }));
+}
+
+/** Platz geteilt in Körper (Tippen) und „✕“ rechts (Entfernen), ohne Überlappen. */
+export function seatParts(chip: Rect, removable: boolean): { body: Rect; remove: Rect | null } {
+  if (!removable) return { body: chip, remove: null };
+  const w = Math.min(SEAT_REMOVE_WIDTH, chip.width / 2);
+  return {
+    body: { ...chip, width: chip.width - w },
+    remove: { ...chip, x: chip.x + chip.width - w, width: w },
+  };
 }
 
 /** 4 nebeneinander (breite Fläche) oder 2×2 (hohe Fläche): die größeren Karten gewinnen. */
@@ -806,13 +886,24 @@ export function characterRects(area: Rect, count: number): Rect[] {
 
 /** Figurenkarten (wählen beim Abheben) und ggf. „Bereit!“ in der Fußzeile. */
 export function layoutLobbyControls(local: Size, input: ZoneLobbyInput): ControlGeometry[] {
-  const frames = lobbyZoneFrames(local);
+  const frames = lobbyZoneFrames(local, input.seats !== undefined);
+  const chips = frames.seats ? seatRects(frames.seats) : [];
+  const compact = frames.seats !== null && seatsCompact(frames.seats);
+  const seats = (input.seats ?? []).flatMap((seat, i): ControlGeometry[] => {
+    const chip = chips[i];
+    if (!chip) return [];
+    const { body, remove } = seatParts(chip, seat.removable && !compact);
+    return [
+      ...(seat.tap ? [control(seatControl(seat.slot), body)] : []),
+      ...(remove ? [control(seatControl(seat.slot, true), remove)] : []),
+    ];
+  });
   const rects = characterRects(frames.grid, input.characters.length);
   const cards = input.characters.map(({ id, selectable }, i): ControlGeometry => {
     const rect = rects[i] ?? { x: 0, y: 0, width: 0, height: 0 };
     return { kind: pickControl(id), rect, hit: rect, ...(!selectable && { inert: true as const }) };
   });
-  if (!input.showReady) return cards;
+  if (!input.showReady) return [...seats, ...cards];
   const width = Math.min(320, frames.foot.width);
   const center = rectCenter(frames.foot);
   const ready = control(
@@ -825,7 +916,7 @@ export function layoutLobbyControls(local: Size, input: ZoneLobbyInput): Control
     },
     HIT_SLOP,
   );
-  return [...cards, ready];
+  return [...seats, ...cards, ready];
 }
 
 /** Radius des Joystick-Rings passend zur Zonengröße. */

@@ -44,7 +44,9 @@ jobs:
   check:
     name: Typecheck, Lint, Format, Test, Build
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # 30 statt 20 (CHAOS-238): Der Job braucht auf `main` ~14 min, auf PR-Runnern bis 20 min
+    # (E2E allein ~10–14 min); 20 brach einen vollständig grünen Lauf nach dem letzten Test ab.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
 
