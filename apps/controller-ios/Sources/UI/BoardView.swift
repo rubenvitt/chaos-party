@@ -344,6 +344,17 @@ private struct CountdownBar: View {
 
 // MARK: - Waiting (port of `describeWaiting`)
 
+/// Headline texts of the waiting card (port of `board/status.ts`).
+enum WaitingText {
+    /// „Schraubi ist dran“, for an AI seat „Schraubi (KI) ist dran“ (ADR-020 §7, CHAOS-239). Without
+    /// `activeSeat` (older server): own name from `welcome`, otherwise the colour name.
+    static func otherTurn(slot: Int, board: ControllerBoardInfo?, players: [PlayerInfo]) -> String {
+        let seat = board?.activeSlot == slot ? board?.activeSeat : nil
+        let name = seat?.name ?? players.first { $0.slot == slot }?.label ?? Slots.style(slot).label
+        return seat?.kind == "ai" ? "\(name) (KI) ist dran" : "\(name) ist dran"
+    }
+}
+
 private struct WaitingCard: View {
     let board: ControllerBoardInfo?
     let ownSlot: Int
@@ -388,8 +399,7 @@ private struct WaitingCard: View {
 
     private var headline: String {
         switch kind {
-        case .otherTurn(let slot):
-            "\(players.first { $0.slot == slot }?.label ?? Slots.style(slot).label) ist dran"
+        case .otherTurn(let slot): WaitingText.otherTurn(slot: slot, board: board, players: players)
         case .ownTurn: "Du bist dran!"
         case .minigame: "Minispiel läuft …"
         case .results(let place): place == nil ? "Spiel vorbei!" : place == 1 ? "Du hast gewonnen!" : "Gut gespielt!"

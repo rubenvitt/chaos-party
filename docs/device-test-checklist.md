@@ -958,6 +958,7 @@ Automatisch geprüft: PC-Lobby mit 1 Mensch (synthetischer Controller) und KI pe
 | KI9 | Native Controller-App als Spielleitung | Wie KI7 | | Video |
 | KI10 | Apple TV: Lobby per Siri Remote | Fokus erreicht „+ KI“, Stärke und „Entfernen“; Start erst mit einem Menschen; im Brett-HUD, Minispiel und Endstand das Abzeichen „KI“ | | Video |
 | KI11 | Mac-App: dieselbe Lobby mit der Maus | Wie KI10 | | Foto |
+| KI12 | Brett mit KI (CHAOS-239): iPhone im Browser und native App, während die KI am Zug ist | Wartekarte zeigt „Schraubi (KI) ist dran“ (Name der KI-Figur), bei Menschen ohne „(KI)“; am geteilten iPad in jeder Zone gleich | | Foto |
 
 ## 50. Pilotwelle: acht neue Minispiele (für CHAOS-91, Zwischenabnahme CHAOS-92)
 
@@ -974,4 +975,3 @@ Automatisch geprüft (Mac/Linux): Vertragstest, Vielfalt, Fairness (200 Seeds), 
 | PW5 | Drei Türen am iPhone | Wahl per Stickrichtung + A ist verständlich, obwohl das iPhone die gewählte Tür nicht zeigt (CHAOS-242) | | Notiz |
 | PW6 | iPad-Zone: Toaster-Timing, Schnapp den Käse, Bienenstock-Honig | Knöpfe in beiden Zonen gleichzeitig bedienbar | | Video |
 | PW7 | Partie mit Rotation am Mac oder auf der Apple TV | Pilotspiele erscheinen, Requisiten als Grundkörper sichtbar, kein Ruckeln beim Aufbau | | Log |
-||||||| c306265

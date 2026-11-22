@@ -5,6 +5,7 @@
  * `welcome`); für fremde Slots reichen Farbname und Symbol aus `PLAYER_SLOTS`.
  */
 import {
+  AI_BADGE,
   PLAYER_SLOTS,
   type ControllerBoardInfo,
   type GamePhaseName,
@@ -15,8 +16,13 @@ import {
 export const LOOK_AT_SCREEN = 'Schau auf den großen Bildschirm!';
 
 export type WaitingView =
-  /** Jemand anderes ist dran: dessen Farbe/Symbol groß. */
-  | { readonly kind: 'other-turn'; readonly slot: SlotNumber; readonly name: string }
+  /** Jemand anderes ist dran: dessen Farbe/Symbol groß; `ai` = KI-Platz (CHAOS-239). */
+  | {
+      readonly kind: 'other-turn';
+      readonly slot: SlotNumber;
+      readonly name: string;
+      readonly ai: boolean;
+    }
   /** Ich bin dran, aber gerade ohne Entscheidung (Würfel rollt, Figur läuft). */
   | { readonly kind: 'own-turn'; readonly slot: SlotNumber }
   | { readonly kind: 'minigame' }
@@ -54,7 +60,19 @@ export function describeWaiting(
   const active = board.activeSlot;
   if (active === null) return { kind: 'watch' };
   if (active === ownSlot) return { kind: 'own-turn', slot: active };
-  return { kind: 'other-turn', slot: active, name: slotName(active, players) };
+  // CHAOS-239: Neuere Server nennen Name und Platzart des Platzes am Zug.
+  const seat = board.activeSeat;
+  return {
+    kind: 'other-turn',
+    slot: active,
+    name: seat?.name ?? slotName(active, players),
+    ai: seat?.kind === 'ai',
+  };
+}
+
+/** „Schraubi ist dran“ bzw. bei KI „Schraubi (KI) ist dran“ (ADR-020 §7, CHAOS-239). */
+export function otherTurnHeadline(view: { readonly name: string; readonly ai: boolean }): string {
+  return view.ai ? `${view.name} (${AI_BADGE}) ist dran` : `${view.name} ist dran`;
 }
 
 /** „Runde 2/5“; vor der ersten Runde „Runde 1/5“. */
