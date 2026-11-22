@@ -1,0 +1,101 @@
+{
+  "phase": "lobby",
+  "lobby": {
+    "joinUrl": "http://192.168.0.2:8787/?code=AB12",
+    "joinCode": "AB12",
+    "settings": {
+      "rounds": 10,
+      "roundPresets": [
+        10,
+        16,
+        20
+      ],
+      "moreReactionTime": false,
+      "board": "wackelwald",
+      "boards": [
+        {
+          "id": "wackelwald",
+          "name": "Wackelwald",
+          "detail": "74 Felder",
+          "selected": true,
+          "random": false
+        },
+        {
+          "id": "zufall",
+          "name": "Zufall",
+          "detail": "Überraschung!",
+          "selected": false,
+          "random": true
+        }
+      ],
+      "minigames": [
+        {
+          "id": "sockenregen",
+          "title": "Sockenregen",
+          "blocked": false,
+          "favorite": false
+        },
+        {
+          "id": "pudding-gerangel",
+          "title": "Pudding-Gerangel",
+          "blocked": false,
+          "favorite": false
+        },
+        {
+          "id": "wackelturm",
+          "title": "Wackelturm",
+          "blocked": false,
+          "favorite": false
+        },
+        {
+          "id": "kuckucks-klatsche",
+          "title": "Kuckucks-Klatsche",
+          "blocked": false,
+          "favorite": false
+        },
+        {
+          "id": "kruemel-kehraus",
+          "title": "Krümel-Kehraus",
+          "blocked": false,
+          "favorite": false
+        }
+      ],
+      "minigameSummary": {
+        "short": "5 im Topf",
+        "long": "5 im Topf"
+      }
+    },
+    "galleryRevision": 0,
+    "players": [
+      {
+        "slot": 1,
+        "name": "Anna",
+        "color": "#0072B2",
+        "connected": true,
+        "ready": true,
+        "character": "raccoon",
+        "kind": "human",
+        "strength": null
+      },
+      {
+        "slot": 3,
+        "name": "KI Grün",
+        "color": "#009E73",
+        "connected": true,
+        "ready": true,
+        "character": null,
+        "kind": "ai",
+        "strength": "mittel"
+      }
+    ]
+  },
+  "board": null,
+  "minigame": null,
+  "final": null,
+  "pause": {
+    "paused": false,
+    "canPause": false,
+    "roundText": null,
+    "sounds": []
+  }
+}

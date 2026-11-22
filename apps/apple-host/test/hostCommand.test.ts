@@ -68,6 +68,26 @@ describe('parseHostCommand', () => {
     });
   });
 
+  it('liest configure mit KI-Platz (CHAOS-179)', () => {
+    expect(parseHostCommand('configure:aiSeat=3:mittel')).toEqual({
+      type: 'configure',
+      aiSeat: { seat: 3, strength: 'mittel' },
+    });
+    expect(parseHostCommand('configure:aiSeat=4:aus')).toEqual({
+      type: 'configure',
+      aiSeat: { seat: 4, strength: null },
+    });
+    for (const cmd of [
+      'configure:aiSeat=5:mittel',
+      'configure:aiSeat=0:mittel',
+      'configure:aiSeat=3:unfehlbar',
+      'configure:aiSeat=3',
+      'configure:aiSeat=3:mittel,aiSeat=4:leicht',
+    ]) {
+      expect(parseHostCommand(cmd)).toBeNull();
+    }
+  });
+
   it('liest configure mit Sperrliste und Favoriten (CHAOS-216)', () => {
     expect(
       parseHostCommand('configure:minigameBlocklist=wackelturm+sockenregen,minigameFavorites='),
