@@ -15,6 +15,7 @@ import {
   playedMinigames,
   step,
   viewClock,
+  type BoardDefinition,
   type GameCommand,
   type GameError,
   type GameEvent,
@@ -231,6 +232,8 @@ export class BoardGame {
   } | null = null;
 
   readonly seed: number;
+  /** Brett der Partie (für die Brett-KI, CHAOS-181: sichtbare Felder, Wege, Fallen). */
+  readonly board: BoardDefinition;
   /** Figur je Slot (kosmetisch, nicht Teil der Regeln). */
   private readonly characters: ReadonlyMap<Slot, CharacterId>;
   /** KI-Plätze dieser Partie (CHAOS-179). */
@@ -240,6 +243,7 @@ export class BoardGame {
     const board = getBoard(settings.boardId);
     if (!board) throw new Error(`Unbekanntes Brett: ${settings.boardId}`);
     this.seed = seed;
+    this.board = board;
     this.characters = new Map(players.map((player) => [player.slot, player.character]));
     this.aiSeats = new Map(
       players.flatMap((player) => (player.ai ? [[player.slot, player.ai] as const] : [])),

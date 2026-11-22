@@ -8,8 +8,9 @@
  */
 import { KOOP_MAX_TIER, rankByScore, teamPlacements } from '@chaos-party/minigame-sdk';
 import { avalancheAt, isCableEdge, isIce } from '../board/hazards.ts';
-import { activeNext } from '../board/rotation.ts';
-import { createRng, pickOne, type Rng } from '../rng.ts';
+import { decideBoardPrompt, type BoardDecisionPolicy } from '../ai/board.ts';
+import { sampleDelay, sampleRange, type DelayModel, type MsRange } from '../ai/timing.ts';
+import { createRng } from '../rng.ts';
 import type {
   BoardDefinition,
   BoardEventKind,
@@ -19,7 +20,6 @@ import type {
   MinigameOutcome,
   MinigameSpec,
   PlayerState,
-  Prompt,
   RankingEntry,
   RuleSet,
   Slot,
@@ -30,63 +30,24 @@ import { rankPlayers } from './economy.ts';
 import { ITEM_KINDS } from './items.ts';
 import { createGame, step } from './machine.ts';
 import { PLACEHOLDER_MINIGAME } from './minigame.ts';
-import {
-  BRACE_OPTION,
-  BUY_OPTION,
-  CANCEL_OPTION,
-  ROLL_OPTION,
-  SHIELD_OPTION,
-  SKIP_OPTION,
-} from './prompts.ts';
 import { BOARD_EVENT_KINDS } from './spaces.ts';
 
-/** Bereich [min, max] in ms, gleichverteilt. */
-export type MsRange = readonly [number, number];
+export type { DelayModel, LogNormalMs, MsRange } from '../ai/timing.ts';
+export { sampleDelay };
+export { TRAP_LOOKAHEAD } from '../ai/board.ts';
 
 /**
- * Rechtsschiefe Zeitverteilung (log-normal) wie bei menschlichen Reaktionszeiten: meist
- * um den Median, selten deutlich länger. `sigma` = Streuung des Logarithmus.
+ * Bots der Balance-Simulation: Brett-Entscheidungen wie die Live-KI ({@link BoardDecisionPolicy},
+ * `ai/board.ts`, CHAOS-181) plus feste Zeiten und Minispiel-Ergebnisse ohne echte Minispiele.
  */
-export interface LogNormalMs {
-  readonly medianMs: number;
-  readonly sigma: number;
-  /** Untergrenze (schneller geht es nicht: Wahrnehmung + Tippen). */
-  readonly minMs: number;
-}
-
-/** Zeitmodell: gleichverteilter Bereich oder log-normal. */
-export type DelayModel = MsRange | LogNormalMs;
-
-export interface BotPolicy {
-  /** Wahrscheinlichkeit, im Würfel-Prompt ein angebotenes Item einzusetzen. */
-  readonly itemUseChance: number;
-  /** Trophäe kaufen, wenn möglich. */
-  readonly buyTrophies: boolean;
-  /** Ziel des Münzklaus: reichster Mitspieler oder zufällig. */
-  readonly target: 'richest' | 'random';
+export interface BotPolicy extends BoardDecisionPolicy {
   /** Wahrscheinlichkeit, im Reaktionsfenster überhaupt zu reagieren. */
   readonly reactionChance: number;
   /** Reaktionszeit; liegt sie hinter der Frist, ist die Reaktion zu spät (`stale-prompt`). */
   readonly reactionDelayMs: DelayModel;
   /** Entscheidungszeit für alle anderen Prompts (Würfeln, Weg, Trophäe, Ziel). */
   readonly decisionMs: MsRange;
-  /**
-   * Wahrscheinlichkeit, an einer Verzweigung den Weg mit der kürzesten Strecke zur aktiven
-   * Trophäe zu nehmen (sonst zufällig). 0 = immer zufällig (bisheriges Verhalten).
-   */
-  readonly trophyPathChance: number;
-  /**
-   * Sichtbare Fallen (CHAOS-51, EXP-019): Wahrscheinlichkeit, an einer Verzweigung Wege zu
-   * meiden, auf denen in den nächsten `TRAP_LOOKAHEAD` Feldern eine fremde Falle liegt (nur
-   * wenn ein Weg ohne Falle bleibt). Wird vor der Trophäen-Wahl geprüft. 0 = Fallen sind
-   * egal bzw. unsichtbar (bisheriges Verhalten).
-   */
-  readonly avoidTrapChance: number;
-  /**
-   * Feste Wegwahl je Slot (CHAOS-196, EXP-037: Ist die Wegwahl fair?): `short` nimmt an jeder
-   * Gabel den Weg mit der kürzesten Strecke zurück zum Start, `long` den längsten. Geht vor
-   * Fallen und Trophäe und zieht keine Zufallszahl; Slots ohne Eintrag wählen wie bisher.
-   */
+  /** Feste Wegwahl je Slot (siehe `BoardDecisionPolicy.routes`); hier immer gesetzt. */
   readonly routes: Readonly<Partial<Record<Slot, 'short' | 'long'>>>;
   /**
    * Echte Minispiele (M3/M4): So lange nach Ende der Spielzeit meldet der „Host“ das Ergebnis
@@ -248,114 +209,6 @@ function counter<K extends string>(keys: readonly K[]): Record<K, number> {
   const result = {} as Record<K, number>;
   for (const key of keys) result[key] = 0;
   return result;
-}
-
-/** Zeit ziehen: Bereich gleichverteilt, log-normal per Box-Muller (beides seeded). */
-export function sampleDelay(rng: Rng, model: DelayModel): number {
-  if (!('medianMs' in model)) return inRange(rng, model);
-  const u1 = 1 - rng.next(); // (0, 1], damit log(u1) endlich bleibt
-  const u2 = rng.next();
-  const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-  return Math.max(Math.round(model.minMs), Math.round(model.medianMs * Math.exp(model.sigma * z)));
-}
-
-function inRange(rng: Rng, [min, max]: MsRange): number {
-  const lo = Math.max(0, Math.round(Math.min(min, max)));
-  const hi = Math.max(0, Math.round(Math.max(min, max)));
-  return rng.int(lo, hi);
-}
-
-/**
- * Schritte von `from` bis zum nächsten der `targets` entlang der Laufrichtung (BFS), mit der
- * Stellung der drehenden Felder in Runde `round` (CHAOS-199): Bots sehen das Karussell wie die
- * Spieler am Tisch.
- */
-function distanceTo(
-  board: BoardDefinition,
-  from: string,
-  targets: readonly string[],
-  round: number,
-): number {
-  const next = new Map(board.spaces.map((space) => [space.id, activeNext(board, space.id, round)]));
-  const seen = new Set([from]);
-  let frontier = [from];
-  for (let distance = 0; frontier.length > 0; distance++) {
-    if (frontier.some((id) => targets.includes(id))) return distance;
-    const following: string[] = [];
-    for (const id of frontier) {
-      for (const to of next.get(id) ?? []) {
-        if (!seen.has(to)) {
-          seen.add(to);
-          following.push(to);
-        }
-      }
-    }
-    frontier = following;
-  }
-  return Infinity;
-}
-
-/** So weit (Felder) schaut ein Bot an einer Verzweigung nach sichtbaren Fallen. */
-export const TRAP_LOOKAHEAD = 6;
-
-function choosePath(
-  candidates: readonly string[],
-  state: GameState,
-  board: BoardDefinition,
-  policy: BotPolicy,
-  rng: Rng,
-): string {
-  const route = state.prompt ? policy.routes[state.prompt.slot] : undefined;
-  if (route) {
-    const lengths = candidates.map((id) => distanceTo(board, id, [board.start], state.round));
-    const pick = route === 'short' ? Math.min(...lengths) : Math.max(...lengths);
-    return candidates[lengths.indexOf(pick)] ?? pickOne(rng, candidates);
-  }
-  let ids = candidates;
-  if (policy.avoidTrapChance > 0 && rng.next() < policy.avoidTrapChance) {
-    const slot = state.prompt?.slot;
-    const traps = state.traps.filter((trap) => trap.owner !== slot).map((trap) => trap.spaceId);
-    const safe = ids.filter((id) => distanceTo(board, id, traps, state.round) >= TRAP_LOOKAHEAD);
-    if (traps.length > 0 && safe.length > 0) ids = safe;
-  }
-  if (policy.trophyPathChance > 0 && rng.next() < policy.trophyPathChance) {
-    const distances = ids.map((id) => distanceTo(board, id, state.trophySpaces, state.round));
-    const best = Math.min(...distances);
-    const nearest = ids.filter((_, index) => distances[index] === best);
-    if (best !== Infinity && nearest.length > 0) return pickOne(rng, nearest);
-  }
-  return pickOne(rng, ids);
-}
-
-function decide(
-  prompt: Prompt,
-  state: GameState,
-  board: BoardDefinition,
-  policy: BotPolicy,
-  rng: Rng,
-): string {
-  const ids = prompt.options.map((o) => o.id);
-  switch (prompt.kind) {
-    case 'roll': {
-      const items = ids.filter((id) => id !== ROLL_OPTION);
-      if (items.length > 0 && rng.next() < policy.itemUseChance) return pickOne(rng, items);
-      return ROLL_OPTION;
-    }
-    case 'target': {
-      const targets = prompt.options.filter((o) => o.slot !== undefined);
-      if (targets.length === 0) return CANCEL_OPTION;
-      if (policy.target === 'random') return pickOne(rng, targets).id;
-      const coinsOf = (slot: Slot | undefined): number =>
-        state.players.find((p) => p.slot === slot)?.coins ?? 0;
-      return targets.reduce((best, o) => (coinsOf(o.slot) > coinsOf(best.slot) ? o : best)).id;
-    }
-    case 'path':
-      return choosePath(ids, state, board, policy, rng);
-    case 'trophy':
-      return policy.buyTrophies ? BUY_OPTION : SKIP_OPTION;
-    case 'reaction':
-      return ids.includes(SHIELD_OPTION) ? SHIELD_OPTION : BRACE_OPTION;
-  }
 }
 
 /** Eine Partie mit Bots zu Ende spielen und Kennzahlen sammeln. */
@@ -654,7 +507,7 @@ export function simulateGame(options: SimulationOptions): SimulationResult {
         ? state.players.find((p) => p.connected && !minigame.ready?.includes(p.slot))
         : undefined;
     if (prompt === null && waiting) {
-      const at = state.now + inRange(bot, policy.decisionMs);
+      const at = state.now + sampleRange(bot, policy.decisionMs);
       apply(step(state, { type: 'minigame-ready', slot: waiting.slot, at }), at);
       continue;
     }
@@ -672,9 +525,9 @@ export function simulateGame(options: SimulationOptions): SimulationResult {
     const delay =
       prompt.kind === 'reaction'
         ? sampleDelay(bot, policy.reactionDelayMs)
-        : inRange(bot, policy.decisionMs);
+        : sampleRange(bot, policy.decisionMs);
     const at = state.now + delay;
-    const option = decide(prompt, state, options.board, policy, bot);
+    const option = decideBoardPrompt(prompt, state, options.board, policy, bot);
     const result = step(state, {
       type: 'choose',
       slot: prompt.slot,
