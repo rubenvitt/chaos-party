@@ -152,6 +152,8 @@ Stabilität: fester Seed, Kamera nur über `stepFrames` bewegt (Feder mit festen
 
 **Automatische Prüfung (CHAOS-72):** `expectStableWrapping(locator)` aus `tests/e2e/fixtures/wrapping.ts` misst jeden Text unter dem Locator bei 0 und ±0,3 px Zeichenabstand: Zeilenzahl und senkrechte Lage (Toleranz 2 px). Ändert sich eins davon, schlägt der Test vor dem Screenshot fehl und nennt den Text. `controller-minispiel.spec.ts` ruft sie vor jedem Screenshot auf; bei neuen Screenshot-Tests mit Text ebenfalls davorsetzen.
 
+**Keine Bildvergleiche aus `openDevice`-Geräten (CHAOS-233):** Telefone und iPads aus `openDevice` laufen im Geräte-Browser ohne GPU (`deviceBrowser`, `--disable-gpu`). Dort rastert Chromium Text auf der CPU, und das Schriftbild weicht je Rechner leicht ab: Das Handy-Bild aus `minispiel-spielformen.spec.ts` lag im Cloud-Container in jedem Lauf um genau 4 419 Pixel (3 %) neben der CI-Baseline, während alle Bilder der Projekte `iphone-hoch`/`-quer` dort passten. In Specs mit `openDevice` prüft deshalb der DOM die Controller; Controller-Bilder entstehen in den Controller-Projekten mit `FakeSession` (etwa `minispiel-intro-team` in `controller-minispiel.spec.ts`). Host-Bilder mit Minispiel-Anleitung erst aufnehmen, wenn die Bühne steht (`__chaosMinigame.ready`, Pause-Knopf sichtbar): Vorher fehlt der Pause-Knopf und die Arena ist noch nicht da. Geht es nur um die Karte, die 3D-Fläche ausblenden (`.minigame-screen canvas { visibility: hidden; }`, wie `m3-minispiel-anzeige.spec.ts`).
+
 Baseline bewusst aktualisieren (nur wenn sich die Oberfläche absichtlich geändert hat):
 
 1. Test laufen lassen; bei Abweichung liegen `*-actual.png`, `*-expected.png` und `*-diff.png` unter `test-results/`. Prüfen, ob die Änderung gewollt ist.
