@@ -150,7 +150,9 @@ export function checkPropCatalog(manifest: AssetManifest, assetsDir: string): st
     errors.push(`Asset „${id}“: Art prop, aber nicht im Requisiten-Katalog (props.ts)`);
   }
   for (const [game, sets] of Object.entries(MINIGAME_PROP_SETS)) {
-    if (!/^MG-\d{3}$/.test(game)) errors.push(`Minispiel „${game}“: Nummer bitte als MG-000`);
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(game)) {
+      errors.push(`Minispiel „${game}“: Schlüssel ist die Minispiel-ID (klein, mit Bindestrich)`);
+    }
     if (sets.length === 0) errors.push(`Minispiel „${game}“: keine Requisiten-Sets`);
   }
   return errors;

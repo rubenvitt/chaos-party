@@ -41,10 +41,17 @@ if [ -f "$assets/bretter/wackelwald/brett.usdz" ] && [ -f "$assets/bretter/wacke
     cp "$board/brett.usdz" "$board/brett.szene.json" "$board/brett.instanzen.json" "$out/szene/bretter/$id/"
   done
   cp "$assets"/figuren/*.usdz "$assets"/figuren/*.clips.json "$out/szene/figuren/"
+  # Requisiten der Minispiele (CHAOS-221/237): ohne sie zeichnet die App die Grundkörper des JS-Kerns.
+  if [ -d "$assets/requisiten" ]; then
+    mkdir -p "$out/szene/requisiten"
+    cp "$assets"/requisiten/*.usdz "$out/szene/requisiten/"
+  else
+    echo "prepare.sh: requisiten/ fehlt in $assets – Requisiten als Grundkörper" >&2
+  fi
 elif [ "${OHNE_ASSETS:-0}" = 1 ]; then
   echo "prepare.sh: keine USDZ-Assets in $assets – OHNE_ASSETS=1, die App zeichnet Grundkörper" >&2
 else
   echo "prepare.sh: USDZ-Assets fehlen in $assets (erst \`pnpm build:apple-assets\`, oder OHNE_ASSETS=1)" >&2
   exit 1
 fi
-echo "payload: $(du -sh "$out" | cut -f1) (JS-Kern, Havok, Controller, Porträts, $(find "$out/sounds" -name '*.mp3' | wc -l | tr -d ' ') Klänge$([ -d "$out/szene" ] && echo ", Brett und Figuren"))"
+echo "payload: $(du -sh "$out" | cut -f1) (JS-Kern, Havok, Controller, Porträts, $(find "$out/sounds" -name '*.mp3' | wc -l | tr -d ' ') Klänge$([ -d "$out/szene" ] && echo ", Brett, Figuren und Requisiten"))"

@@ -71,12 +71,14 @@ final class Stage {
         // Jede Figur einmal laden; Brett, Minispiel und Podest klonen daraus (CHAOS-191).
         let models = await FigureModel.loadAll(folder: folder)
         self.models = models
+        // Requisiten der Minispiele (CHAOS-237): klein (8–108 KiB je Stück), darum alle beim Start.
+        let props = await PropLibrary.loadAll(folder: folder)
         if let scene = await loadBoard(Self.defaultBoardId) {
             board = scene
             primitives.boardEnabled = false
             show(board: true)
         }
-        loadMinigame(models: models)
+        loadMinigame(models: models, props: props)
         await warmUp()
     }
 
@@ -153,8 +155,8 @@ final class Stage {
     }
 
     /// Minispiel-Bühne (CHAOS-144) und Podest mit den schon geladenen Figuren, damit der Wechsel Brett → Minispiel nicht ruckelt.
-    private func loadMinigame(models: [String: FigureModel]) {
-        let scene = MinigameScene(models: models, grass: board?.grass ?? [], sky: board?.sky, skyExponent: board?.skyExponent ?? 0,
+    private func loadMinigame(models: [String: FigureModel], props: PropLibrary = PropLibrary()) {
+        let scene = MinigameScene(models: models, props: props, grass: board?.grass ?? [], sky: board?.sky, skyExponent: board?.skyExponent ?? 0,
                                   clearColor: board?.clearColor ?? CGColor(red: 0.83, green: 0.9, blue: 0.96, alpha: 1))
         scene.root.isEnabled = false
         scene.onStage = onMinigameStage

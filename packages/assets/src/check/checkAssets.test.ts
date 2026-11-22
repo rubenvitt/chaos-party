@@ -441,11 +441,14 @@ describe('Requisiten (CHAOS-88)', () => {
       },
     });
     const errors = result.errors.join('\n');
-    // MG-001 hat 7 Requisiten (Fangen + Garten), MG-023 ist klein (nur Rempeln, < 100 KiB).
-    expect(errors).toMatch(/Minispiel MG-101: Requisiten [\d.]+ KiB > Budget 100\.0 KiB/);
-    expect(errors).toMatch(/Minispiel MG-011: Requisiten \d+ Dreiecke > Budget 3000/);
-    expect(errors).toMatch(/Minispiel MG-001: 7 Requisiten > Budget 6/);
-    expect(errors).not.toMatch(/MG-023: Requisiten [\d.]+ KiB/);
+    // Nussregen (MG-001) hat 7 Requisiten (Fangen + Garten), Eiswürfel-Sumo (MG-023) ist klein
+    // (nur Rempeln, < 100 KiB).
+    expect(errors).toMatch(
+      /Minispiel bienenstock-honig: Requisiten [\d.]+ KiB > Budget 100\.0 KiB/,
+    );
+    expect(errors).toMatch(/Minispiel rasensprenger-rodeo: Requisiten \d+ Dreiecke > Budget 3000/);
+    expect(errors).toMatch(/Minispiel nussregen-netz: 7 Requisiten > Budget 6/);
+    expect(errors).not.toMatch(/eiswuerfel-sumo: Requisiten [\d.]+ KiB/);
   });
 
   it('Höhe im Manifest muss zur Datei passen', async () => {

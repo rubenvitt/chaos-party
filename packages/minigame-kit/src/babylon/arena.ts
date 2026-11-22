@@ -5,7 +5,8 @@
  * in der Natur-Kulisse des Hosts (ADR-014), ohne Look auf einem einfarbigen Boden.
  *
  * Eine Vorlage ist nur die Spielfläche. Requisiten, Gegner und alles, was das Spiel ausmacht,
- * baut das Spiel selbst (README §5.5); Requisiten-Sets je Familie kommen mit CHAOS-88.
+ * baut das Spiel selbst (README §5.5). Mit `kulisse` stellt die Vorlage die drei Requisiten des
+ * Orts (Set `kulisse-<ort>`, CHAOS-222/237) als Dekoration hinter die Fläche.
  */
 import { CreateBox } from '@babylonjs/core/Meshes/Builders/boxBuilder.js';
 import { CreateCylinder } from '@babylonjs/core/Meshes/Builders/cylinderBuilder.js';
@@ -107,7 +108,64 @@ export interface ArenaOptions {
   readonly players?: readonly MinigamePlayer[];
   /** Kulisse über `stage.backdrop` gleich mit bauen (Standard ja). */
   readonly backdrop?: boolean;
+  /**
+   * Requisiten des Orts hinter die Fläche stellen (CHAOS-237, Standard nein). Das Set
+   * `kulisse-<ort>` muss in `MINIGAME_PROP_SETS` des Spiels stehen, sonst kommen Grundkörper.
+   */
+  readonly kulisse?: boolean;
 }
+
+/** Ein Kulissen-Requisit: id und Maße des Modells (Breite, Höhe, Tiefe) für den Rückfall. */
+export interface KulissenRequisit {
+  readonly id: string;
+  readonly size: readonly [number, number, number];
+  readonly color: string;
+}
+
+/**
+ * Kulissen-Requisiten je Ort, wie die Sets `kulisse-<ort>` in `@chaos-party/assets` (der
+ * Baukasten hängt nicht von den Assets ab; `babylon.test.ts` hält beide gleich).
+ */
+export const KULISSE: Readonly<Record<Ort, readonly KulissenRequisit[]>> = {
+  garten: [
+    { id: 'zaunfeld', size: [1.2, 0.83, 0.08], color: '#f3ead2' },
+    { id: 'blumentopf', size: [0.46, 0.73, 0.46], color: '#c8643c' },
+    { id: 'giesskanne', size: [0.86, 0.63, 0.46], color: '#9fb3bf' },
+  ],
+  kueche: [
+    { id: 'kochtopf', size: [0.82, 0.48, 0.66], color: '#c9ced6' },
+    { id: 'milchkanne', size: [0.54, 0.66, 0.46], color: '#c9ced6' },
+    { id: 'holzloeffel', size: [0.18, 0.07, 1], color: '#c98b4f' },
+  ],
+  bad: [
+    { id: 'badewanne', size: [1.7, 0.94, 0.8], color: '#ffffff' },
+    { id: 'quietscheente', size: [0.4, 0.5, 0.62], color: '#ffd43b' },
+    { id: 'seifenstueck', size: [0.7, 0.22, 0.52], color: '#ff9fc4' },
+  ],
+  teich: [
+    { id: 'seerose', size: [0.96, 0.23, 0.96], color: '#4f9a3a' },
+    { id: 'schilf', size: [0.6, 1.45, 0.58], color: '#7a9a3a' },
+    { id: 'steg', size: [1.22, 0.69, 0.8], color: '#a8784a' },
+  ],
+  spielzimmer: [
+    { id: 'bauklotz', size: [0.4, 1.07, 0.36], color: '#ff6b6b' },
+    { id: 'spielball', size: [0.6, 0.63, 0.6], color: '#4dabf7' },
+    { id: 'spielkiste', size: [0.96, 0.57, 0.92], color: '#c98b4f' },
+  ],
+  wald: [
+    { id: 'baumstumpf', size: [1.12, 0.62, 1.06], color: '#8a5a3c' },
+    { id: 'fliegenpilz', size: [0.74, 0.62, 0.6], color: '#e8574d' },
+    { id: 'ast', size: [1.26, 0.28, 1.06], color: '#7a5230' },
+  ],
+  dachboden: [
+    { id: 'truhe', size: [0.9, 0.57, 0.6], color: '#8a5a3c' },
+    { id: 'koffer', size: [0.78, 0.67, 0.26], color: '#a0522d' },
+    { id: 'lampe', size: [0.42, 0.62, 0.32], color: '#d9a441' },
+  ],
+};
+
+/** Größe der Kulissen-Requisiten neben einer Arena (Modelle sind in echter Größe, Figuren ≈ 1,6 m). */
+const KULISSE_SCALE = 1.6;
 
 const SLAB = 0.3;
 
@@ -253,7 +311,44 @@ export async function buildArena(
       break;
     }
   }
+  if (options.kulisse) await placeKulisse(stage, layout, options.ort);
   return { root, tiles, palette };
+}
+
+/**
+ * Drei Requisiten des Orts hinter der Fläche (+Z, die Kameras schauen meist von −Z): links,
+ * rechts und etwas zur Mitte versetzt, außerhalb von Rand und Bande, innerhalb der freien
+ * Fläche der Natur-Kulisse. Statisch und ohne Rolle (Kulisse, ADR-019 Nachtrag 7).
+ */
+async function placeKulisse(stage: MinigameStage, layout: ArenaLayout, ort: Ort): Promise<void> {
+  const halfX = layout.bounds.kind === 'rect' ? layout.bounds.halfX : layout.bounds.radius;
+  const halfZ = layout.bounds.kind === 'rect' ? layout.bounds.halfZ : layout.bounds.radius;
+  const back = halfZ + 1.1;
+  const spots: readonly [number, number, number][] = [
+    [-(halfX + 0.9), back, 0.5],
+    [halfX + 0.9, back - 0.2, -0.4],
+    [halfX * 0.35, back + 0.3, 0.2],
+  ];
+  for (const [index, item] of KULISSE[ort].entries()) {
+    const spot = spots[index];
+    if (!spot) break;
+    await stage.pace();
+    const prop = stage.prop(item.id, {
+      fallback: (root) => {
+        const [width, height, depth] = item.size;
+        const mesh = CreateBox(
+          stage.name('kulisse', item.id),
+          { width, height, depth },
+          stage.scene,
+        );
+        stage.add(mesh, item.color, { finish: 'matt', parent: root }).position.y = height / 2;
+      },
+    });
+    // Auf der Wiese neben der Fläche (sie liegt wie in `buildArena` um die Platte tiefer).
+    prop.root.position.set(spot[0], layout.edge ? 0 : -SLAB, spot[1]);
+    prop.root.rotation.y = Math.PI + spot[2];
+    prop.root.scaling.setAll(KULISSE_SCALE);
+  }
 }
 
 async function buildBorder(

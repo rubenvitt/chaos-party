@@ -427,6 +427,31 @@ const MINIGAME_PLAY: MinigameState = {
       alpha: 0.4,
       twoSided: true,
     },
+    {
+      // Grundkörper-Rückfall eines Requisits (CHAOS-237): nur ohne `requisiten/honigtopf.usdz`.
+      id: 'honig-topf-1#88',
+      shape: 'cylinder',
+      pos: [-4.2, 0.24, 3.1],
+      rot: [0, 0, 0, 1],
+      size: [0.5, 0.48, 0.5],
+      color: '#0072B2',
+      role: 'honigtopf',
+      key: '1',
+      prop: 'honigtopf#87',
+    },
+  ],
+  props: [
+    {
+      id: 'honigtopf#87',
+      prop: 'honigtopf',
+      pos: [-4.2, 0, 3.1],
+      rot: [0, 0, 0, 1],
+      scale: [1, 1, 1],
+      visible: true,
+      accent: '#0072B2',
+      role: 'honigtopf',
+      key: '1',
+    },
   ],
   hud: '48 s · Anna 3 · Ben 1',
 };

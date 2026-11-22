@@ -1,12 +1,16 @@
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial.js';
+import { CreateBox } from '@babylonjs/core/Meshes/Builders/boxBuilder.js';
+import { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
 import { createMinigameRng, type Slot } from '@chaos-party/minigame-sdk';
 import type {
   CharacterHandle,
   LookArea,
   MinigameContext,
   MinigameLook,
+  PropFactory,
+  PropTint,
 } from '@chaos-party/minigame-sdk/babylon';
-import { visualOf } from '@chaos-party/minigame-sdk/babylon';
+import { propOf, visualOf } from '@chaos-party/minigame-sdk/babylon';
 import {
   EMPTY_RESIDUE,
   createHeadlessScene,
@@ -18,7 +22,8 @@ import {
 import { afterEach, describe, expect, it } from 'vitest';
 import { arenaLayout, type ArenaSpec } from '../arena.ts';
 import { KAMERAS, ORTE } from '../steckbrief.ts';
-import { PLACES, buildArena, mix } from './arena.ts';
+import { PROP_SETS, placePropSet } from '../../../assets/src/props.ts';
+import { KULISSE, PLACES, buildArena, mix } from './arena.ts';
 import { createSlotBadge, createSlotRing, createStunStars, symbolMesh } from './badges.ts';
 import { createCamera } from './camera.ts';
 import {
@@ -36,7 +41,7 @@ afterEach(() => {
   for (const cleanup of cleanups.splice(0)) cleanup();
 });
 
-function context(look?: MinigameLook, testMode = true): MinigameContext {
+function context(look?: MinigameLook, testMode = true, props?: PropFactory): MinigameContext {
   const headless = createHeadlessScene();
   cleanups.push(() => {
     headless.dispose();
@@ -49,6 +54,7 @@ function context(look?: MinigameLook, testMode = true): MinigameContext {
     timeLimitMs: 10_000,
     fx: createRecordingFx(),
     characters: createTestCharacters(),
+    ...(props ? { props } : {}),
     testMode,
     ...(look ? { look } : {}),
     pace: () => Promise.resolve(),
@@ -112,7 +118,115 @@ describe('Bühne', () => {
   });
 });
 
+describe('Requisiten (CHAOS-237)', () => {
+  it('ohne Modell: Grundkörper unter der gekennzeichneten Wurzel, tint färbt sie', () => {
+    const ctx = context();
+    const stage = new MinigameStage(ctx, 'test');
+    let built: TransformNode | null = null;
+    const prop = stage.prop('toaster', {
+      role: 'toaster',
+      key: 2,
+      akzent: '#0072b2',
+      fallback: (root) => {
+        built = root;
+        const body = stage.add(
+          CreateBox(stage.name('gehaeuse'), { size: 1 }, ctx.scene),
+          '#888888',
+        );
+        body.parent = root;
+        return { akzent: [body] };
+      },
+    });
+    expect(prop.model).toBeNull();
+    expect(built).toBe(prop.root);
+    expect(visualOf(prop.root)).toEqual({ role: 'toaster', key: '2' });
+    const mesh = prop.root.getChildMeshes()[0];
+    if (!mesh) throw new Error('kein Grundkörper');
+    expect(propOf(mesh)?.node).toBe(prop.root);
+    expect(propOf(mesh)?.tag).toEqual({ id: 'toaster', tints: { akzent: '#0072b2' } });
+    expect((mesh.material as StandardMaterial).diffuseColor.toHexString()).toBe('#0072B2');
+    prop.tint('akzent', '#e69f00');
+    expect((mesh.material as StandardMaterial).diffuseColor.toHexString()).toBe('#E69F00');
+    expect(propOf(mesh)?.tag.tints).toEqual({ akzent: '#e69f00' });
+    stage.dispose();
+    expect(sceneResidue(ctx.scene)).toEqual(EMPTY_RESIDUE);
+  });
+
+  it('mit Modell: Modell unter der Wurzel, kein Grundkörper, tint geht ans Modell', () => {
+    const tints: [string, PropTint, string][] = [];
+    let disposed = 0;
+    const factory: PropFactory = {
+      create: (scene, id) => {
+        if (id !== 'toast') return null;
+        const root = new TransformNode(`modell-${id}`, scene);
+        return {
+          id,
+          root,
+          tint: (material, hex) => tints.push([id, material, hex]),
+          dispose: () => {
+            disposed += 1;
+            root.dispose();
+          },
+        };
+      },
+    };
+    const ctx = context(undefined, true, factory);
+    const stage = new MinigameStage(ctx, 'test');
+    let fallbacks = 0;
+    const toast = stage.prop('toast', {
+      zustand: '#f3e2b8',
+      fallback: () => {
+        fallbacks += 1;
+      },
+    });
+    expect(toast.model).not.toBeNull();
+    expect(toast.model?.root.parent).toBe(toast.root);
+    expect(fallbacks).toBe(0);
+    toast.tint('zustand', '#d08a2e');
+    toast.tint('zustand', '#d08a2e');
+    expect(tints).toEqual([
+      ['toast', 'zustand', '#f3e2b8'],
+      ['toast', 'zustand', '#d08a2e'],
+    ]);
+    // Unbekanntes Requisit: der Host liefert keins, das Spiel bekommt seine Grundkörper.
+    stage.prop('eichel', {
+      fallback: () => {
+        fallbacks += 1;
+      },
+    });
+    expect(fallbacks).toBe(1);
+    stage.dispose();
+    expect(disposed).toBe(1);
+    expect(sceneResidue(ctx.scene)).toEqual(EMPTY_RESIDUE);
+  });
+});
+
 describe('Arena-Vorlagen', () => {
+  it('Kulissen-Requisiten je Ort wie die Sets in @chaos-party/assets', () => {
+    for (const ort of ORTE) {
+      expect(KULISSE[ort].map((item) => item.id)).toEqual([...PROP_SETS[placePropSet(ort)].props]);
+    }
+  });
+
+  it('stellt mit kulisse die drei Requisiten des Orts hinter die Fläche', async () => {
+    const ctx = context();
+    const stage = new MinigameStage(ctx, 'arena');
+    const layout = arenaLayout({ form: 'eckig', halfX: 6, halfZ: 4 });
+    await buildArena(stage, layout, { ort: 'kueche', kulisse: true });
+    const roots = ctx.scene.transformNodes.filter((node) => propOf(node)?.node === node);
+    expect(roots.map((node) => propOf(node)?.tag.id)).toEqual([
+      'kochtopf',
+      'milchkanne',
+      'holzloeffel',
+    ]);
+    for (const root of roots) {
+      expect(root.position.z).toBeGreaterThan(4);
+      expect(visualOf(root)).toBeUndefined();
+    }
+    stage.dispose();
+    expect(sceneResidue(ctx.scene)).toEqual(EMPTY_RESIDUE);
+  });
+
   it.each(SPECS.map((spec) => [spec.form, spec] as const))(
     '%s baut sich an jedem Ort und hinterlässt nichts',
     async (_form, spec) => {

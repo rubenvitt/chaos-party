@@ -1,15 +1,16 @@
 /**
  * Toaster-Timing (MG-033) – Ansicht: vier Arbeitsplatten in der Küche (Eigenbereiche), feste
- * Kamera von vorn. Je Slot ein Toaster in Slot-Farbe, dahinter die Figur. Der Toast färbt sich
- * mit der Bräunung, springt beim Drücken hoch; Verkohltes qualmt. Logik in `logic.ts`.
+ * Kamera von vorn. Je Slot ein Toaster (Requisit `toaster`, Zierstreifen in Slot-Farbe), dahinter
+ * die Figur. Der Toast (Requisit `toast`) färbt sich mit der Bräunung, springt beim Drücken hoch;
+ * Verkohltes qualmt. Logik in `logic.ts`.
  */
 import { CreateBox } from '@babylonjs/core/Meshes/Builders/boxBuilder.js';
-import type { Mesh } from '@babylonjs/core/Meshes/mesh.js';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
 import { arenaLayout, type Zone } from '@chaos-party/minigame-kit';
 import {
   MinigameStage,
   SlotFigure,
+  type StageProp,
   buildArena,
   celebrateFigures,
   createCamera,
@@ -32,13 +33,15 @@ const STATUS: Record<ToastResult, string> = {
 const BREAD = { raw: '#f3e2b8', golden: '#d08a2e', coal: '#2e1e14' } as const;
 const SHADES = 10;
 const POP_S = 0.55;
-const TOAST_Y = 0.95;
+/** Requisiten in Spielgröße: Toaster ≈ 1,5 m breit (Modell 0,86 m). */
+const SCALE = 1.75;
+/** Unterkante des Toasts im Schlitz (Welt); der Toaster ist ≈ 1,1 m hoch. */
+const TOAST_Y = 0.5;
 
 interface Station {
   readonly zone: Zone;
   readonly toaster: TransformNode;
-  readonly toast: TransformNode;
-  readonly bread: Mesh;
+  readonly toast: StageProp;
   figure: SlotFigure;
   /** Seit wann der Toast in der Luft ist (`null` = steckt oder weg). */
   poppedAt: number | null;
@@ -73,7 +76,7 @@ class ToasterTiming implements Sdk.Minigame {
       position: { x: 0, y: 10.5, z: -7.6 },
       target: { x: 0, y: 0.6, z: 0.5 },
     });
-    await buildArena(stage, ARENA, { ort: 'kueche', players: ctx.players });
+    await buildArena(stage, ARENA, { ort: 'kueche', players: ctx.players, kulisse: true });
     for (const [index, player] of ctx.players.entries()) {
       const zone = ARENA.zones[index];
       if (!zone) continue;
@@ -176,11 +179,11 @@ class ToasterTiming implements Sdk.Minigame {
     for (const toaster of logic.toasters) {
       const station = this.stations.get(toaster.slot);
       if (!station) continue;
-      const { toast, bread } = station;
+      const toast = station.toast.root;
       const popped = station.poppedAt === null ? null : now - station.poppedAt;
       toast.setEnabled(toaster.loaded || (popped !== null && popped < POP_S));
       const browning = toaster.loaded ? toaster.browning : (toaster.last?.browning ?? 0);
-      bread.material = stage.material(breadColor(browning), { finish: 'matt' });
+      station.toast.tint('zustand', breadColor(browning), { finish: 'matt' });
       const arc = popped === null ? 0 : Math.sin(Math.min(1, popped / POP_S) * Math.PI) * 1.6;
       toast.position.y = TOAST_Y + (toaster.loaded ? 0 : 0.4) + arc;
       const nervous = toaster.loaded && toaster.browning > TOASTER_RULES.golden + 0.1;
@@ -200,40 +203,51 @@ class ToasterTiming implements Sdk.Minigame {
     zone: Zone,
   ): Promise<Station> {
     const { scene } = stage;
-    const toaster = stage.node('toaster', 'toaster', player.slot);
-    toaster.position.set(zone.x, 0, zone.z - 0.3);
-    const body = CreateBox(
-      stage.name('gehaeuse', player.slot),
-      { width: 1.5, height: 1, depth: 0.8 },
-      scene,
-    );
-    stage.add(body, player.color, { finish: 'lack', parent: toaster }).position.y = 0.5;
-    const top = CreateBox(
-      stage.name('deckel', player.slot),
-      { width: 1.4, height: 0.08, depth: 0.7 },
-      scene,
-    );
-    stage.add(top, '#c9ced6', { finish: 'metall', parent: toaster }).position.y = 1.02;
-    const lever = CreateBox(
-      stage.name('hebel', player.slot),
-      { width: 0.12, height: 0.3, depth: 0.2 },
-      scene,
-    );
-    const leverMesh = stage.add(lever, '#3b3b44', { parent: toaster });
-    leverMesh.position.set(0.82, 0.6, 0);
+    const box = (name: string, size: readonly [number, number, number], parent: TransformNode) => {
+      const [width, height, depth] = size;
+      const mesh = CreateBox(stage.name(name, player.slot), { width, height, depth }, scene);
+      mesh.parent = parent;
+      return mesh;
+    };
+    // Grundkörper in Modell-Maßen (Rückfall ohne Requisiten-Modell).
+    const toaster = stage.prop('toaster', {
+      role: 'toaster',
+      key: player.slot,
+      akzent: player.color,
+      fallback: (root) => {
+        const body = stage.add(box('gehaeuse', [0.86, 0.57, 0.46], root), player.color);
+        body.position.y = 0.285;
+        const top = box('deckel', [0.8, 0.05, 0.4], root);
+        stage.add(top, '#c9ced6', { finish: 'metall' }).position.y = 0.6;
+        const lever = stage.add(box('hebel', [0.07, 0.17, 0.11], root), '#3b3b44');
+        lever.position.set(0.47, 0.34, 0);
+        return { akzent: [body] };
+      },
+    });
+    toaster.root.position.set(zone.x, 0, zone.z - 0.3);
+    // Vorderseite (+Z im Modell) zur Kamera.
+    toaster.root.rotation.y = Math.PI;
+    toaster.root.scaling.setAll(SCALE);
     await stage.pace();
-    const holder = stage.node('toast', 'toast', player.slot);
-    holder.position.set(zone.x, 0, zone.z - 0.3);
-    const bread = CreateBox(
-      stage.name('brot', player.slot),
-      { width: 1.05, height: 0.9, depth: 0.24 },
-      scene,
-    );
-    stage.add(bread, BREAD.raw, { finish: 'matt', parent: holder });
-    holder.setEnabled(false);
+    const toast = stage.prop('toast', {
+      role: 'toast',
+      key: player.slot,
+      fallback: (root) => {
+        const bread = stage.add(box('brot', [0.38, 0.44, 0.1], root), BREAD.raw, {
+          finish: 'matt',
+        });
+        bread.position.y = 0.22;
+        return { zustand: [bread] };
+      },
+    });
+    toast.tint('zustand', BREAD.raw, { finish: 'matt' });
+    toast.root.position.set(zone.x, TOAST_Y, zone.z - 0.3);
+    toast.root.rotation.y = Math.PI;
+    toast.root.scaling.setAll(SCALE);
+    toast.root.setEnabled(false);
     const figure = await SlotFigure.create(stage, player, { badgeHeight: 2.2 });
     figure.place(zone.x, zone.z + 0.8, Math.PI);
-    return { zone, toaster, toast: holder, bread, figure, poppedAt: null, burntAt: -10 };
+    return { zone, toaster: toaster.root, toast, figure, poppedAt: null, burntAt: -10 };
   }
 }
 

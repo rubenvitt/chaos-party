@@ -912,7 +912,7 @@ Automatisch geprüft (Linux): Zuteilung, Ersatz zu zweit und zu dritt, Prüfung 
 
 **Stand:** 2026-11-21 · **Aufgabe:** CHAOS-221 · **Anleitung:** [`apple-assets.md`](apple-assets.md)
 
-Automatisch geprüft (Linux, ohne Mac): 42 Requisiten entstehen mit `pnpm build:apple-assets --nur=requisiten`; usd-core findet keine Fehler; Boden, Mitte, Höhe, Materialnamen, Deckkraft und Laufzeit-Materialien wie im GLB (`check_usdz.py`); Herkunft in `herkunft.json`, Budget in `pnpm check:assets`; USDZ in Blender importiert sehen aus wie die GLBs (`docs/screenshots/chaos221-requisiten-usdz.jpg`). **Nicht** automatisch prüfbar: ob RealityKit alles lädt (`check_realitykit.swift` läuft nur am Mac und ist für die Requisiten noch nie gelaufen), wie Metall und Glas in RealityKit wirken. Eingebunden in die App sind die Requisiten noch nicht (CHAOS-91).
+Automatisch geprüft (Linux, ohne Mac): 42 Requisiten entstehen mit `pnpm build:apple-assets --nur=requisiten`; usd-core findet keine Fehler; Boden, Mitte, Höhe, Materialnamen, Deckkraft und Laufzeit-Materialien wie im GLB (`check_usdz.py`); Herkunft in `herkunft.json`, Budget in `pnpm check:assets`; USDZ in Blender importiert sehen aus wie die GLBs (`docs/screenshots/chaos221-requisiten-usdz.jpg`). **Nicht** automatisch prüfbar: ob RealityKit alles lädt (`check_realitykit.swift` läuft nur am Mac und ist für die Requisiten noch nie gelaufen), wie Metall und Glas in RealityKit wirken. Eingebunden in die App seit CHAOS-237 (§52).
 
 | ID  | Schritt | Erwartung | Ergebnis | Nachweis |
 | --- | ------- | --------- | -------- | -------- |
@@ -977,7 +977,7 @@ Automatisch geprüft (Mac/Linux): Vertragstest, Vielfalt, Fairness (200 Seeds), 
 | PW4 | Matschmaler | Eigene Felder auch ohne Farbe am Muster erkennbar | | Foto |
 | PW5 | Drei Türen am iPhone | Wahl per Stickrichtung + A ist verständlich; das iPhone zeigt Ziel und gewählte Tür (CHAOS-242, siehe §51) | | Notiz |
 | PW6 | iPad-Zone: Toaster-Timing, Schnapp den Käse, Bienenstock-Honig | Knöpfe in beiden Zonen gleichzeitig bedienbar | | Video |
-| PW7 | Partie mit Rotation am Mac oder auf der Apple TV | Pilotspiele erscheinen, Requisiten als Grundkörper sichtbar, kein Ruckeln beim Aufbau | | Log |
+| PW7 | Partie mit Rotation am Mac oder auf der Apple TV | Pilotspiele erscheinen, Requisiten als Modelle sichtbar (seit CHAOS-237, §52), kein Ruckeln beim Aufbau | | Log |
 
 ## 51. Geheime Wahl: private Rückmeldung am eigenen Controller (für CHAOS-242)
 
@@ -990,3 +990,16 @@ Automatisch geprüft (Linux): SDK-Prüfung `checkSecret` und Laufzeit (Wechsel j
 | GW1 | Drei Türen, zwei iPhones (Browser) und die native App: Stick nach links/oben/rechts, dann A | Die Tür unter dem Daumen ist gestrichelt markiert, nach A farbig gefüllt („gewählt“); nach dem Aufdecken bleibt sie stehen, die anderen sind blass | | Video |
 | GW2 | Gleichzeitig Fernseher und das Handy der anderen Person ansehen | Fernseher zeigt nur den Haken über der Figur, das andere Handy nur die eigene (leere) Wahl | | Foto |
 | GW3 | Geteiltes iPad, zwei Zonen | Jede Zone zeigt ihre Wahl unter dem Kopfstreifen; Stick und A gehen auch unter der Leiste; die Nachbarin kann mitlesen (bewusst, README §7 Nr. 4) | | Video |
+
+## 52. Requisiten im Minispiel: PC und Apple-Host (für CHAOS-237)
+
+**Stand:** 2026-11-22 · **Aufgabe:** CHAOS-237 · **Entscheidung:** ADR-019 Nachtrag 8, ADR-021 Nachtrag 1 · **Vertrag:** [`apps/apple-host/CONTRACT.md`](../apps/apple-host/CONTRACT.md) (Minispiel-Darstellung)
+
+Automatisch geprüft (Linux): Browser-Host lädt je Spiel nur seine Sets, färbt `akzent`/`zustand` je Requisit getrennt, räumt auf (`apps/host/src/minigame/props.test.ts`, NullEngine); Baukasten `stage.prop` mit und ohne Modell (`babylon.test.ts`); Headless-Kern des Apple-Hosts nennt je Pilotspiel seine Requisiten mit Lage, Farben und Rolle, Grundkörper zeigen auf ihr Requisit (`apps/apple-host/test/stage.test.ts`); Bildbaselines der Pilotspiele am PC (SwiftShader) mit den GLB-Requisiten. Swift (`PropLibrary.swift`, `MinigameScene.updateProps`) nur im macOS-CI übersetzt, dort **ohne** USDZ (Grundkörper-Rückfall). **Nicht** geprüft: wie die USDZ-Requisiten in RealityKit stehen (Drehung, Größe, Farbe), Bildrate mit Requisiten auf der Apple TV.
+
+| ID  | Schritt | Erwartung | Ergebnis | Nachweis |
+| --- | ------- | --------- | -------- | -------- |
+| RL1 | Mac: `pnpm build:apple-assets`, App bauen, Log beim Start | Zeile „Requisiten geladen: 42 in … ms“, kein „FEHLER requisiten/…“ | | Log |
+| RL2 | Mac-App mit `--autostart --minispiele=toaster-timing,schnapp-den-kaese,nussregen-netz,rasensprenger-rodeo,eiswuerfel-sumo,bienenstock-honig,matschmaler --bild=/tmp/rq`, vier Bots | Jedes Spiel zeigt dieselben Requisiten wie der PC (Bilder `docs/screenshots/chaos237-requisiten-pc.jpg`): Toaster mit Slot-Streifen vorn, Mausefalle und Käse, Eicheln/Kescher/Korb, Rasensprenger, Eiswürfel im Limoglas, Bienenstock/Honigtopf/Bienen, Matscheimer und Regenwolke; nichts steht verkehrt herum, gespiegelt oder doppelt (Grundkörper unter dem Modell) | | `/tmp/rq-mg-*-play.png` neben den PC-Bildern |
+| RL3 | Wie RL2: Farben | `akzent` in Slot-Farbe (Toaster-Streifen, Korb-Band, Honigtopf-Band, Matsch), `zustand` folgt dem Spiel (Toast bräunt, Türen in eigenen Farben in der Galerie „Drei Türen“) | | Bilder |
+| RL4 | Apple TV: dieselbe Partie | Wie RL2, kein Ruckeln beim Wechsel Brett → Minispiel | | Log, Video |

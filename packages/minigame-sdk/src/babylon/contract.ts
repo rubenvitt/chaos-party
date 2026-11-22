@@ -52,6 +52,7 @@ import type {
 } from '../info.ts';
 import type { MinigameRng } from '../rng.ts';
 import type { MinigameTeams } from '../teams.ts';
+import type { PropTint } from './visual.ts';
 
 /** Fester Logik- und Physikschritt (60 Hz). */
 export const FIXED_STEP_SECONDS = 1 / 60;
@@ -137,6 +138,34 @@ export interface CharacterFactory {
   create(scene: Scene, player: MinigamePlayer): CharacterHandle;
 }
 
+/**
+ * Ein Requisit aus dem Katalog (CHAOS-237; `PROP_SETS` in `@chaos-party/assets`, Vertrag wie die
+ * Figuren: Meter, Boden bei y = 0, vorn +Z, statisch). Lage, Drehung und Größe setzt das Spiel an
+ * `root`; bewegliche Teile gibt es nicht (ein Hebel, der sich dreht, ist ein eigenes Requisit oder
+ * ein Grundkörper).
+ */
+export interface PropHandle {
+  readonly id: string;
+  readonly root: TransformNode;
+  /**
+   * Laufzeit-Material färben (`akzent` = Slot-Farbe, immer mit Slot-Symbol; `zustand` =
+   * Spielzustand). Hat das Requisit dieses Material nicht, passiert nichts.
+   */
+  tint(material: PropTint, hex: string): void;
+  /** Entfernt Meshes und eigene Materialien des Requisits (idempotent). */
+  dispose(): void;
+}
+
+/**
+ * Requisiten des Hosts (CHAOS-237). Der Host lädt vor `prepare` die Requisiten-Sets des Minispiels
+ * (`MINIGAME_PROP_SETS`, Laden bei Bedarf); `create` ist darum synchron und geht auch mitten im
+ * Spiel. `null` = dieses Requisit gibt es hier nicht (nicht im Set des Spiels, Laden gescheitert,
+ * headless): Dann baut das Spiel Grundkörper (`stage.prop` im Baukasten macht das).
+ */
+export interface PropFactory {
+  create(scene: Scene, id: string): PropHandle | null;
+}
+
 /** Oberfläche eines Materials im Look der Laufzeit. */
 export type LookFinish = 'matt' | 'lack' | 'glanz' | 'metall' | 'stoff';
 
@@ -187,6 +216,11 @@ export interface MinigameContext {
   readonly timeLimitMs: number;
   readonly fx: MinigameFx;
   readonly characters: CharacterFactory;
+  /**
+   * Requisiten-Modelle des Hosts (CHAOS-237); fehlt in Tests, Vorschauen und im headless
+   * Apple-Host (dort ersetzt Swift die Grundkörper durch USDZ). Am besten über `stage.prop`.
+   */
+  readonly props?: PropFactory;
   /** Testmodus: keine Zufalls-Kamerafahrten, Effekte knapp (Screenshots stabil). */
   readonly testMode: boolean;
   /** Look der Laufzeit (Host); fehlt in Tests und Vorschauen ohne Look. */

@@ -33,6 +33,8 @@ final class MinigameScene {
     private var building = Set<String>()
     private var bodies: [String: BodyView] = [:]
     private var figures: [Int: FigureView] = [:]
+    /// Requisiten mit USDZ (CHAOS-237) je `minigame.props[].id`.
+    private var props: [String: PropView] = [:]
     private var materials: [String: RealityKit.Material] = [:]
     private var lastEffect = 0
     private var shake: (until: CFTimeInterval, strength: Float) = (0, 0)
@@ -45,6 +47,8 @@ final class MinigameScene {
     private let particleMesh = MeshResource.generateSphere(radius: 1)
     /// Figurenbibliothek (CHAOS-191), geteilt mit Brett und Podest; leer ohne Assets (Kapseln).
     private let models: [String: FigureModel]
+    /// Requisiten als USDZ (CHAOS-237); leer ohne Assets (Grundkörper des JS-Kerns).
+    private let propLibrary: PropLibrary
     /// Grashalme des Bretts für die Kulisse (CHAOS-193).
     private let grass: [GrassTemplate]
     /// Lichtstimmung der Runde (CHAOS-193, `app/SceneLight.swift`).
@@ -69,6 +73,12 @@ final class MinigameScene {
         let size: Float
     }
 
+    private struct PropView {
+        let entity: Entity
+        var accent: String?
+        var state: String?
+    }
+
     private struct FigureView {
         let entity: Entity
         let character: String
@@ -82,8 +92,10 @@ final class MinigameScene {
     /// von hinten, Vorderseiten wie die Kuckucksuhr lagen im Schatten).
     static let sunDirection = SIMD3<Float>(0.5456, -0.6825, -0.4863)
 
-    init(models: [String: FigureModel], grass: [GrassTemplate], sky: EnvironmentResource?, skyExponent: Float, clearColor: CGColor) {
+    init(models: [String: FigureModel], props: PropLibrary = PropLibrary(), grass: [GrassTemplate], sky: EnvironmentResource?,
+         skyExponent: Float, clearColor: CGColor) {
         self.models = models
+        propLibrary = props
         self.grass = grass
         self.sky = sky
         self.skyExponent = skyExponent
@@ -127,7 +139,9 @@ final class MinigameScene {
         }
         world.isEnabled = shown
         placeCamera(m.camera, now: now)
-        updateBodies(m.bodies ?? [])
+        // Erst die Requisiten: Ihre Grundkörper (`Body.prop`) fallen weg, wenn das USDZ steht.
+        let modelled = updateProps(m.props ?? [])
+        updateBodies(m.bodies ?? [], hiding: modelled)
         let colors = Dictionary(players.map { ($0.slot, $0.color ?? "") }, uniquingKeysWith: { a, _ in a })
         updateFigures(m.figures ?? [], colors: colors, now: now)
         for effect in m.effects ?? [] where effect.seq > lastEffect {
@@ -158,6 +172,7 @@ final class MinigameScene {
         for child in Array(world.children) { child.removeFromParent() }
         bodies.removeAll()
         figures.removeAll()
+        props.removeAll()
         meshes.removeAll()
         building.removeAll()
         lastEffect = 0
@@ -202,9 +217,9 @@ final class MinigameScene {
 
     // MARK: Körper
 
-    private func updateBodies(_ list: [RenderState.Body]) {
+    private func updateBodies(_ list: [RenderState.Body], hiding modelled: Set<String>) {
         var seen = Set<String>()
-        for b in list where b.pos.count == 3 {
+        for b in list where b.pos.count == 3 && !(b.prop.map { modelled.contains($0) } ?? false) {
             seen.insert(b.id)
             let size = (b.size?.count == 3) ? SIMD3(b.size![0], b.size![1], b.size![2]) : SIMD3<Float>(repeating: 1)
             let geometry = b.mesh.flatMap { meshes[$0] }
@@ -278,6 +293,46 @@ final class MinigameScene {
         if twoSided { pbr.faceCulling = .none }
         materials[key] = pbr
         return pbr
+    }
+
+    // MARK: Requisiten (CHAOS-237)
+
+    /// Setzt `requisiten/<prop>.usdz` an die Wurzel jedes Requisits, färbt `akzent`/`zustand`. Gibt die IDs zurück, deren
+    /// Modell steht (deren Grundkörper blendet `updateBodies` aus); ohne USDZ bleibt es bei den Grundkörpern.
+    private func updateProps(_ list: [RenderState.Prop]) -> Set<String> {
+        var seen = Set<String>()
+        for p in list where p.pos.count == 3 && propLibrary.has(p.prop) {
+            seen.insert(p.id)
+            if props[p.id] == nil, let entity = propLibrary.instance(p.prop) {
+                entity.name = p.id
+                world.addChild(entity)
+                props[p.id] = PropView(entity: entity)
+            }
+            guard var view = props[p.id] else { continue }
+            if let accent = p.accent, accent != view.accent {
+                PropLibrary.tint(view.entity, prop: p.prop, material: "akzent", color: accent)
+                view.accent = accent
+            }
+            if let state = p.state, state != view.state {
+                PropLibrary.tint(view.entity, prop: p.prop, material: "zustand", color: state)
+                view.state = state
+            }
+            let r = p.rot ?? [0, 0, 0, 1]
+            let babylon = r.count == 4 ? simd_quatf(ix: -r[0], iy: -r[1], iz: r[2], r: r[3]) : simd_quatf(ix: 0, iy: 0, iz: 0, r: 1)
+            // Wie die Figuren: Im Browser zeigt das GLB nach +Z (linkshändig) = -z in RealityKit, das USDZ nach +z.
+            view.entity.orientation = babylon * simd_quatf(angle: .pi, axis: [0, 1, 0])
+            view.entity.position = [p.pos[0], p.pos[1], -p.pos[2]]
+            let s = p.scale ?? [1, 1, 1]
+            view.entity.scale = s.count == 3 ? SIMD3(abs(s[0]), abs(s[1]), abs(s[2])) : .one
+            view.entity.isEnabled = p.visible ?? true
+            props[p.id] = view
+        }
+        for (id, view) in props where !seen.contains(id) {
+            view.entity.removeFromParent()
+            retiredParticles.append(view.entity)
+            props[id] = nil
+        }
+        return seen
     }
 
     // MARK: Figuren

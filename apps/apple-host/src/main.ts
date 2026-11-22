@@ -689,6 +689,7 @@ function create(env: HostEnv): ChaosHostInstance {
       camera: headless?.ready ? headless.camera() : null,
       backdrop: headless?.backdrop ?? null,
       figures: headless?.figures() ?? [],
+      props: headless?.props() ?? [],
       scoreboard,
       results,
       effects: headless?.effects(now() - EFFECT_WINDOW_MS) ?? [],

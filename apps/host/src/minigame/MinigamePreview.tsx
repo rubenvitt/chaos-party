@@ -25,6 +25,7 @@ import type { NatureLook } from '../nature/lighting.ts';
 import { loadHavok } from '../scene/havok.ts';
 import { createMinigameLook, SOFTWARE_MAX_STEPS } from './natureLook.ts';
 import { MinigameKeyboard } from './keyboard.ts';
+import { loadProps } from './props.ts';
 import { previewPlayers } from './players.ts';
 import type { ChaosMinigameTestHook } from './testHook.ts';
 import { useMinigameModule } from './useMinigameModule.ts';
@@ -117,9 +118,13 @@ export function MinigamePreview({ id, players, seed, test }: PreviewProps) {
     if (test) window.__chaosMinigame = hook;
 
     void (async () => {
-      const library = await loadCharacters(scene, { keepPbr: true });
+      const [library, props] = await Promise.all([
+        loadCharacters(scene, { keepPbr: true }),
+        loadProps(scene, module.info.id),
+      ]);
       disposeLibrary = () => {
         library.dispose();
+        props.dispose();
       };
       const havok = module.info.physics ? await loadHavok() : null;
       if (!isActive()) return;
@@ -135,6 +140,7 @@ export function MinigamePreview({ id, players, seed, test }: PreviewProps) {
             return handle;
           },
         },
+        props,
         havok,
         testMode: test,
         look,

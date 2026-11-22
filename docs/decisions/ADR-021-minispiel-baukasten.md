@@ -38,7 +38,7 @@ Der Vertrag in `minigame-sdk` (ADR-012) ist stabil und wird vom Server, von game
 
 | Modul | Inhalt |
 |---|---|
-| `stage.ts` | `MinigameStage`: sammelt alles fürs Aufräumen, Materialien im Look (`ctx.look`, ADR-014) oder ohne Look, geteilt je Wunsch; Kulisse über `backdrop`, ohne Look Grundlicht; Bau-Helfer `node` (mit `markVisual`) und `add` |
+| `stage.ts` | `MinigameStage`: sammelt alles fürs Aufräumen, Materialien im Look (`ctx.look`, ADR-014) oder ohne Look, geteilt je Wunsch; Kulisse über `backdrop`, ohne Look Grundlicht; Bau-Helfer `node` (mit `markVisual`) und `add`; Requisiten aus dem Katalog mit `prop` (Nachtrag 1) |
 | `arena.ts` | `buildArena`: Spielfläche zum Grundriss an einem **Ort** (`garten`, `kueche`, `bad`, `teich`, `spielzimmer`, `wald`, `dachboden`) mit eigener Farbwelt und Unterlage (Wiese/Decke) |
 | `camera.ts` | Kamera-Vorlagen `draufsicht`, `schraeg`, `seite` (auch von links), `verfolger` (rückt weich zur Mitte der Figuren und zoomt mit ihrem Abstand), `fest` |
 | `badges.ts` | Slot-Symbol (● ▲ ■ ★), Abzeichen, Ring in Slot-Farbe, Benommenheits-Sterne |
@@ -117,3 +117,22 @@ Umgestellt: Eiswürfel-Sumo (Spielcode 625 → 500 Zeilen; Physik und KI-Partien
 ## Überprüfung
 
 Neu bewerten bei der Zwischenabnahme nach der Pilotwelle (CHAOS-92): Liegen die Pilot-Spiele bei höchstens 500 Zeilen Spielcode? Fühlen sie sich verschieden an? Wenn Spiele den Baukasten umgehen müssen, um ihren Kniff zu bauen, ist ein Baustein zu eng geschnitten.
+
+## Nachtrag 1 (2026-11-22, CHAOS-237): Requisiten laden mit `stage.prop`
+
+Die Requisiten-Sets aus CHAOS-88 kommen jetzt ins Spiel. Vertrag im SDK: `MinigameContext.props` (`PropFactory`, optional wie `look`) liefert synchron ein `PropHandle` (Wurzel, `tint`, `dispose`) oder `null`. Der Browser-Host lädt vor `prepare` die Sets des Spiels (`apps/host/src/minigame/props.ts`, Schlüssel in `MINIGAME_PROP_SETS` ist jetzt die Minispiel-ID statt der Katalog-Nummer, weil die Laufzeit nur die ID kennt).
+
+```ts
+const toaster = stage.prop('toaster', {
+  role: 'toaster', key: player.slot, akzent: player.color,
+  fallback: (root) => { /* Grundkörper in Modell-Maßen unter root */ return { akzent: [body] }; },
+});
+toaster.root.position.set(x, 0, z);
+toaster.root.scaling.setAll(1.75);
+toast.tint('zustand', breadColor(browning), { finish: 'matt' });
+```
+
+- **Rückfall Pflicht:** Ohne Modell (Unit-Tests mit NullEngine, headless Apple-Host, Laden gescheitert, Requisit nicht im Set) baut `fallback(root)` Grundkörper in den Maßen des Modells. So bleiben Tests, Bot-Fairness und Darstellungs-Vertrag ohne GLB-Dateien lauffähig, und der Apple-Host hat etwas zu zeigen, falls ein USDZ fehlt.
+- **Statisch:** Requisiten haben keine beweglichen Teile. Was sich im Spiel bewegt (Mausefallen-Bügel, Sprenger-Arm), bleibt ein eigener Knoten mit Rolle, oder das ganze Requisit bewegt sich.
+- **Farbe:** `tint('akzent' | 'zustand', hex)` färbt Modell und Grundkörper gleich und hält die Farbe in der Requisit-Kennung fest (`markProp`), die der Apple-Host liest (ADR-019 Nachtrag 8). Gleiche Farbe zweimal kostet nichts (Spiele färben je Bild).
+- **Neue Spiele:** Sets in `MINIGAME_PROP_SETS` eintragen, dann `stage.prop`. `check:assets` rechnet das Budget je Spiel, `apps/apple-host/test/stage.test.ts` prüft, dass ein Spiel nur Requisiten seiner Sets nennt.

@@ -20,8 +20,17 @@ import {
 
 const blenderDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'blender');
 
-/** Pilotwelle aus `docs/minigames/katalog.md` (★, CHAOS-91). */
-const PILOT = ['MG-001', 'MG-011', 'MG-023', 'MG-033', 'MG-045', 'MG-101', 'MG-111', 'MG-121'];
+/** Pilotwelle aus `docs/minigames/katalog.md` (★, CHAOS-91): MG-001, -011, -023, -033, -045, -101, -111, -121. */
+const PILOT = [
+  'nussregen-netz',
+  'rasensprenger-rodeo',
+  'eiswuerfel-sumo',
+  'toaster-timing',
+  'schnapp-den-kaese',
+  'bienenstock-honig',
+  'drei-tueren',
+  'matschmaler',
+];
 
 describe('Requisiten-Katalog', () => {
   it('jedes Pilot-Spiel hat Requisiten aus seinem Familien-Set', () => {
@@ -90,8 +99,10 @@ describe('Requisiten-Katalog', () => {
   it('ids und Pfade', () => {
     expect(propAssetId('toaster')).toBe('requisit-toaster');
     expect(propModelPath('toaster')).toBe('models/props/toaster.glb');
-    expect(minigameProps('MG-999')).toEqual([]);
+    expect(minigameProps('gibt-es-nicht')).toEqual([]);
     // Ein Requisit, das in zwei Sets eines Spiels stünde, zählt einmal.
-    expect(new Set(minigameProps('MG-001')).size).toBe(minigameProps('MG-001').length);
+    expect(new Set(minigameProps('nussregen-netz')).size).toBe(
+      minigameProps('nussregen-netz').length,
+    );
   });
 });

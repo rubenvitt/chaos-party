@@ -358,6 +358,32 @@
       "grassTip": "#acd462"
     },
     "bodies": [],
+    "props": [
+      {
+        "id": "honigtopf#87",
+        "prop": "honigtopf",
+        "pos": [
+          -4.2,
+          0,
+          3.1
+        ],
+        "rot": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ],
+        "visible": true,
+        "accent": "#0072B2",
+        "role": "honigtopf",
+        "key": "1"
+      }
+    ],
     "hud": ""
   },
   "final": null,
