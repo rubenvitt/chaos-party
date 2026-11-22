@@ -12,6 +12,7 @@ import { itemOfOption } from './items.ts';
 import { chooseIntent, choiceById, describePrompt, isLocked, ownPrompt } from './prompt.ts';
 import {
   describeWaiting,
+  otherTurnHeadline,
   placeHeadline,
   roundLabel,
   slotName,
@@ -249,6 +250,7 @@ describe('Warte-Anzeige', () => {
       kind: 'other-turn',
       slot: 2,
       name: 'Orange',
+      ai: false,
     });
     expect(describeWaiting({ ...board, activeSlot: 1 }, 1, players)).toEqual({
       kind: 'own-turn',
@@ -256,6 +258,25 @@ describe('Warte-Anzeige', () => {
     });
     expect(slotName(1, players)).toBe('Anna');
     expect(slotName(4, players)).toBe('Rosa');
+  });
+
+  it('KI am Zug (CHAOS-239): Name und „(KI)“ aus `activeSeat`', () => {
+    const aiTurn = { ...board, activeSeat: { name: 'Schraubi', kind: 'ai' as const } };
+    const view = describeWaiting(aiTurn, 1, players);
+    expect(view).toEqual({ kind: 'other-turn', slot: 2, name: 'Schraubi', ai: true });
+    expect(view.kind === 'other-turn' && otherTurnHeadline(view)).toBe('Schraubi (KI) ist dran');
+    // Mensch am Zug: Name vom Server, ohne Kennzeichnung.
+    const humanTurn = { ...board, activeSeat: { name: 'Ben', kind: 'human' as const } };
+    const human = describeWaiting(humanTurn, 1, players);
+    expect(human.kind === 'other-turn' && otherTurnHeadline(human)).toBe('Ben ist dran');
+    // Eigener Zug bleibt „Du bist dran!“, auch wenn der Server `activeSeat` mitschickt.
+    expect(
+      describeWaiting(
+        { ...aiTurn, activeSlot: 1, activeSeat: { name: 'Anna', kind: 'human' } },
+        1,
+        players,
+      ),
+    ).toEqual({ kind: 'own-turn', slot: 1 });
   });
 
   it('Minispiel, Endstand, Start, niemand dran, kein Stand', () => {

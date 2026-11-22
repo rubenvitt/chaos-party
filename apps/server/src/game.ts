@@ -568,6 +568,11 @@ export class BoardGame {
       state.phase === 'round-end'
         ? state.minigame?.tailwind?.find((bonus) => bonus.slot === slot)?.coins
         : undefined;
+    // CHAOS-239: Name und Platzart des Platzes am Zug („Schraubi (KI) ist dran“).
+    const active =
+      state.activeSlot === null
+        ? undefined
+        : state.players.find((candidate) => candidate.slot === state.activeSlot);
     return {
       gamePhase: state.phase,
       round: state.round,
@@ -580,6 +585,14 @@ export class BoardGame {
       character: this.characterOf(slot),
       minigameWins: player.minigameWins,
       ...(tailwind === undefined ? {} : { tailwind }),
+      ...(active === undefined
+        ? {}
+        : {
+            activeSeat: {
+              name: active.name,
+              kind: this.isAi(active.slot) ? ('ai' as const) : ('human' as const),
+            },
+          }),
       ...(entry === undefined
         ? {}
         : {
