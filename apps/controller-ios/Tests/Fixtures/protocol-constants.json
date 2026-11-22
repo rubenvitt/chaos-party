@@ -56,6 +56,7 @@
       "invalid-result",
       "character-taken",
       "paused",
+      "not-lead",
       "internal"
     ],
     "gamePhases": [

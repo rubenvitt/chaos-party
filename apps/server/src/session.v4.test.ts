@@ -47,6 +47,11 @@ describe('Figurenwahl (CHAOS-36)', () => {
       takenBy: [],
       rounds: 2,
       board: { id: 'wackelwald', name: 'Wackelwald' },
+      lead: true,
+      seats: [
+        { slot: 1, kind: 'human' },
+        { slot: 2, kind: 'human' },
+      ],
     });
     expect(context(h, 2).lobby).toEqual({
       character: null,
@@ -54,6 +59,11 @@ describe('Figurenwahl (CHAOS-36)', () => {
       takenBy: [{ character: 'sock', slot: 1 }],
       rounds: 2,
       board: { id: 'wackelwald', name: 'Wackelwald' },
+      lead: false,
+      seats: [
+        { slot: 1, kind: 'human' },
+        { slot: 2, kind: 'human' },
+      ],
     });
     expect(h.errors).toEqual([]);
   });

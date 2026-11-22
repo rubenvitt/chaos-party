@@ -150,6 +150,8 @@ describe('Session: Beitreten', () => {
           takenBy: [],
           rounds: 10,
           board: { id: 'wackelwald', name: 'Wackelwald' },
+          lead: true,
+          seats: [{ slot: 1, kind: 'human' }],
         },
       },
     ]);
@@ -356,6 +358,8 @@ describe('Session: Eingaben', () => {
           takenBy: [],
           rounds: 10,
           board: { id: 'wackelwald', name: 'Wackelwald' },
+          lead: true,
+          seats: [{ slot: 1, kind: 'human' }],
         },
       },
     ]);
