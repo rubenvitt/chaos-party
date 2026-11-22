@@ -224,6 +224,20 @@ describe('KI-Plätze im Minispiel (CHAOS-182)', () => {
     expect(botStrength(undefined)).toBe(0.5);
   });
 
+  it('dynamisch nimmt die aktuelle Stärke aus dem Brett-Stand (CHAOS-187)', () => {
+    expect(botStrength('dynamisch', 0.75)).toBe(0.75);
+    expect(botStrength('dynamisch', 0)).toBe(0);
+    // Feste Stufen bleiben fest.
+    expect(botStrength('leicht', 0.75)).toBe(0);
+    const dynamic = {
+      ...view,
+      players: [
+        { ...second, kind: 'ai' as const, strength: 'dynamisch' as const, strengthLevel: 0.25 },
+      ],
+    };
+    expect(botSeatsFromView(dynamic)).toEqual([{ slot: second.slot, strength: 0.25 }]);
+  });
+
   it('KI-Abzeichen mit Stil, Menschen ohne', () => {
     expect(aiTaglineOf(view, second.slot)).toBe('KI · Fuchs');
     expect(aiTaglineOf(view, first.slot)).toBeNull();

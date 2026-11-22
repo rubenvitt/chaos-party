@@ -1597,12 +1597,17 @@ export class Session {
     const game = this.game;
     const corePrompt = game?.state.prompt;
     if (prompt === undefined || board === undefined || !game || !corePrompt) {
-      const delay = this.aiPolicy.readyDelayMs(player.slot, strength);
+      const delay = this.aiPolicy.readyDelayMs(
+        player.slot,
+        strength,
+        game?.aiStrengthLevel(player.slot),
+      );
       return { key, dueAt: now + Math.max(0, delay), fallback: false, done: false };
     }
     const request: AiPromptRequest = {
       slot: player.slot,
       strength,
+      strengthLevel: game.aiStrengthLevel(player.slot),
       prompt,
       defaultOption: corePrompt.defaultOption,
       board,

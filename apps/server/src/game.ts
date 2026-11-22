@@ -8,8 +8,12 @@
  * Kein Netzwerkcode, keine Uhr: Zeitpunkte kommen von der Session.
  */
 import {
+  boardAiStrengthValue,
   createGame,
   DEFAULT_BOARD,
+  DYNAMIC_STRENGTH_START,
+  dynamicStanding,
+  nextDynamicStrength,
   DEFAULT_RULES,
   getBoard,
   playedMinigames,
@@ -245,6 +249,11 @@ export class BoardGame {
   private readonly characters: ReadonlyMap<Slot, CharacterId>;
   /** KI-Plätze dieser Partie (CHAOS-179). */
   private readonly aiSeats: ReadonlyMap<Slot, NonNullable<BoardGamePlayer['ai']>>;
+  /**
+   * Aktuelle Stärke `s` der KI-Plätze mit „dynamisch“ (CHAOS-187, ADR-020 §4): Start bei mittel,
+   * Anpassung nur bei `round-ended` aus dem Spielstand ({@link nextDynamicStrength}).
+   */
+  private readonly dynamicLevels = new Map<Slot, number>();
 
   constructor(players: readonly BoardGamePlayer[], settings: BoardGameSettings, seed: number) {
     const board = getBoard(settings.boardId);
@@ -255,6 +264,9 @@ export class BoardGame {
     this.aiSeats = new Map(
       players.flatMap((player) => (player.ai ? [[player.slot, player.ai] as const] : [])),
     );
+    for (const [slot, ai] of this.aiSeats) {
+      if (ai.strength === 'dynamisch') this.dynamicLevels.set(slot, DYNAMIC_STRENGTH_START);
+    }
     this.stateValue = createGame({
       board,
       rules: settings.rules,
@@ -292,10 +304,37 @@ export class BoardGame {
     if (!result.ok) return { ok: false, error: result.error };
     this.stateValue = result.state;
     for (const event of result.events) {
+      if (event.type === 'round-ended') this.adaptDynamicLevels();
       this.pending.push(toWireEvent(event));
       this.eventCount++;
     }
     return { ok: true };
+  }
+
+  /**
+   * Rundenende (CHAOS-187): Jede KI mit „dynamisch“ rückt um höchstens eine halbe Stufe, je nach
+   * Abstand zum Median der Menschen. Der Stand beim Ereignis enthält Rückenwind und die Plätze
+   * des Minispiels der Runde.
+   */
+  private adaptDynamicLevels(): void {
+    if (this.dynamicLevels.size === 0) return;
+    const humans = this.stateValue.players
+      .map((player) => player.slot)
+      .filter((slot) => !this.aiSeats.has(slot));
+    for (const [slot, level] of this.dynamicLevels) {
+      const standing = dynamicStanding(this.stateValue, slot, humans);
+      this.dynamicLevels.set(slot, nextDynamicStrength(level, standing));
+    }
+  }
+
+  /**
+   * Stärke `s` eines KI-Platzes jetzt (0 = leicht … 1 = schwer): feste Stufen nach
+   * `boardAiStrengthValue`, „dynamisch“ nach dem letzten Rundenende. `undefined` bei Menschen.
+   */
+  aiStrengthLevel(slot: Slot): number | undefined {
+    const ai = this.aiSeats.get(slot);
+    if (!ai) return undefined;
+    return this.dynamicLevels.get(slot) ?? boardAiStrengthValue(ai.strength);
   }
 
   hasSlot(slot: Slot): boolean {
@@ -321,13 +360,16 @@ export class BoardGame {
     kind?: 'ai';
     strength?: AiStrength;
     personality?: AiPersonality;
+    strengthLevel?: number;
   } {
     const ai = this.aiSeats.get(slot);
     if (!ai) return {};
+    const level = this.dynamicLevels.get(slot);
     return {
       kind: 'ai',
       strength: ai.strength,
       ...(ai.personality === undefined ? {} : { personality: ai.personality }),
+      ...(level === undefined ? {} : { strengthLevel: level }),
     };
   }
 
