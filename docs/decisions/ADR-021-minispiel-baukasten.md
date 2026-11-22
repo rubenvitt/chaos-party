@@ -136,3 +136,31 @@ toast.tint('zustand', breadColor(browning), { finish: 'matt' });
 - **Statisch:** Requisiten haben keine beweglichen Teile. Was sich im Spiel bewegt (Mausefallen-Bügel, Sprenger-Arm), bleibt ein eigener Knoten mit Rolle, oder das ganze Requisit bewegt sich.
 - **Farbe:** `tint('akzent' | 'zustand', hex)` färbt Modell und Grundkörper gleich und hält die Farbe in der Requisit-Kennung fest (`markProp`), die der Apple-Host liest (ADR-019 Nachtrag 8). Gleiche Farbe zweimal kostet nichts (Spiele färben je Bild).
 - **Neue Spiele:** Sets in `MINIGAME_PROP_SETS` eintragen, dann `stage.prop`. `check:assets` rechnet das Budget je Spiel, `apps/apple-host/test/stage.test.ts` prüft, dass ein Spiel nur Requisiten seiner Sets nennt.
+
+## Nachtrag 3 (2026-11-22, CHAOS-240): Ablauf-Rahmen `KitMinigame`, Requisiten-Teile, Bot-Anschluss
+
+**Anlass.** Die Pilotwelle (CHAOS-91, EXP-042, `docs/minigames/pilotwelle.md`) verfehlte das Zeilenziel: Mittel 607 statt höchstens 500 Zeilen Spielcode. Der größte Posten war Code, den alle acht Spiele gleich geschrieben hatten. Dazu gehörten der Ablauf des SDK (prepare/start/createBot/handleInput/update/getHud/finish/dispose mit Feiern, Höhepunkten und Ergebnis, ≈ 50–90 Zeilen), Requisiten aus Grundkörpern (Prettier bricht je Mesh auf ≈ 5 Zeilen) und die Bot-Verkabelung (Adapter für die Bot-Partie und Laufzeit-Bot, ≈ 15 Zeilen).
+
+**Entscheidung.** Drei neue Bausteine, alle freiwillig:
+
+| Baustein | Ort | Was er übernimmt |
+| --- | --- | --- |
+| `KitMinigame<L, E>` | `babylon/minigame.ts` | Logik und Bühne anlegen, Start-Ton, Bot an die laufende Logik hängen, Eingaben nur im Lauf weitergeben, feste Schritte mit Ereignissen, HUD aus `scores` plus optional `status`/`banner`, Ende mit `celebrateFigures`, Höhepunkten und Ergebnis, Aufräumen der Figuren und der Bühne |
+| `buildProp` / `fallbackParts` / `PropPart` | `babylon/props.ts` | Requisit als Teile-Tabelle (`fallbackParts` baut damit den Grundkörper-Rückfall eines Katalog-Requisits aus `stage.prop`, Teile in `SLOT_COLOR` oder mit `tint` vertreten die Laufzeit-Materialien): eine Zeile je Kasten, Zylinder oder Kugel mit Maßen, Farbe (`SLOT_COLOR`), Lage, Material und Skalierung. Der Rollen-Knoten trägt `markVisual`, dazu Lage, Eltern, Gesamtskalierung und `hidden`. |
+| `kitBotAdapter` / `kitRuntimeBot` | `bots.ts` | `BotMatchAdapter` aus Logik- und Bot-Klasse; das Spiel gibt nur `apply` und `scores` an. Laufzeit-Bot mit `profileForStrength` über `kitBotDriver`. |
+
+**Verhältnis zu Punkt 2 und zur verworfenen `BaseMinigame`.** Abgelehnt war eine Basisklasse mit Spiel-Hooks (`onSpawn`, `onScore` …), weil sie den Ablauf eines Spiels vorgibt. `KitMinigame` hat keine solchen Hooks. Die abstrakten Methoden sind der Lebenslauf des SDK-Vertrags selbst (`build` = Aufbau in `prepare`, `input` = `handleInput`, `onEvent` = was die eigene Logik meldet, `sync` = Ansicht je Schritt, `scores` = Wertung). Was ein Spiel ausmacht, bleibt im Spiel: Regeln und Kniff in `logic.ts`, Kernverb in `input`, Requisiten, Kamera und Ansicht in `build`/`sync`, der Bot in `bot.ts`. Der Rahmen gilt nur für „Logik-Spiele“ mit einer reinen Logik, die Uhr, `finished`, `step` und `highlights` hat. Spiele mit Abschnitten, Havok oder eigenem Ende implementieren `Minigame` weiter selbst. Damit gilt Punkt 2 „kein Spielablauf im Baukasten“ weiter für den Spielablauf, aber nicht mehr für den SDK-Ablauf.
+
+**Nachweis ohne Verhaltensänderung.** Toaster-Timing, Schnapp den Käse und Bienenstock-Honig sind umgestellt, auf dem Stand nach CHAOS-237. Ein einmaliger Vergleichslauf (2026-11-22, nicht eingecheckt) prüfte je Spiel 2, 3 und 4 Spieler, Seeds 1 und 7 und Bots auf allen Plätzen mit Stärken 0,1/0,5/0,9/0,7, dazu Eingaben vor dem Start und nach dem Ende. Er lief zweimal: einmal ohne Requisiten-Modelle (Grundkörper-Rückfall) und einmal mit einem nachgebildeten Requisiten-Lieferanten (`ctx.props`), der jede Färbung mitschrieb. Verglichen wurden der Szenengraph alle 240 Schritte (Rolle, Sichtbarkeit, Ecken, Lage, Größe, Farbe, Alpha je Mesh), das HUD alle 30 Schritte, das Effekt-Protokoll, die Animationen, die Färbungen der Requisiten, das Ergebnis und der Szenen-Rest. Vorher und nachher war beides byte-gleich. Nur die Namen der Meshes haben sich geändert (`<präfix>-<rolle>-<schlüssel>-<n>`). Die Bild-Baselines (`m3-minispiele-bild.spec.ts`), alle Tests und die Apple-Host-Bot-Partien bleiben grün.
+
+| Spiel | vorher | nachher | Szene vorher → nachher |
+| --- | --- | --- | --- |
+| Toaster-Timing | 535 | 443 | 257 → 186 |
+| Schnapp den Käse | 527 | 447 | 238 → 179 |
+| Bienenstock-Honig | 693 | 559 | 384 → 271 |
+
+„Vorher“ ist der Stand nach CHAOS-237 (Katalog-Requisiten über `stage.prop` mit Grundkörper-Rückfall), der die Szenen um 15–75 Zeilen verlängert hat. Bienenstock-Honig bleibt damit über 500: Es hat sieben Teile-Gruppen, Bienen auf Kreisbahnen und einen Stock, der bebt. Weiter kürzen lässt es sich nur mit eigenen Bausteinen (CHAOS-245), nicht durch Zusammenschieben von Zeilen.
+
+Gezählt wird Spielcode wie im Pilotbericht: `info.ts`, `logic.ts`, `bot.ts` und `index.ts`, mit `wc -l` nach Prettier. Die Logik bleibt unverändert, Bots werden je ≈ 20 Zeilen kürzer.
+
+**Offen** (CHAOS-245): Die übrigen Bausteine aus der Pilotwelle fehlen noch: Raster, drehende Gefahr, rutschiges Laufen mit runden Hindernissen, Herzen-Zähler, Halten im Bot-Treiber, `KitIntruder` im Baukasten, Höhepunkt „Höchstwert“, Kamera-Optionen und 1-D-Laufen. Ebenso fehlt die Umstellung von Nussregen-Netz, Rasensprenger-Rodeo, Matschmaler und Drei Türen (alle noch über 500 Zeilen). Havok-Figur und Havok-Harness sind mit CHAOS-241 da (Nachtrag 1).

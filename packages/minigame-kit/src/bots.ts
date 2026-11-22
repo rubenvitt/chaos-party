@@ -13,6 +13,7 @@ import {
   createMinigameRng,
   lerpStrength,
   type MinigameBotDriver,
+  type MinigameBotOptions,
   type MinigameInput,
   type MinigameRng,
   type Slot,
@@ -373,6 +374,60 @@ export function kitBotDriver<G>(bot: MinigameBot<G>, observe: () => G | null): M
       return action ? actionInputs(action) : [];
     },
   };
+}
+
+/** Reine Spiellogik mit dem Konstruktor der Pilot-Spiele: Slots, Zufall, Spielzeit in ms. */
+export type KitLogicClass<G> = new (
+  slots: readonly Slot[],
+  rng: MinigameRng,
+  timeLimitMs: number,
+) => G;
+
+/** Bot-Klasse mit dem Konstruktor der Baukasten-Bots: Slot, Profil, Zufall. */
+export type KitBotClass<G> = new (
+  slot: Slot,
+  profile: BotProfile,
+  rng: MinigameRng,
+) => MinigameBot<G>;
+
+/** Was `kitBotAdapter` von der Logik liest: Uhr, Ende und fester Schritt. */
+export interface SteppedLogic {
+  readonly clock: { readonly time: number };
+  readonly finished: boolean;
+  step(dt: number): unknown;
+}
+
+/**
+ * `BotMatchAdapter` für eine Logik mit Uhr, `finished` und `step` (CHAOS-240): `create`, `bot`,
+ * `step`, `finished` und `elapsedMs` kommen aus Klasse und Logik. Das Spiel gibt nur an, wie
+ * eine Aktion wirkt (`apply`) und wie gezählt wird (`scores`); alles andere darf es ersetzen.
+ */
+export function kitBotAdapter<G extends SteppedLogic>(
+  Logic: KitLogicClass<G>,
+  Bot: KitBotClass<G>,
+  game: Pick<BotMatchAdapter<G>, 'apply' | 'scores'> & Partial<BotMatchAdapter<G>>,
+): BotMatchAdapter<G> {
+  return {
+    create: (slots, rng, durationMs) => new Logic(slots, rng, durationMs),
+    bot: (slot, profile, rng) => new Bot(slot, profile, rng),
+    step: (logic, dt) => void logic.step(dt),
+    finished: (logic) => logic.finished,
+    elapsedMs: (logic) => logic.clock.time * 1000,
+    ...game,
+  };
+}
+
+/**
+ * Laufzeit-Bot für einen KI-Platz (`Minigame.createBot`): `Bot` mit dem Profil zur Stärke und
+ * dem Zufall der Laufzeit, über `kitBotDriver` an `observe` gehängt.
+ */
+export function kitRuntimeBot<G>(
+  Bot: KitBotClass<G>,
+  options: MinigameBotOptions,
+  observe: () => G | null,
+): MinigameBotDriver {
+  const bot = new Bot(options.slot, profileForStrength(options.strength), options.rng);
+  return kitBotDriver(bot, observe);
 }
 
 /** `BotAction` → Eingaben (Stick zuerst, dann drücken, dann loslassen). */
