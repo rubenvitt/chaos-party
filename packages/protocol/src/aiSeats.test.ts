@@ -264,3 +264,41 @@ describe('Lobby-Kontext mit Spielleitung und Plätzen', () => {
     expect(parseServerToControllerMessage(encode(message as never)).ok).toBe(false);
   });
 });
+
+describe('Brett-Kontext mit Platz am Zug (CHAOS-239)', () => {
+  const board = {
+    gamePhase: 'turn-start' as const,
+    round: 2,
+    rounds: 5,
+    coins: 0,
+    trophies: 0,
+    items: [],
+    activeSlot: 3 as const,
+    paused: false,
+    character: 'robot' as const,
+    minigameWins: 0,
+  };
+  const context = (info: object) => ({
+    ...createMessage('context', { slot: 1, phase: 'board', layout: 'board', actions: [] }),
+    board: info,
+  });
+
+  it('activeSeat ist optional; KI und Mensch sind gültig', () => {
+    for (const info of [
+      board,
+      { ...board, activeSeat: { name: 'Schraubi', kind: 'ai' } },
+      { ...board, activeSeat: { name: 'Ben', kind: 'human' } },
+    ]) {
+      expect(parseServerToControllerMessage(encode(context(info) as never)).ok).toBe(true);
+    }
+  });
+
+  it.each([
+    ['unbekannte Art', { name: 'Schraubi', kind: 'bot' }],
+    ['leerer Name', { name: '', kind: 'ai' }],
+    ['fremdes Feld', { name: 'Schraubi', kind: 'ai', strength: 'mittel' }],
+  ])('lehnt ab: %s', (_name, activeSeat) => {
+    const message = context({ ...board, activeSeat });
+    expect(parseServerToControllerMessage(encode(message as never)).ok).toBe(false);
+  });
+});

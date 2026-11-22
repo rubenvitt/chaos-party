@@ -1,0 +1,27 @@
+{
+  "v": 4,
+  "type": "context",
+  "slot": 1,
+  "phase": "board",
+  "layout": "board",
+  "actions": [],
+  "board": {
+    "gamePhase": "roll",
+    "round": 2,
+    "rounds": 5,
+    "coins": 12,
+    "trophies": 1,
+    "items": [
+      "double-dice",
+      "shield"
+    ],
+    "activeSlot": 3,
+    "paused": false,
+    "character": "cactus",
+    "minigameWins": 1,
+    "activeSeat": {
+      "name": "Schraubi",
+      "kind": "ai"
+    }
+  }
+}
