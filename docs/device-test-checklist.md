@@ -905,6 +905,7 @@ Automatisch geprüft (Linux): Zuteilung, Ersatz zu zweit und zu dritt, Prüfung 
 | SF7 | Native App: SF2–SF4 | Ergebnis zeigt „Dein Team hat gewonnen!“/„verloren“, bei Pump-Solo „Allein gegen alle“ mit Vorteil-Hinweis, bei Riesenballon „Gemeinsam geschafft: Stufe … von 3“ | | Foto |
 | SF8 | Mac-App mit `--autostart --minispiele=pump-duell,pump-solo,pump-riese --bild=/tmp/sf`, vier Bots (`node apps/apple-host/scripts/live-bots.mjs '<join-url>' --spieler 4`) | Anleitung: „2 gegen 2“ unter dem Titel, Gruppen ☀ Team Sonne/☾ Team Mond mit Abzeichen und Namen; Ergebnis: Team-Überschrift, darunter je Gruppe eine Zeile; Log ohne „abgelehnt“ | | `/tmp/sf-mg-*-intro.png`, `…-results.png` |
 | SF9 | Wie SF8 im tvOS-Simulator (Bots über `http://[::1]:<port>/?code=…`), dazu einmal mit drei Bots | wie SF8, Schrift auf dem Fernseher lesbar; zu dritt „Einer gegen zwei“ mit Vorteilshinweis | | Bilder |
+| SF10 | Browser-iPhone **quer** (CHAOS-236): SF1, SF3 und SF4 je einmal | Rollenkarte steht links unter Titel und Untertitel, rechts die Anleitung; kein Anleitungssatz läuft über mehr als zwei Zeilen, nichts abgeschnitten, kein Scrollen; die Rollenkarte ist aus Armlänge lesbar | | Foto |
 | SF5 | Ruben: Urteil | Team-Sieg mit 7 Münzen lohnend? „Letzter gegen alle“ spannend oder demütigend? Koop für alle lohnend? (EXP-038) | | Kommentar an CHAOS-89 |
 
 ## 47. Requisiten der Minispiele als USDZ in RealityKit (für CHAOS-221)
