@@ -88,8 +88,9 @@ export function MinigameIntro({
             {minigame.tagline}
           </p>
         )}
+        {/* Unter dem Titel statt als eigene Spalte: Quer bleibt rechts Platz für die Anleitung (CHAOS-236). */}
+        {minigame.team && <TeamRole team={minigame.team} />}
       </div>
-      {minigame.team && <TeamRole team={minigame.team} />}
       <div className="minigame-howto">
         {!repeat && (
           <ol className="minigame-steps" data-testid="minigame-steps">
