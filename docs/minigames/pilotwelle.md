@@ -68,7 +68,7 @@ Zum Vergleich die Bestandsspiele ohne Baukasten: Sockenregen ≈ 1 430, Krümel-
 
 - **Bot-Wahrnehmung feiner als der Bildschirm** (README §5.6 „nur Beobachtbares“): Der Rasensprenger-Bot liest während der Vorwarnung den genauen Einschaltzeitpunkt (`sprayAt`), sichtbar ist nur die gleich lange Vorwarnung ohne Countdown; der Bienenstock-Bot liest den genauen Wutwert, sichtbar sind 0–3 kreisende Bienen; der Toaster-Bot liest Bräunung und Tempo aus der Farbe genauer als ein Mensch. Die Fairness-Zahlen sind dadurch eher optimistisch für Bots mit gutem Profil.
 - **Requisiten:** Grundkörper im Look statt der Art-Kit-Modelle (CHAOS-237).
-- **Drei Türen:** keine private Rückmeldung der Wahl am Controller (CHAOS-242). Die KI-Stärke im Duell 2 gegen 2 bleibt strukturell niedrig (0,61); gemessen wird einer gegen drei (CHAOS-243, EXP-043).
+- **Drei Türen:** die private Rückmeldung der Wahl am Controller kam mit CHAOS-242 nach. Die KI-Stärke im Duell 2 gegen 2 bleibt strukturell niedrig (0,61); gemessen wird einer gegen drei (CHAOS-243, EXP-043).
 - **Matschmaler:** 192 Feld-Körper mit Rolle; im Swift-Harness stieg `renderState` im Minispiel von max. 7,6 auf 11 ms. Bildrate auf dem Ziel-PC und der echten Apple TV ungeprüft (Gerätecheckliste §50).
 - **Eiswürfel-Sumo:** im Leerlauf passen alle vier Figuren bis zum Ende aufs Eis (Gleichstand ohne Eingaben).
 
