@@ -124,7 +124,10 @@ describe('BoardPlayer mit Platzart', () => {
       parseServerToHostMessage(
         boardWith([
           boardPlayer({ slot: 1, character: 'sock' }),
-          boardPlayer({ kind: 'ai', strength: 'dynamisch', personality: 'fuchs' }),
+          {
+            ...boardPlayer({ kind: 'ai', strength: 'dynamisch', personality: 'fuchs' }),
+            strengthLevel: 0.375,
+          },
           boardPlayer({ slot: 3, character: 'cactus', kind: 'ai', strength: 'leicht' }),
         ]),
       ).ok,
@@ -134,6 +137,19 @@ describe('BoardPlayer mit Platzart', () => {
   it.each([
     ['Persönlichkeit beim Menschen', boardPlayer({ personality: 'saboteur' })],
     ['KI ohne Stärke', boardPlayer({ kind: 'ai' })],
+    [
+      'dynamisch ohne strengthLevel (CHAOS-187)',
+      boardPlayer({ kind: 'ai', strength: 'dynamisch' }),
+    ],
+    [
+      'strengthLevel bei fester Stufe',
+      { ...boardPlayer({ kind: 'ai', strength: 'schwer' }), strengthLevel: 1 },
+    ],
+    ['strengthLevel beim Menschen', { ...boardPlayer({}), strengthLevel: 0.5 }],
+    [
+      'strengthLevel über 1',
+      { ...boardPlayer({ kind: 'ai', strength: 'dynamisch' }), strengthLevel: 1.25 },
+    ],
     [
       'unbekannte Persönlichkeit',
       { ...boardPlayer({ kind: 'ai', strength: 'mittel' }), personality: 'troll' },
