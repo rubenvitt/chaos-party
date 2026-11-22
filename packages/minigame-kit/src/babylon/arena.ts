@@ -148,6 +148,26 @@ export async function buildArena(
   await stage.pace();
   const top = layout.surfaceY;
   const spec = layout.spec;
+  if (spec.form === 'insel' && !('radius' in spec)) {
+    // Eckige Insel: Block in Seitenfarbe, Deckel als Lauffläche, keine Bande (Kante ringsum).
+    const [width, depth] = [spec.halfX * 2, spec.halfZ * 2];
+    const block = add(
+      CreateBox(stage.name('flaeche'), { width, height: top + SLAB, depth }, scene),
+      palette.side,
+    );
+    block.position.y = (top - SLAB) / 2;
+    await stage.pace();
+    const lid = add(
+      CreateBox(
+        stage.name('deckel'),
+        { width: width - 0.1, height: 0.06, depth: depth - 0.1 },
+        scene,
+      ),
+      palette.floor,
+    );
+    lid.position.y = top + 0.01;
+    return { root, tiles, palette };
+  }
   switch (spec.form) {
     case 'rund':
     case 'insel': {

@@ -19,31 +19,33 @@ export function createPuddingGerangelPrototype(): Prototype<WackelView> {
         return game;
       },
     },
-    peek: () => {
-      if (!game) return null;
-      const snap = game.snapshot();
-      return {
-        pawns: snap.pawns.map(({ slot, x, y, z, vx, vy, vz, out, canDash }) => ({
-          slot,
-          x,
-          y,
-          z,
-          vx,
-          vy,
-          vz,
-          out,
-          canDash,
-        })),
-        props: [],
-        killY: TUNING.killY,
-        tunneled: () =>
-          snap.pawns.filter((p) => !p.out && p.localR < TUNING.radius - 0.8 && p.localY < 0).length,
-        counters: { ...snap.counters },
-        tilt: snap.tilt,
-        whiskAngle: snap.spoonAngle,
-        zone: snap.zone,
-        leader: snap.leader,
-      };
-    },
+    peek: () => (game ? puddingView(game) : null),
+  };
+}
+
+/** Lage einer laufenden Instanz für die Wackel-Bots (auch `havokHarness`, CHAOS-241). */
+export function puddingView(game: PuddingGerangel): WackelView {
+  const snap = game.snapshot();
+  return {
+    pawns: snap.pawns.map(({ slot, x, y, z, vx, vy, vz, out, canDash }) => ({
+      slot,
+      x,
+      y,
+      z,
+      vx,
+      vy,
+      vz,
+      out,
+      canDash,
+    })),
+    props: [],
+    killY: TUNING.killY,
+    tunneled: () =>
+      snap.pawns.filter((p) => !p.out && p.localR < TUNING.radius - 0.8 && p.localY < 0).length,
+    counters: { ...snap.counters },
+    tilt: snap.tilt,
+    whiskAngle: snap.spoonAngle,
+    zone: snap.zone,
+    leader: snap.leader,
   };
 }

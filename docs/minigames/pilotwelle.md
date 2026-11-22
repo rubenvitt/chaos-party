@@ -34,7 +34,7 @@ Volle Tabelle: [`pruefbericht.md`](pruefbericht.md). Alle sieben Rotationsspiele
 | Matschmaler | 10 % | 14 % | 17,0 | 20 % | 45 % | 0,83 (Dauerplatschen) | 0,74 |
 | Rasensprenger-Rodeo | 2 % | 2 % | 3,6 | 8 % | 52 % | 1,06 (Dauerdrücken, A wirkungslos) | 1,00 |
 | Schnapp den Käse | 6 % | 15 % | 5,9 | 11 % | 44 % | 0,76 (greift beim Zucken) | 0,84 |
-| Eiswürfel-Sumo | 3 % | 23 % | 2,0 | 7 % | 30 % | 0,88 (Dauerrempler) | 0,85 |
+| Eiswürfel-Sumo | 3 % | 23 % | 2,0 (2,1 nach CHAOS-241) | 7 % (8 %) | 30 % (28 %) | 0,88 (1,06) (Dauerrempler) | 0,85 |
 | Bienenstock-Honig | 2 % | 13 % | 5,7 | 7 % | 51 % | 0,92 (nur zapfen) | 0,95 |
 | Drei Türen | 2,5 % | 40 % | 1,1 | 21 % | 35 % | 1,15 (stur) | 0,71 (mittel/leicht 0,50) |
 
@@ -51,7 +51,7 @@ KI-Stärke: Siegquote zweier „schwer“ gegen zwei „leicht“ (40 Seeds, Toa
 | Matschmaler | 25 | 207 | 141 | 220 | 593 | 110 |
 | Rasensprenger-Rodeo | 24 | 273 | 142 | 206 | 645 | 124 |
 | Schnapp den Käse | 24 | 161 | 104 | 211 | 500 | 109 |
-| Eiswürfel-Sumo | 26 | 167 | 90 | 342 | 625 (+ ≈ 55 Havok-Harness) | 169 |
+| Eiswürfel-Sumo | 26 | 167 | 90 | 342 | 625 (+ ≈ 55 Havok-Harness); nach CHAOS-241: 26 + 171 + 78 + 225 = **500** | 169 |
 | Bienenstock-Honig | 25 | 186 | 98 | 309 | 618 | 94 |
 | Drei Türen | 26 | 186 | 194 | 290 | 696 | 124 |
 | **Mittel** | | | | | **607** | **118** |
@@ -100,6 +100,6 @@ Abbruchkriterium der Fabrik (README §5.5): Fühlen sich die Spiele gleich an? B
 
 - CHAOS-237: Requisiten laden (GLB im Browser, USDZ im Apple-Host).
 - CHAOS-240: Baukasten-Rahmen und Helfer aus der Pilotwelle (Zeilenbudget).
-- CHAOS-241: Havok-Figur und Havok-Harness im Baukasten.
+- CHAOS-241: Havok-Figur und Havok-Harness im Baukasten (erledigt: `havokPawn`, `bonkPawns`, `HavokBlock`, eckige Insel, `checks/havokHarness.ts`; Eiswürfel-Sumo jetzt 500 Zeilen, ADR-021 Nachtrag 1).
 - CHAOS-242: private Rückmeldung bei geheimer Wahl am Controller.
 - CHAOS-243: Drei Türen in die Rotation (KI-Stärke für Anti-Koordinations-Spiele).
