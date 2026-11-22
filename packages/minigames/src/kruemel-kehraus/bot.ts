@@ -227,7 +227,7 @@ export function createKruemelBot(
   options: MinigameBotOptions,
   observe: () => KruemelSnapshot | null,
 ): MinigameBotDriver {
-  const skill = pawnSkillForStrength(options.strength);
+  const skill = pawnSkillForStrength(options.strength, options.style);
   let slide: BotView['slide'] | null = null;
   return pawnBotDriver(options.slot, skill, () => {
     const snap = observe();

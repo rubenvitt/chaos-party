@@ -12,8 +12,10 @@
 import {
   createMinigameRng,
   lerpStrength,
+  NEUTRAL_BOT_STYLE,
   type MinigameBotDriver,
   type MinigameBotOptions,
+  type MinigameBotStyle,
   type MinigameInput,
   type MinigameRng,
   type Slot,
@@ -341,21 +343,36 @@ export const BOT_STRENGTH_CORNERS = {
   schwer: BOT_PROFILES.profi,
 } as const satisfies Record<'leicht' | 'schwer', BotProfile>;
 
-/** Bot-Profil zur Stärke `s` (0 = leicht … 1 = schwer), jeder Wert linear interpoliert. */
-export function profileForStrength(strength: number): BotProfile {
+/**
+ * So stark verschiebt das Risiko eines Spielstils (CHAOS-186) ein Profil: Reaktionszeit
+ * × (1 − `RISK_REACTION` · Risiko), Fehlstarts × (1 + `RISK_FALSE_START` · Risiko). Riskant heißt
+ * schneller, aber öfter zu früh; vorsichtig heißt langsamer und seltener zu früh. Das ist ein
+ * Tausch, keine Stärke (gemessen in EXP-044).
+ */
+export const RISK_REACTION = 0.12;
+export const RISK_FALSE_START = 0.6;
+
+/**
+ * Bot-Profil zur Stärke `s` (0 = leicht … 1 = schwer), jeder Wert linear interpoliert; mit
+ * Spielstil (`style`, CHAOS-186) danach um Risiko und Unfug verschoben.
+ */
+export function profileForStrength(
+  strength: number,
+  style: MinigameBotStyle = NEUTRAL_BOT_STYLE,
+): BotProfile {
   const { leicht, schwer } = BOT_STRENGTH_CORNERS;
   const mix = (key: Exclude<keyof BotProfile, 'name' | 'mischief'>) =>
     lerpStrength(leicht[key], schwer[key], strength);
   return {
     name: `KI ${Math.round(lerpStrength(0, 100, strength))} %`,
-    reactionMs: mix('reactionMs'),
+    reactionMs: mix('reactionMs') * (1 - RISK_REACTION * style.risk),
     aimNoise: mix('aimNoise'),
     timingSdMs: mix('timingSdMs'),
-    falseStart: mix('falseStart'),
+    falseStart: Math.min(1, mix('falseStart') * (1 + RISK_FALSE_START * style.risk)),
     awareness: mix('awareness'),
     judgement: mix('judgement'),
     lapse: mix('lapse'),
-    mischief: 0,
+    mischief: style.mischief,
   };
 }
 
@@ -426,7 +443,11 @@ export function kitRuntimeBot<G>(
   options: MinigameBotOptions,
   observe: () => G | null,
 ): MinigameBotDriver {
-  const bot = new Bot(options.slot, profileForStrength(options.strength), options.rng);
+  const bot = new Bot(
+    options.slot,
+    profileForStrength(options.strength, options.style),
+    options.rng,
+  );
   return kitBotDriver(bot, observe);
 }
 
@@ -471,14 +492,28 @@ export const PAWN_BOT_SKILLS = {
 /** Ab dieser Stärke achtet ein Figuren-Bot auf Gefahren (Neuling nicht, Normal schon). */
 export const PAWN_AWARE_FROM = 0.3;
 
-/** Figuren-Können zur Stärke `s` (leicht = Neuling, schwer = Profi). */
-export function pawnSkillForStrength(strength: number): PawnBotSkill {
+/** Zuschlag auf die Rempel-Neigung je Risiko bzw. Unfug eines Spielstils (CHAOS-186). */
+export const STYLE_DASH_RISK = 0.2;
+export const STYLE_DASH_MISCHIEF = 0.2;
+
+/**
+ * Figuren-Können zur Stärke `s` (leicht = Neuling, schwer = Profi); ein Spielstil (`style`,
+ * CHAOS-186) verschiebt nur die Rempel-Neigung (riskant und hinterlistig rempeln öfter).
+ */
+export function pawnSkillForStrength(
+  strength: number,
+  style: MinigameBotStyle = NEUTRAL_BOT_STYLE,
+): PawnBotSkill {
   const { neuling, profi } = PAWN_BOT_SKILLS;
+  const dash =
+    lerpStrength(neuling.dashChance, profi.dashChance, strength) +
+    STYLE_DASH_RISK * style.risk +
+    STYLE_DASH_MISCHIEF * style.mischief;
   return {
     name: `KI ${Math.round(lerpStrength(0, 100, strength))} %`,
     replanSteps: Math.round(lerpStrength(neuling.replanSteps, profi.replanSteps, strength)),
     noise: lerpStrength(neuling.noise, profi.noise, strength),
-    dashChance: lerpStrength(neuling.dashChance, profi.dashChance, strength),
+    dashChance: Math.max(0, Math.min(1, dash)),
     aware: lerpStrength(0, 1, strength) >= PAWN_AWARE_FROM,
   };
 }

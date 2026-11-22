@@ -9,6 +9,8 @@
  * Stärke-Experiment CHAOS-183 ein.
  */
 import { BOT_LEVEL_STRENGTH, clampStrength } from '@chaos-party/minigame-sdk';
+import type { ItemKind } from '../types.ts';
+import type { SmartItemTuning } from './board.ts';
 import type { LogNormalMs, MsRange } from './timing.ts';
 
 /** Stärke-Wahl der Lobby (wie `AiStrength` im Protokoll). */
@@ -42,6 +44,10 @@ export interface BoardAiParams extends BoardAiChances {
   readonly decisionMs: MsRange;
   /** Pause bis „Bereit“ in der Minispiel-Anleitung (Lesen der Anleitung). */
   readonly readyMs: MsRange;
+  /** Vorliebe beim zufälligen Item-Einsatz (Spielstil, CHAOS-186); fehlt = gleichverteilt. */
+  readonly itemWeights?: Readonly<Partial<Record<ItemKind, number>>>;
+  /** Schwellen des gezielten Item-Einsatzes (Spielstil, CHAOS-186); fehlt = Standard. */
+  readonly smartItem?: SmartItemTuning;
 }
 
 /**

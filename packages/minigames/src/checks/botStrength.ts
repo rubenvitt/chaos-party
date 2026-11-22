@@ -11,7 +11,7 @@
  * Bot gegen Bot ist eine Näherung: Sie zeigt, dass die Stärke wirkt, nicht, wie sich die KI
  * gegen Menschen anfühlt (CHAOS-183, CHAOS-185).
  */
-import type { Slot } from '@chaos-party/minigame-sdk';
+import type { MinigameBotStyle, Slot } from '@chaos-party/minigame-sdk';
 import { runMinigameHeadless } from '@chaos-party/minigame-sdk/testing';
 import { getMinigameModule } from '../index.ts';
 
@@ -76,5 +76,50 @@ export async function botStrengthDuel(
     highWins: wins / seeds,
     highScore: highTotal / seeds / highSeats,
     lowScore: lowTotal / seeds / (slots.length - highSeats),
+  };
+}
+
+/**
+ * Spielstil gegen neutral (CHAOS-186, EXP-044): zwei KI-Plätze mit `style` gegen zwei ohne Stil,
+ * alle mit Stärke `strength`, Sitze wechseln je Seed. `highWins` ist hier die Siegquote der
+ * Plätze **mit** Stil; 0,5 heißt: Der Stil ändert die Stärke nicht.
+ */
+export async function botStyleDuel(
+  id: string,
+  style: MinigameBotStyle,
+  strength: number,
+  seeds: number,
+): Promise<BotStrengthDuel> {
+  const module = getMinigameModule(id);
+  if (!module) throw new Error(`Minispiel ${id} fehlt`);
+  const slots: readonly Slot[] = [1, 2, 3, 4];
+  let wins = 0;
+  let styledTotal = 0;
+  let plainTotal = 0;
+  for (let seed = 1; seed <= seeds; seed++) {
+    const styled = (slot: Slot) => (slot - 1 + seed) % 2 === 0;
+    const run = await runMinigameHeadless(module, {
+      players: 4,
+      seed,
+      bots: slots.map((slot) => (styled(slot) ? { slot, strength, style } : { slot, strength })),
+    });
+    const placements = run.outcome?.result.placements;
+    if (!placements) throw new Error(`${id}: kein Ergebnis (Seed ${seed})`);
+    const winners = placements.filter((entry) => entry.place === 1);
+    for (const winner of winners) if (styled(winner.slot)) wins += 1 / winners.length;
+    for (const entry of placements) {
+      if (styled(entry.slot)) styledTotal += entry.score;
+      else plainTotal += entry.score;
+    }
+  }
+  return {
+    id,
+    lineup: 'duell',
+    high: strength,
+    low: strength,
+    seeds,
+    highWins: wins / seeds,
+    highScore: styledTotal / seeds / 2,
+    lowScore: plainTotal / seeds / 2,
   };
 }

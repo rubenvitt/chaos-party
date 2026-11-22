@@ -15,6 +15,7 @@ import type HavokPhysics from '@babylonjs/havok';
 import {
   BOT_MOVE_STEPS,
   botSeed,
+  clampBotStyle,
   clampStrength,
   type MinigameBotDriver,
   type MinigameBotSeat,
@@ -460,6 +461,7 @@ export function createMinigameRunner(
           const driver = game.createBot({
             slot: seat.slot,
             strength: clampStrength(seat.strength),
+            style: clampBotStyle(seat.style),
             rng: createMinigameRng(botSeed(options.seed, seat.slot)),
           });
           bots.push({ driver, queue: [], lastMoveStep: Number.NEGATIVE_INFINITY, failed: false });

@@ -350,6 +350,11 @@ export class BoardGame {
     return this.stateValue.phase === 'game-results';
   }
 
+  /** Spielstil eines KI-Platzes (CHAOS-186); `undefined` bei Menschen oder ohne Stil. */
+  aiPersonality(slot: Slot): AiPersonality | undefined {
+    return this.aiSeats.get(slot)?.personality;
+  }
+
   /** Ist dieser Slot ein KI-Platz (CHAOS-179)? */
   isAi(slot: Slot): boolean {
     return this.aiSeats.has(slot);

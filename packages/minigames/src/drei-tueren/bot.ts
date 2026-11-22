@@ -189,6 +189,10 @@ export function createDoorBot(
   options: MinigameBotOptions,
   observe: () => DoorLogic | null,
 ): MinigameBotDriver {
-  const bot = new DoorBot(options.slot, profileForStrength(options.strength), options.rng);
+  const bot = new DoorBot(
+    options.slot,
+    profileForStrength(options.strength, options.style),
+    options.rng,
+  );
   return kitBotDriver(bot, observe);
 }

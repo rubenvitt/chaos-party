@@ -6,6 +6,7 @@ import type { Mesh } from '@babylonjs/core/Meshes/mesh.js';
 import type { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial.js';
 import {
   createMinigameRng,
+  NEUTRAL_BOT_STYLE,
   type MinigameInfo,
   type MinigameInput,
   type MinigameRng,
@@ -244,7 +245,12 @@ describe('KitMinigame', () => {
   it('liefert dem Bot die Logik nur, solange das Spiel läuft', async () => {
     const game = new Knopf();
     await game.prepare(context());
-    const bot = game.createBot({ slot: 1, strength: 0.5, rng: createMinigameRng(3) });
+    const bot = game.createBot({
+      slot: 1,
+      strength: 0.5,
+      style: NEUTRAL_BOT_STYLE,
+      rng: createMinigameRng(3),
+    });
     expect(bot.tick()).toEqual([]);
     game.start();
     expect(bot.tick()).toEqual([press('a'), { type: 'release', button: 'a' }]);
@@ -285,7 +291,7 @@ describe('Bot-Anschluss', () => {
     const logic = new KnopfLogic([1], createMinigameRng(1), 1_000);
     const driver = kitRuntimeBot(
       Spy,
-      { slot: 1, strength: 1, rng: createMinigameRng(2) },
+      { slot: 1, strength: 1, style: NEUTRAL_BOT_STYLE, rng: createMinigameRng(2) },
       () => logic,
     );
     expect(driver.slot).toBe(1);

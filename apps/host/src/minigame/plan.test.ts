@@ -1,3 +1,4 @@
+import { minigameBotStyleOf } from '@chaos-party/game-core';
 import { describe, expect, it } from 'vitest';
 import {
   aiTaglineOf,
@@ -211,8 +212,15 @@ describe('KI-Plätze im Minispiel (CHAOS-182)', () => {
     ],
   };
 
-  it('übergibt nur KI-Plätze mit ihrer Stärke an die Bots', () => {
-    expect(botSeatsFromView(view)).toEqual([{ slot: second.slot, strength: 1 }]);
+  it('übergibt nur KI-Plätze mit Stärke und Spielstil an die Bots', () => {
+    expect(botSeatsFromView(view)).toEqual([
+      { slot: second.slot, strength: 1, style: minigameBotStyleOf('fuchs') },
+    ]);
+    const unstyled = {
+      ...view,
+      players: view.players.map((player) => ({ ...player, personality: undefined })),
+    };
+    expect(botSeatsFromView(unstyled)).toEqual([{ slot: second.slot, strength: 1 }]);
     expect(botSeatsFromView(base)).toEqual([]);
   });
 

@@ -962,6 +962,9 @@ Automatisch geprüft: PC-Lobby mit 1 Mensch (synthetischer Controller) und KI pe
 | KI13 | Partie mit einer KI auf „Dynamisch“ (CHAOS-187), mindestens 6 Runden; einmal klar führen, einmal klar zurückliegen | Führen die Menschen, wird die KI spürbar zäher; liegt sie vorn, lässt sie nach. Kein Sprung innerhalb einer Runde, kein Gummiband-Gefühl (Frage für CHAOS-185) | | Notiz |
 | KI14 | Geteiltes iPad (2 Zonen, CHAOS-238), Zone der Spielleitung (niedrigste Platznummer) | Reihe „Mitspieler“ unter dem Titel; Tippen auf „+ KI“ setzt eine KI, erneutes Tippen wechselt die Stärke, „✕“ entfernt; die Nachbarzone sieht die KI nur und ihr Tippen bewirkt nichts; zwei Finger gleichzeitig (Figur wählen + KI setzen) stören sich nicht | | Video |
 | KI15 | iPad mini mit 4 Zonen (kompakte Reihe) | Chips ohne „✕“, Text lesbar (zweizeilig); Tippen auf eine KI nach „Dynamisch“ gibt den Platz frei | | Foto |
+| KI16 | Start mit 1 Mensch + 3 KI (für CHAOS-186, ADR-020 Nachtrag 7) | In der Lobby nur „KI“; ab dem Start trägt jede KI einen anderen Stil („KI · Saboteur“, „KI · Sammler“, „KI · Draufgänger“ oder „KI · Fuchs“) im HUD, im Minispiel und im Endstand, auch am Fernseher lesbar | | Foto |
+| KI17 | „Nochmal spielen“ (für CHAOS-186) | Die Stile werden neu gezogen (kann zufällig gleich bleiben), Stärken bleiben | | Foto |
+| KI18 | Ganze Partie gegen „Saboteur“ und „Sammler“ (für CHAOS-186, Spielgefühl in CHAOS-185) | Der Saboteur klaut und legt spürbar öfter Fallen; fühlt sich ein Stil unfair stark an? | | Notiz |
 
 ## 50. Pilotwelle: acht neue Minispiele (für CHAOS-91, Zwischenabnahme CHAOS-92)
 

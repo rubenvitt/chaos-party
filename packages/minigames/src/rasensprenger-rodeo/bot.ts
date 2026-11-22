@@ -137,6 +137,10 @@ export function createRodeoBot(
   options: MinigameBotOptions,
   observe: () => RodeoLogic | null,
 ): MinigameBotDriver {
-  const bot = new RodeoBot(options.slot, profileForStrength(options.strength), options.rng);
+  const bot = new RodeoBot(
+    options.slot,
+    profileForStrength(options.strength, options.style),
+    options.rng,
+  );
   return kitBotDriver(bot, observe);
 }

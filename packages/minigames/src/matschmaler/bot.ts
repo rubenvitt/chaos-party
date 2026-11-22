@@ -136,6 +136,10 @@ export function createMatschBot(
   options: MinigameBotOptions,
   observe: () => MatschLogic | null,
 ): MinigameBotDriver {
-  const bot = new MatschBot(options.slot, profileForStrength(options.strength), options.rng);
+  const bot = new MatschBot(
+    options.slot,
+    profileForStrength(options.strength, options.style),
+    options.rng,
+  );
   return kitBotDriver(bot, observe);
 }

@@ -3,8 +3,13 @@
  * die Session, künstliche Uhr, feste Seeds. Die KI antwortet mit der echten Brett-KI
  * (`createBoardAiPolicy`): Stärke, Denkpause, verpasste Reaktionen, eigene Ströme je Platz.
  */
-import { boardAiParams, DYNAMIC_MAX_STEP } from '@chaos-party/game-core';
-import type { AiStrength, BoardEvent, SlotNumber } from '@chaos-party/protocol';
+import { BOARD_AI_PERSONALITIES, boardAiParams, DYNAMIC_MAX_STEP } from '@chaos-party/game-core';
+import {
+  AI_PERSONALITIES,
+  type AiStrength,
+  type BoardEvent,
+  type SlotNumber,
+} from '@chaos-party/protocol';
 import { describe, expect, it } from 'vitest';
 import { createBoardAiPolicy, type AiSeatPolicy } from './aiSeat.ts';
 import {
@@ -143,6 +148,43 @@ describe('Brett-KI im Live-Spiel (CHAOS-181)', () => {
     expect(h.gamePhase).toBe('game-results');
     expect(h.session.snapshot().aiRejected).toBe(0);
     assertContiguousEvents(h);
+  });
+});
+
+describe('Spielstile der KI im Live-Spiel (CHAOS-186)', () => {
+  function stylesOf(h: Harness) {
+    const players = h.boards.at(-1)?.view.players ?? [];
+    return players.flatMap((player) =>
+      player.kind === 'ai' ? [[player.slot, player.personality] as const] : [],
+    );
+  }
+
+  it('game-core und Protokoll kennen dieselben Stile', () => {
+    expect([...BOARD_AI_PERSONALITIES]).toEqual([...AI_PERSONALITIES]);
+  });
+
+  it('jeder KI-Platz bekommt beim Start einen Stil, ohne Doppelung; Menschen keinen', () => {
+    const h = setupGame(1, INTEGRATION_SEEDS.four, {
+      ai: ['leicht', 'mittel', 'schwer'],
+      rounds: 1,
+    });
+    const styles = stylesOf(h);
+    expect(styles.map(([slot]) => slot)).toEqual(AI_SLOTS);
+    expect(new Set(styles.map(([, style]) => style)).size).toBe(3);
+    for (const [, style] of styles) expect(AI_PERSONALITIES).toContain(style);
+    const human = h.boards.at(-1)?.view.players.find((player) => player.slot === 1);
+    expect(human?.personality).toBeUndefined();
+  });
+
+  it('gleicher Seed → gleiche Vergabe; über Seeds kommen verschiedene Stile vor', () => {
+    const seeds = [INTEGRATION_SEEDS.two, INTEGRATION_SEEDS.three, INTEGRATION_SEEDS.four];
+    const of = (seed: number) =>
+      stylesOf(setupGame(1, seed, { ai: ['mittel', 'mittel', 'mittel'], rounds: 1 }));
+    for (const seed of seeds) expect(of(seed)).toEqual(of(seed));
+    const all = new Set(
+      seeds.flatMap((seed) => of(seed).map(([slot, style]) => `${slot}:${style}`)),
+    );
+    expect(all.size).toBeGreaterThan(3);
   });
 });
 

@@ -72,7 +72,11 @@ import {
   type RateMessage,
   type Vote,
 } from '@chaos-party/protocol';
-import type { MinigameRotationOptions } from '@chaos-party/game-core';
+import {
+  assignBoardAiPersonalities,
+  type BoardAiPersonality,
+  type MinigameRotationOptions,
+} from '@chaos-party/game-core';
 import { getMinigameInfo } from '@chaos-party/minigames/catalog';
 import { randomInt } from 'node:crypto';
 import {
@@ -90,6 +94,7 @@ import {
   catalogMinigame,
   DEFAULT_GAME_SETTINGS,
   rulesForGame,
+  type BoardGamePlayer,
   type BoardGameSettings,
 } from './game.ts';
 import { generateToken, isValidJoinCode } from './ids.ts';
@@ -333,6 +338,14 @@ const PLAY_CONTEXT: SlotContext = {
 };
 
 /** Lobby-Name eines KI-Platzes, bis er beim Start den Namen seiner Figur bekommt. */
+/** KI-Felder eines Platzes für `BoardGame` (Stärke und ggf. Spielstil, CHAOS-186). */
+function aiOfSeat(
+  strength: AiStrength,
+  personality: BoardAiPersonality | undefined,
+): NonNullable<BoardGamePlayer['ai']> {
+  return personality === undefined ? { strength } : { strength, personality };
+}
+
 function aiLobbyLabel(slot: SlotNumber): string {
   return `KI ${PLAYER_SLOTS[slot].label}`;
 }
@@ -1237,6 +1250,11 @@ export class Session {
     practice?: BoardGameSettings['minigames'][number],
   ): void {
     const seed = this.gameSettings.seed ?? this.randomSeed();
+    // Spielstile (CHAOS-186, ADR-020 §5): je Partie aus dem Seed, ohne Doppelung.
+    const personalities = assignBoardAiPersonalities(
+      seed,
+      players.filter((player) => player.kind === 'ai').map((player) => player.slot),
+    );
     const settings: BoardGameSettings = {
       ...this.gameSettings,
       boardId: resolveBoardChoice(this.board, seed).id,
@@ -1254,7 +1272,7 @@ export class Session {
         name: player.label,
         character: player.character ?? pickFreeCharacter(player.slot, []) ?? CHARACTER_IDS[0],
         ...(player.kind === 'ai' && player.strength !== null
-          ? { ai: { strength: player.strength } }
+          ? { ai: aiOfSeat(player.strength, personalities.get(player.slot)) }
           : {}),
       })),
       settings,
@@ -1604,9 +1622,11 @@ export class Session {
       );
       return { key, dueAt: now + Math.max(0, delay), fallback: false, done: false };
     }
+    const personality = game.aiPersonality(player.slot);
     const request: AiPromptRequest = {
       slot: player.slot,
       strength,
+      ...(personality === undefined ? {} : { personality }),
       strengthLevel: game.aiStrengthLevel(player.slot),
       prompt,
       defaultOption: corePrompt.defaultOption,

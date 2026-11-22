@@ -8,7 +8,8 @@
  * Würfel oder Ereignisse (`state.internal`). Zufall nur aus dem übergebenen Strom.
  */
 import { activeNext } from '../board/rotation.ts';
-import { pickOne, type Rng } from '../rng.ts';
+import { pickOne, pickWeighted, type Rng } from '../rng.ts';
+import { ITEM_KINDS } from '../rules/items.ts';
 import {
   BRACE_OPTION,
   BUY_OPTION,
@@ -18,7 +19,7 @@ import {
   SHIELD_OPTION,
   SKIP_OPTION,
 } from '../rules/prompts.ts';
-import type { BoardDefinition, GameState, Prompt, Slot } from '../types.ts';
+import type { BoardDefinition, GameState, ItemKind, Prompt, Slot } from '../types.ts';
 
 /** Feste Wegwahl je Slot (CHAOS-196, EXP-037). */
 export type RouteChoice = 'short' | 'long';
@@ -34,6 +35,14 @@ export interface BoardDecisionPolicy {
    * Fehlt oder 0 = nie (kein Zufallszug, Verhalten der Simulation bis CHAOS-181).
    */
   readonly smartItemChance?: number;
+  /** Schwellen des gezielten Einsatzes (Spielstil, CHAOS-186); fehlt = Standard. */
+  readonly smartItem?: SmartItemTuning;
+  /**
+   * Vorliebe beim zufälligen Item-Einsatz (Spielstil, CHAOS-186): relatives Gewicht je Item
+   * (fehlt = 1). Fehlt die ganze Angabe, wird gleichverteilt gezogen (`pickOne`, wie bisher).
+   * Beide Wege ziehen genau eine Zufallszahl.
+   */
+  readonly itemWeights?: Readonly<Partial<Record<ItemKind, number>>>;
   /** Trophäe kaufen, wenn möglich. */
   readonly buyTrophies: boolean;
   /** Ziel des Münzklaus: reichster Mitspieler oder zufällig. */
@@ -55,6 +64,17 @@ export interface BoardDecisionPolicy {
    * Fallen und Trophäe und zieht keine Zufallszahl; Slots ohne Eintrag wählen normal.
    */
   readonly routes?: Readonly<Partial<Record<Slot, RouteChoice>>>;
+}
+
+/**
+ * Schwellen von {@link smartItemOption}; jede fehlende gilt mit dem Standard
+ * ({@link SMART_STEAL_MIN_COINS}, {@link SMART_DOUBLE_MIN_DISTANCE}, {@link SMART_TRAP_MAX_BEHIND}).
+ * `trapMaxBehind: 0` heißt: gezielt nie eine Falle.
+ */
+export interface SmartItemTuning {
+  readonly stealMinCoins?: number;
+  readonly doubleMinDistance?: number;
+  readonly trapMaxBehind?: number;
 }
 
 /** So weit (Felder) schaut die KI an einer Verzweigung nach sichtbaren Fallen. */
@@ -127,7 +147,8 @@ function choosePath(
 }
 
 /**
- * Gezielter Item-Einsatz im Würfel-Prompt (ohne Zufall), nach sichtbarer Lage:
+ * Gezielter Item-Einsatz im Würfel-Prompt (ohne Zufall), nach sichtbarer Lage (Schwellen aus
+ * `tuning`, sonst Standard):
  * 1. **Münzklau**, wenn ein Mitspieler mindestens {@link SMART_STEAL_MIN_COINS} Münzen hat.
  * 2. **Doppelwürfel**, wenn die eigene Figur sich eine Trophäe leisten kann und die nächste
  *    mindestens {@link SMART_DOUBLE_MIN_DISTANCE} Felder entfernt ist.
@@ -135,21 +156,29 @@ function choosePath(
  *    eigenen Figur steht (er läuft wahrscheinlich darüber).
  * Sonst `ROLL_OPTION`: Das Item bleibt für später.
  */
-export function smartItemOption(prompt: Prompt, state: GameState, board: BoardDefinition): string {
+export function smartItemOption(
+  prompt: Prompt,
+  state: GameState,
+  board: BoardDefinition,
+  tuning: SmartItemTuning = {},
+): string {
+  const stealMinCoins = tuning.stealMinCoins ?? SMART_STEAL_MIN_COINS;
+  const doubleMinDistance = tuning.doubleMinDistance ?? SMART_DOUBLE_MIN_DISTANCE;
+  const trapMaxBehind = tuning.trapMaxBehind ?? SMART_TRAP_MAX_BEHIND;
   const offered = new Set(prompt.options.map((option) => option.id));
   const me = state.players.find((player) => player.slot === prompt.slot);
   if (!me) return ROLL_OPTION;
   const others = state.players.filter((player) => player.slot !== prompt.slot);
   if (
     offered.has(itemOption('coin-steal')) &&
-    others.some((player) => player.coins >= SMART_STEAL_MIN_COINS)
+    others.some((player) => player.coins >= stealMinCoins)
   ) {
     return itemOption('coin-steal');
   }
   if (
     offered.has(itemOption('double-dice')) &&
     me.coins >= state.config.rules.trophy.price &&
-    distanceTo(board, me.spaceId, state.trophySpaces, state.round) >= SMART_DOUBLE_MIN_DISTANCE
+    distanceTo(board, me.spaceId, state.trophySpaces, state.round) >= doubleMinDistance
   ) {
     return itemOption('double-dice');
   }
@@ -157,12 +186,37 @@ export function smartItemOption(prompt: Prompt, state: GameState, board: BoardDe
     offered.has(itemOption('trap')) &&
     others.some((player) => {
       const behind = distanceTo(board, player.spaceId, [me.spaceId], state.round);
-      return behind >= 1 && behind <= SMART_TRAP_MAX_BEHIND;
+      return behind >= 1 && behind <= trapMaxBehind;
     })
   ) {
     return itemOption('trap');
   }
   return ROLL_OPTION;
+}
+
+/**
+ * Zufälliges Item aus den angebotenen Optionen (`item:<art>`), gewichtet nach `weights`
+ * (fehlt = 1, negative zählen als 0). Ohne Gewichte gleichverteilt wie `pickOne`. Zieht eine
+ * Zufallszahl (bei Summe 0 keine und das erste Item).
+ */
+export function pickItem(
+  rng: Rng,
+  items: readonly string[],
+  weights: Readonly<Partial<Record<ItemKind, number>>> | undefined,
+): string {
+  if (weights === undefined) return pickOne(rng, items);
+  const weightOf = (id: string): number => {
+    const kind = ITEM_KINDS.find((item) => itemOption(item) === id);
+    return Math.max(0, (kind === undefined ? undefined : weights[kind]) ?? 1);
+  };
+  return (
+    pickWeighted(
+      rng,
+      items.map((id) => [id, weightOf(id)] as const),
+    ) ??
+    items[0] ??
+    ROLL_OPTION
+  );
 }
 
 /**
@@ -183,8 +237,10 @@ export function decideBoardPrompt(
       const items = ids.filter((id) => id !== ROLL_OPTION);
       if (items.length === 0) return ROLL_OPTION;
       const smart = policy.smartItemChance ?? 0;
-      if (smart > 0 && rng.next() < smart) return smartItemOption(prompt, state, board);
-      if (rng.next() < policy.itemUseChance) return pickOne(rng, items);
+      if (smart > 0 && rng.next() < smart) {
+        return smartItemOption(prompt, state, board, policy.smartItem);
+      }
+      if (rng.next() < policy.itemUseChance) return pickItem(rng, items, policy.itemWeights);
       return ROLL_OPTION;
     }
     case 'target': {

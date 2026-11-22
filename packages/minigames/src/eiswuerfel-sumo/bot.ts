@@ -69,7 +69,7 @@ export function createSumoBot(
   options: MinigameBotOptions,
   observe: () => SumoBotView | null,
 ): MinigameBotDriver {
-  const skill = pawnSkillForStrength(options.strength);
+  const skill = pawnSkillForStrength(options.strength, options.style);
   return pawnBotDriver(options.slot, skill, () => {
     const view = observe();
     const me = view?.pawns.find((pawn) => pawn.slot === options.slot);
