@@ -76,9 +76,11 @@ import type { MinigameRotationOptions } from '@chaos-party/game-core';
 import { getMinigameInfo } from '@chaos-party/minigames/catalog';
 import { randomInt } from 'node:crypto';
 import {
+  createBoardAiPolicy,
   PLACEHOLDER_AI_POLICY,
   safeOption,
   type AiPending,
+  type AiPolicyFactory,
   type AiPromptRequest,
   type AiSeatPolicy,
 } from './aiSeat.ts';
@@ -196,10 +198,10 @@ export interface SessionOptions {
    */
   ratings?: RatingStore | undefined;
   /**
-   * Entscheidungen der KI-Sitze im Brettspiel (CHAOS-179). Standard: Platzhalter, der nach fester
-   * Denkpause die Standardoption nimmt (bis die Brett-KI aus CHAOS-181 kommt).
+   * Entscheidungen der KI-Sitze im Brettspiel (CHAOS-179), je Partie aus deren Seed erzeugt.
+   * Standard: Brett-KI mit Stärke und Denkpause (`createBoardAiPolicy`, CHAOS-181).
    */
-  aiPolicy?: AiSeatPolicy | undefined;
+  aiPolicy?: AiPolicyFactory | undefined;
 }
 
 export interface GameStartInfo {
@@ -406,8 +408,10 @@ export class Session {
   /** Stimmen zum laufenden bzw. eben beendeten Minispiel-Lauf: Lauf-Kennung und Daumen je Slot. */
   private currentVotes: { play: string; bySlot: Map<SlotNumber, Vote> } | null = null;
 
-  /** Entscheidungen der KI-Sitze (CHAOS-179). */
-  private readonly aiPolicy: AiSeatPolicy;
+  /** Erzeugt die Entscheidungen der KI-Sitze je Partie (CHAOS-179, CHAOS-181). */
+  private readonly aiPolicyFactory: AiPolicyFactory;
+  /** Politik der laufenden Partie (neue Ströme bei jedem Start, auch „Nochmal spielen“). */
+  private aiPolicy: AiSeatPolicy = PLACEHOLDER_AI_POLICY;
   /** Geplante Antwort je KI-Platz (Denkpause läuft). */
   private readonly aiPending = new Map<SlotNumber, AiPending>();
   /** Abgewiesene KI-Antworten (Diagnose). */
@@ -465,7 +469,7 @@ export class Session {
     this.onGameStart = options.onGameStart;
     this.ratings = options.ratings ?? createMemoryRatingStore();
     this.sessionKey = generateToken().slice(0, 12);
-    this.aiPolicy = options.aiPolicy ?? PLACEHOLDER_AI_POLICY;
+    this.aiPolicyFactory = options.aiPolicy ?? createBoardAiPolicy;
   }
 
   get phase(): Phase {
@@ -1252,6 +1256,7 @@ export class Session {
     this.gameCount += 1;
     this.currentVotes = null;
     this.aiPending.clear();
+    this.aiPolicy = this.aiPolicyFactory(seed);
     this.phaseValue = 'board';
     this.contextKeys.clear();
     this.onGameStart?.({
@@ -1579,8 +1584,9 @@ export class Session {
     board: SlotContext['board'],
     now: number,
   ): AiPending {
-    const defaultOption = this.game?.state.prompt?.defaultOption;
-    if (prompt === undefined || board === undefined || defaultOption === undefined) {
+    const game = this.game;
+    const corePrompt = game?.state.prompt;
+    if (prompt === undefined || board === undefined || !game || !corePrompt) {
       const delay = this.aiPolicy.readyDelayMs(player.slot, strength);
       return { key, dueAt: now + Math.max(0, delay), fallback: false, done: false };
     }
@@ -1588,10 +1594,13 @@ export class Session {
       slot: player.slot,
       strength,
       prompt,
-      defaultOption,
+      defaultOption: corePrompt.defaultOption,
       board,
+      game: { prompt: corePrompt, state: game.state, board: game.board },
     };
     const decision = this.aiPolicy.decide(request);
+    // Bewusst keine Antwort (verpasste Reaktion): nichts tun, die Frist entscheidet.
+    if (decision.option === null) return { key, dueAt: now, fallback: false, done: true };
     return {
       key,
       dueAt: now + Math.max(0, decision.delayMs),
