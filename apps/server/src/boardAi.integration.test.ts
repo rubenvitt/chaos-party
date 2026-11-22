@@ -3,9 +3,10 @@
  * die Session, künstliche Uhr, feste Seeds. Die KI antwortet mit der echten Brett-KI
  * (`createBoardAiPolicy`): Stärke, Denkpause, verpasste Reaktionen, eigene Ströme je Platz.
  */
-import { boardAiParams } from '@chaos-party/game-core';
+import { boardAiParams, DYNAMIC_MAX_STEP } from '@chaos-party/game-core';
 import type { AiStrength, BoardEvent, SlotNumber } from '@chaos-party/protocol';
 import { describe, expect, it } from 'vitest';
+import { createBoardAiPolicy, type AiSeatPolicy } from './aiSeat.ts';
 import {
   assertContiguousEvents,
   INTEGRATION_SEEDS,
@@ -142,5 +143,77 @@ describe('Brett-KI im Live-Spiel (CHAOS-181)', () => {
     expect(h.gamePhase).toBe('game-results');
     expect(h.session.snapshot().aiRejected).toBe(0);
     assertContiguousEvents(h);
+  });
+});
+
+describe('Dynamische Stärke im Live-Spiel (CHAOS-187)', () => {
+  /** `strengthLevel` der KI auf Platz 2 je `board`-Nachricht, mit Runde und Rundenende-Ereignis. */
+  function levelsOf(h: Harness) {
+    return h.boards.flatMap((message) => {
+      const ai = message.view.players.find((player) => player.slot === 2);
+      return ai?.strengthLevel === undefined
+        ? []
+        : [
+            {
+              level: ai.strengthLevel,
+              roundEnded: message.events.some((event) => event.type === 'round-ended'),
+            },
+          ];
+    });
+  }
+
+  it('startet bei mittel, ändert sich nur am Rundenende und höchstens um eine halbe Stufe', () => {
+    let moved = false;
+    for (const seed of [INTEGRATION_SEEDS.two, INTEGRATION_SEEDS.three, INTEGRATION_SEEDS.four]) {
+      const h = setupGame(1, seed, { ai: ['dynamisch', 'schwer'], rounds: 6 });
+      h.runToEnd();
+      expect(h.gamePhase).toBe('game-results');
+      expect(h.session.snapshot().aiRejected).toBe(0);
+      const levels = levelsOf(h);
+      expect(levels[0]?.level).toBe(0.5);
+      for (let index = 1; index < levels.length; index++) {
+        const [before, after] = [levels[index - 1], levels[index]];
+        if (!before || !after || before.level === after.level) continue;
+        moved = true;
+        expect(after.roundEnded).toBe(true);
+        expect(Math.abs(after.level - before.level)).toBeLessThanOrEqual(DYNAMIC_MAX_STEP);
+      }
+      // Feste Stufen tragen kein strengthLevel.
+      const fixed = h.boards.at(-1)?.view.players.find((player) => player.slot === 3);
+      expect(fixed?.strength).toBe('schwer');
+      expect(fixed?.strengthLevel).toBeUndefined();
+    }
+    expect(moved).toBe(true);
+  });
+
+  it('die Brett-KI entscheidet mit der aktuellen Stärke; gleicher Seed → gleicher Verlauf', () => {
+    const seen: (number | undefined)[] = [];
+    const spy = (seed: number): AiSeatPolicy => {
+      const inner = createBoardAiPolicy(seed);
+      return {
+        decide: (request) => {
+          if (request.slot === 2) seen.push(request.strengthLevel);
+          return inner.decide(request);
+        },
+        readyDelayMs: (slot, strength, level) => inner.readyDelayMs(slot, strength, level),
+      };
+    };
+    const run = () => {
+      const h = setupGame(1, INTEGRATION_SEEDS.four, {
+        ai: ['dynamisch'],
+        rounds: 6,
+        session: { aiPolicy: spy },
+      });
+      h.runToEnd();
+      return h;
+    };
+    const a = run();
+    const levels = levelsOf(a).map((entry) => entry.level);
+    expect(seen.length).toBeGreaterThan(5);
+    for (const level of seen) {
+      expect(typeof level).toBe('number');
+      expect(levels).toContain(level);
+    }
+    expect(levelsOf(run())).toEqual(levelsOf(a));
   });
 });
