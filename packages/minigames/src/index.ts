@@ -22,6 +22,8 @@ import { matschmaler } from './matschmaler/index.ts';
 import { rasensprengerRodeo } from './rasensprenger-rodeo/index.ts';
 import { schnappDenKaese } from './schnapp-den-kaese/index.ts';
 import { eiswuerfelSumo } from './eiswuerfel-sumo/index.ts';
+import { bienenstockHonig } from './bienenstock-honig/index.ts';
+import { dreiTueren } from './drei-tueren/index.ts';
 import { wackelturm } from './wackelturm/index.ts';
 
 export * from './catalog.ts';
@@ -40,6 +42,8 @@ export const MINIGAME_MODULES: readonly MinigameModule[] = [
   rasensprengerRodeo,
   schnappDenKaese,
   eiswuerfelSumo,
+  bienenstockHonig,
+  dreiTueren,
   pumpDuell,
   pumpSolo,
   pumpRiese,

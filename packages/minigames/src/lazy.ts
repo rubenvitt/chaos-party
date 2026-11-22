@@ -32,6 +32,8 @@ import { MATSCHMALER_INFO } from './matschmaler/info.ts';
 import { RASENSPRENGER_RODEO_INFO } from './rasensprenger-rodeo/info.ts';
 import { SCHNAPP_DEN_KAESE_INFO } from './schnapp-den-kaese/info.ts';
 import { EISWUERFEL_SUMO_INFO } from './eiswuerfel-sumo/info.ts';
+import { BIENENSTOCK_HONIG_INFO } from './bienenstock-honig/info.ts';
+import { DREI_TUEREN_INFO } from './drei-tueren/info.ts';
 import { WACKELTURM_INFO } from './wackelturm/info.ts';
 
 export * from './catalog.ts';
@@ -78,6 +80,11 @@ export const MINIGAME_LOADERS: ReadonlyMap<string, MinigameLoader> = new Map<
     EISWUERFEL_SUMO_INFO.id,
     () => import('./eiswuerfel-sumo/index.ts').then((m) => m.eiswuerfelSumo),
   ],
+  [
+    BIENENSTOCK_HONIG_INFO.id,
+    () => import('./bienenstock-honig/index.ts').then((m) => m.bienenstockHonig),
+  ],
+  [DREI_TUEREN_INFO.id, () => import('./drei-tueren/index.ts').then((m) => m.dreiTueren)],
   // Testspiele der Spielformen (CHAOS-89).
   [PUMP_DUELL_INFO.id, () => import('./pump-duell/index.ts').then((m) => m.pumpDuell)],
   [PUMP_SOLO_INFO.id, () => import('./pump-solo/index.ts').then((m) => m.pumpSolo)],

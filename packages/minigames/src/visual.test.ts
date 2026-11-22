@@ -45,6 +45,16 @@ const EXPECTED: Record<string, readonly string[]> = {
   ],
   'schnapp-den-kaese': ['mausefalle', 'buegel', 'kaese', 'pfote', 'abzeichen', 'sterne'],
   'eiswuerfel-sumo': ['eiswuerfel', 'schmelzrand', 'abzeichen', 'sterne'],
+  'bienenstock-honig': [
+    'bienenstock',
+    'biene',
+    'honigtopf',
+    'honig',
+    'vorratsglas',
+    'vorrat',
+    'abzeichen',
+    'sterne',
+  ],
 };
 
 /** Rollen aller Knoten der Szene nach ein paar Sekunden Spiel (mit laufenden Figuren). */

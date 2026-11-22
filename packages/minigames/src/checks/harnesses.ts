@@ -28,6 +28,8 @@ import { SCHNAPP_DEN_KAESE_INFO } from '../schnapp-den-kaese/info.ts';
 import { sumoDecision, type SumoStrategy } from '../eiswuerfel-sumo/bot.ts';
 import { EiswuerfelSumo, eiswuerfelSumo } from '../eiswuerfel-sumo/index.ts';
 import { EISWUERFEL_SUMO_INFO } from '../eiswuerfel-sumo/info.ts';
+import { HoneyBot, HONEY_BOT_ADAPTER } from '../bienenstock-honig/bot.ts';
+import { BIENENSTOCK_HONIG_INFO } from '../bienenstock-honig/info.ts';
 import { KUCKUCKS_KLATSCHE_INFO } from '../kuckucks-klatsche/info.ts';
 import { PUDDING_GERANGEL_INFO } from '../pudding-gerangel/info.ts';
 import { SOCKENREGEN_INFO } from '../sockenregen/info.ts';
@@ -342,4 +344,21 @@ export const FAIRNESS_HARNESSES: Readonly<Record<string, FairnessHarness>> = {
     ciSeeds: 8,
     play: playEiswuerfel,
   },
+  [BIENENSTOCK_HONIG_INFO.id]: kitHarness({
+    info: BIENENSTOCK_HONIG_INFO,
+    adapter: HONEY_BOT_ADAPTER,
+    intruders: [
+      dauerDruecker(['a'], 'Dauerdrücken (nur zapfen)'),
+      {
+        id: 'gierhals',
+        label: 'Gierhals (sichert spät)',
+        bot: (slot, rng, normal) => new HoneyBot(slot, normal.profile, rng, 'gierig'),
+      },
+      {
+        id: 'angsthase',
+        label: 'Angsthase (sichert jeden Zapfer)',
+        bot: (slot, rng, normal) => new HoneyBot(slot, normal.profile, rng, 'aengstlich'),
+      },
+    ],
+  }),
 };

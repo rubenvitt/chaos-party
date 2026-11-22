@@ -26,6 +26,8 @@ import { MATSCHMALER_INFO } from './matschmaler/info.ts';
 import { RASENSPRENGER_RODEO_INFO } from './rasensprenger-rodeo/info.ts';
 import { SCHNAPP_DEN_KAESE_INFO } from './schnapp-den-kaese/info.ts';
 import { EISWUERFEL_SUMO_INFO } from './eiswuerfel-sumo/info.ts';
+import { BIENENSTOCK_HONIG_INFO } from './bienenstock-honig/info.ts';
+import { DREI_TUEREN_INFO } from './drei-tueren/info.ts';
 import { WACKELTURM_INFO } from './wackelturm/info.ts';
 
 /** Vielfalts-Steckbriefe (ADR-021): rein, auch für Server und Rotation (CHAOS-85). */
@@ -46,6 +48,9 @@ export const MINIGAME_INFOS: readonly MinigameInfo[] = [
   RASENSPRENGER_RODEO_INFO,
   SCHNAPP_DEN_KAESE_INFO,
   EISWUERFEL_SUMO_INFO,
+  BIENENSTOCK_HONIG_INFO,
+  // Spielbar, nicht in der Rotation: KI-Stärke schwer/leicht zu knapp (CHAOS-91).
+  DREI_TUEREN_INFO,
   // Testspiele der Spielformen (CHAOS-89), nicht in der Rotation.
   PUMP_DUELL_INFO,
   PUMP_SOLO_INFO,
@@ -70,6 +75,7 @@ export const ROTATION: readonly string[] = [
   RASENSPRENGER_RODEO_INFO.id,
   SCHNAPP_DEN_KAESE_INFO.id,
   EISWUERFEL_SUMO_INFO.id,
+  BIENENSTOCK_HONIG_INFO.id,
 ];
 
 /**

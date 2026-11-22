@@ -137,6 +137,26 @@ export const STECKBRIEFE: Readonly<Record<string, Steckbrief>> = {
     tempo: 'hektisch',
     ort: 'kueche',
   },
+  'bienenstock-honig': {
+    kernverb: 'zocken',
+    ziel: 'meiste',
+    arena: 'rund',
+    kamera: 'schraeg',
+    bedienung: 'AB',
+    spielform: 'FFA',
+    tempo: 'wechselnd',
+    ort: 'garten',
+  },
+  'drei-tueren': {
+    kernverb: 'waehlen',
+    ziel: 'meiste',
+    arena: 'buehne',
+    kamera: 'fest',
+    bedienung: 'SA',
+    spielform: 'FFA',
+    tempo: 'ruhig',
+    ort: 'garten',
+  },
   // Testspiel der Spielform 2v2 (CHAOS-89), nicht in der Rotation: bewusst nah an der Pump-Parade.
   'pump-duell': {
     kernverb: 'pumpen',
