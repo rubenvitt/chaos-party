@@ -384,3 +384,14 @@ func launchTailwind(_ arguments: [String], environment: [String: String]) -> Boo
     }
     return environment["RUECKENWIND"]?.trimmingCharacters(in: .whitespaces) == "1"
 }
+
+/// `--minispiele=pump-duell,pump-solo,pump-riese`: nur Test und Vorführung (CHAOS-230). Ersetzt die Rotation der
+/// Partien durch genau diese Minispiele, etwa um die Team-Ansage der Testspiele aus CHAOS-89 am Mac oder auf der
+/// Apple TV zu zeigen (mit `--bild=` auch als Bild). Geht als `debugMinigames` an `HostEnv`; Unbekanntes loggt
+/// der Kern und lässt es weg. nil = Rotation des Katalogs.
+func launchMinigames(_ arguments: [String]) -> [String]? {
+    guard let arg = arguments.last(where: { $0.hasPrefix("--minispiele=") }) else { return nil }
+    let ids = arg.dropFirst("--minispiele=".count).split(separator: ",")
+        .map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+    return ids.isEmpty ? nil : ids
+}
