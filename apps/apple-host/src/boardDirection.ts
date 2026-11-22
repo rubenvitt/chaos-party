@@ -15,7 +15,7 @@
  * Zeigen des Bretts holt `settle()` auf, ohne Nachgeholtes zu animieren oder zu vertonen.
  */
 import { DEFAULT_BOARD, getBoard, type BoardDefinition } from '@chaos-party/game-core';
-import { PLAYER_SLOTS, type BoardMessage, type BoardView } from '@chaos-party/protocol';
+import { aiTagline, PLAYER_SLOTS, type BoardMessage, type BoardView } from '@chaos-party/protocol';
 import { cameraShot, createCameraRig } from '../../host/src/board/camera.ts';
 import {
   createBoardDirector,
@@ -177,6 +177,8 @@ export function hudOf(snapshot: HudSnapshot): Hud | null {
         items: p.items.map((id) => ({ id, name: ITEM_NAMES[id] })),
         connected: p.connected,
         active: view.activeSlot === p.slot,
+        // KI-Abzeichen (CHAOS-182), fehlt bei Menschen.
+        ...(p.kind === 'ai' ? { ai: aiTagline(p) ?? 'KI' } : {}),
       })),
     tailwind: rows
       ? {

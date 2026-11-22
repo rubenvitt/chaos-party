@@ -101,7 +101,12 @@ struct FinaleOverlayView: View {
             }
             .padding(.top, 34)
             Text(card.name ?? "").font(.system(size: 38, weight: .black, design: .rounded)).lineLimit(1)
-            Text(card.characterName ?? "").font(.system(size: 22, weight: .semibold, design: .rounded)).foregroundStyle(Self.ink.opacity(0.7))
+            if let ai = card.ai {
+                // Eine KI heißt nach ihrer Figur; statt der Figur steht ihr Abzeichen da (CHAOS-182).
+                AiBadge(text: ai, size: 20)
+            } else {
+                Text(card.characterName ?? "").font(.system(size: 22, weight: .semibold, design: .rounded)).foregroundStyle(Self.ink.opacity(0.7))
+            }
             HStack(spacing: 12) {
                 Image(systemName: "trophy.fill").font(.system(size: 40, weight: .bold)).foregroundStyle(Self.gold)
                     .shadow(color: Self.ink, radius: 0, x: 2, y: 2)
@@ -200,7 +205,10 @@ struct FinaleOverlayView: View {
                 .background(color.opacity(0.25), in: .rect(cornerRadius: 14))
                 .overlay(RoundedRectangle(cornerRadius: 14).stroke(Self.ink, lineWidth: 3))
             VStack(alignment: .leading, spacing: 0) {
-                Text("\(row.symbol ?? "") \(row.name ?? "")").font(.system(size: 28, weight: .black, design: .rounded)).lineLimit(1)
+                HStack(spacing: 8) {
+                    Text("\(row.symbol ?? "") \(row.name ?? "")").font(.system(size: 28, weight: .black, design: .rounded)).lineLimit(1)
+                    if let ai = row.ai { AiBadge(text: ai, size: 15) }
+                }
                 if let badge = row.badge {
                     Text(badge).font(.system(size: 17, weight: .heavy, design: .rounded)).foregroundStyle(Self.ink.opacity(0.75))
                 }

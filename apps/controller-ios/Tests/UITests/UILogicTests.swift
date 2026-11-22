@@ -240,6 +240,32 @@ import Testing
         #expect(LobbyModel(context: context, pending: .robot)?.character == nil)
     }
 
+    @Test func seatsRowForLeadOffersAiButtons() throws {
+        let lobby = ControllerLobbyInfo(
+            takenCharacters: [], rounds: 5, lead: true,
+            seats: [LobbySeat(slot: 1, kind: "human"), LobbySeat(slot: 3, kind: "ai", strength: "schwer")])
+        let model = try #require(SeatsModel(lobby: lobby, ownSlot: 1))
+        #expect(model.lead)
+        #expect(model.chips.map(\.kind) == [.own, .free, .ai, .free])
+        #expect(model.chips.map(\.text) == ["Du", "+ KI", "KI · Schwer", "+ KI"])
+        #expect(model.chips.map(\.tap) == [nil, "mittel", "dynamisch", "mittel"])
+        #expect(model.chips.map(\.removable) == [false, false, true, false])
+    }
+
+    @Test func seatsRowForOthersOnlyShowsAi() throws {
+        let seats = [LobbySeat(slot: 1, kind: "human"), LobbySeat(slot: 2, kind: "ai", strength: "leicht")]
+        let model = try #require(
+            SeatsModel(lobby: ControllerLobbyInfo(takenCharacters: [], rounds: 5, lead: false, seats: seats), ownSlot: 1))
+        #expect(model.chips.map(\.text) == ["Du", "KI · Leicht", "frei", "frei"])
+        #expect(model.chips.allSatisfy { $0.tap == nil && !$0.removable })
+        // No AI and not the lead, or an older server without seats: no row.
+        #expect(
+            SeatsModel(
+                lobby: ControllerLobbyInfo(takenCharacters: [], rounds: 5, lead: false, seats: [seats[0]]), ownSlot: 1)
+                == nil)
+        #expect(SeatsModel(lobby: ControllerLobbyInfo(takenCharacters: [], rounds: 5), ownSlot: 1) == nil)
+    }
+
     @Test func readyLobbyShowsReadyHint() throws {
         let context = try #require(ControllerState.lobbyReadySample.contexts[1])
         let model = try #require(LobbyModel(context: context, pending: nil))
@@ -259,6 +285,13 @@ import Testing
         #expect(session.sent == ["pick-character 1 cactus", "ready 1"])
         #expect(session.state.slotScreen(1) == .lobby)
         #expect(session.state.contexts[1]?.layout == .wait)
+    }
+
+    @Test func leadSendsAiSeat() {
+        let session = FakeControllerSession(.lobbySample)
+        session.setAiSeat(slot: 1, seat: 3, strength: "mittel")
+        session.setAiSeat(slot: 1, seat: 3, strength: nil)
+        #expect(session.sent == ["ai-seat 1 3 mittel", "ai-seat 1 3 aus"])
     }
 
     /// CHAOS-214: „Bereit!“ in the intro sends `ready` for the slot and keeps the intro.

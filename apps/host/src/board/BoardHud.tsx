@@ -7,6 +7,7 @@
  * Liest nur den `HudSnapshot` der Regie; steuert nichts. Große Schrift für den Sofa-Abstand.
  */
 import {
+  aiTagline,
   PLAYER_SLOTS,
   type BoardPlayer,
   type BoardView,
@@ -79,6 +80,11 @@ function PlayerCard({
         <PlayerDot slot={player.slot} />
         <span className="board-player-name">{player.name}</span>
       </div>
+      {player.kind === 'ai' && (
+        <span className="ai-badge board-player-ai" data-testid={`board-ai-${player.slot}`}>
+          {aiTagline(player)}
+        </span>
+      )}
       <div className="board-player-stats">
         <span className="board-stat board-stat--trophies" title="Trophäen">
           <TrophyIcon size={26} />

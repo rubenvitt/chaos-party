@@ -1,0 +1,278 @@
+{
+  "phase": "board",
+  "lobby": {
+    "joinUrl": "http://192.168.0.2:8787/?code=AB12",
+    "joinCode": "AB12",
+    "settings": {
+      "rounds": 10,
+      "roundPresets": [
+        10,
+        16,
+        20
+      ],
+      "moreReactionTime": false,
+      "board": "wackelwald",
+      "boards": [
+        {
+          "id": "wackelwald",
+          "name": "Wackelwald",
+          "detail": "74 Felder",
+          "selected": true,
+          "random": false
+        },
+        {
+          "id": "zufall",
+          "name": "Zufall",
+          "detail": "Überraschung!",
+          "selected": false,
+          "random": true
+        }
+      ],
+      "minigames": [
+        {
+          "id": "sockenregen",
+          "title": "Sockenregen",
+          "blocked": false,
+          "favorite": false
+        },
+        {
+          "id": "pudding-gerangel",
+          "title": "Pudding-Gerangel",
+          "blocked": false,
+          "favorite": false
+        },
+        {
+          "id": "wackelturm",
+          "title": "Wackelturm",
+          "blocked": false,
+          "favorite": false
+        },
+        {
+          "id": "kuckucks-klatsche",
+          "title": "Kuckucks-Klatsche",
+          "blocked": false,
+          "favorite": false
+        },
+        {
+          "id": "kruemel-kehraus",
+          "title": "Krümel-Kehraus",
+          "blocked": false,
+          "favorite": false
+        }
+      ],
+      "minigameSummary": {
+        "short": "5 im Topf",
+        "long": "5 im Topf"
+      }
+    },
+    "galleryRevision": 0,
+    "players": [
+      {
+        "slot": 1,
+        "name": "Anna",
+        "color": "#0072B2",
+        "connected": true,
+        "ready": true,
+        "character": "raccoon",
+        "kind": "human",
+        "strength": null
+      },
+      {
+        "slot": 2,
+        "name": "Socke Sigi",
+        "color": "#E69F00",
+        "connected": true,
+        "ready": true,
+        "character": "sock",
+        "kind": "ai",
+        "strength": "schwer"
+      }
+    ]
+  },
+  "board": {
+    "boardId": "wackelwald",
+    "round": 3,
+    "rounds": 10,
+    "activeSlot": 2,
+    "spaces": [
+      {
+        "id": "s00",
+        "x": 0,
+        "z": 0,
+        "kind": "start"
+      },
+      {
+        "id": "s01",
+        "x": 2.4,
+        "z": 0.5,
+        "kind": "coins-plus"
+      },
+      {
+        "id": "s02",
+        "x": 4.6,
+        "z": 1.6,
+        "kind": "coins-minus"
+      },
+      {
+        "id": "s03",
+        "x": 6.2,
+        "z": 3.4,
+        "kind": "event"
+      },
+      {
+        "id": "s04",
+        "x": 6.8,
+        "z": 5.8,
+        "kind": "item"
+      },
+      {
+        "id": "s05",
+        "x": 5.9,
+        "z": 8.1,
+        "kind": "trophy"
+      }
+    ],
+    "pawns": [
+      {
+        "slot": 1,
+        "spaceId": "s03",
+        "x": 5.75,
+        "z": 3.4,
+        "character": "raccoon",
+        "y": 0,
+        "hop": null,
+        "heading": null,
+        "connected": true
+      },
+      {
+        "slot": 2,
+        "spaceId": "s03",
+        "x": 6.65,
+        "z": 3.4,
+        "character": "sock",
+        "y": 0,
+        "hop": null,
+        "heading": null,
+        "connected": true
+      }
+    ],
+    "messages": [
+      "Anna würfelt eine 4.",
+      "Anna bekommt 3 Münzen.",
+      "Ben ist am Zug."
+    ],
+    "notice": null,
+    "popups": [],
+    "ticker": [
+      {
+        "id": 4,
+        "text": "Anna würfelt 4!",
+        "slot": 1,
+        "tone": "neutral"
+      },
+      {
+        "id": 7,
+        "text": "Anna bekommt 3 Münzen",
+        "slot": 1,
+        "tone": "good"
+      }
+    ],
+    "hud": {
+      "boardName": "Wackelwald",
+      "roundText": "Runde 3/10",
+      "banner": null,
+      "bannerSlot": null,
+      "status": {
+        "slot": 2,
+        "kind": "roll",
+        "text": "Ben darf würfeln …",
+        "detail": null,
+        "countdown": null
+      },
+      "players": [
+        {
+          "slot": 1,
+          "name": "Anna",
+          "color": "#0072B2",
+          "coins": 12,
+          "trophies": 1,
+          "items": [
+            {
+              "id": "shield",
+              "name": "Schild"
+            }
+          ],
+          "connected": true,
+          "active": false
+        },
+        {
+          "slot": 2,
+          "name": "Socke Sigi",
+          "color": "#E69F00",
+          "coins": 7,
+          "trophies": 0,
+          "items": [],
+          "connected": true,
+          "active": true,
+          "ai": "KI · Fuchs"
+        }
+      ],
+      "tailwind": null
+    },
+    "camera": {
+      "pos": [
+        3.9,
+        26.7,
+        -14.3
+      ],
+      "target": [
+        3.9,
+        0,
+        2.4
+      ]
+    },
+    "trophySpaces": [
+      "s05"
+    ],
+    "traps": [
+      {
+        "spaceId": "s02",
+        "owner": 1
+      }
+    ],
+    "sounds": [],
+    "light": {
+      "mood": "mittag",
+      "keyIntensity": 3.4,
+      "keyTint": "#fffaf0",
+      "keyElevation": 0.7,
+      "skyIntensity": 1,
+      "fillIntensity": 0.35,
+      "fillSky": "#d4e6f4",
+      "fillGround": "#7d8a52",
+      "environment": {
+        "mood": "mittag",
+        "sky": "#d4e6f4",
+        "ground": "#7d8a52",
+        "skyIntensity": 1,
+        "fillIntensity": 0.35
+      },
+      "haze": "#d4e6f4",
+      "exposure": 1.3,
+      "lampsOn": 0,
+      "lanternColor": "#ff9c4a",
+      "lanternIntensity": 0,
+      "lanternRange": 0,
+      "grassTip": "#acd462"
+    },
+    "rides": []
+  },
+  "minigame": null,
+  "final": null,
+  "pause": {
+    "paused": false,
+    "canPause": true,
+    "roundText": "Runde 3/10",
+    "sounds": []
+  }
+}

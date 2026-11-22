@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { SlotContext } from '../state/reducer.ts';
-import { describeLobby, HINT_PICK, HINT_PICKED, HINT_READY, roundsLabel } from './view.ts';
+import {
+  describeLobby,
+  describeSeats,
+  HINT_PICK,
+  HINT_PICKED,
+  HINT_READY,
+  roundsLabel,
+} from './view.ts';
 
 /** Lobby mit Charakterwahl (CHAOS-36): reine Ableitung für iPhone und iPad-Zone. */
 
@@ -132,5 +139,49 @@ describe('describeLobby', () => {
   it('Rundenzahl: Einzahl/Mehrzahl', () => {
     expect(roundsLabel(1)).toBe('1 Runde');
     expect(roundsLabel(8)).toBe('8 Runden');
+  });
+});
+
+describe('describeSeats (CHAOS-182)', () => {
+  const seats = [
+    { slot: 1 as const, kind: 'human' as const },
+    { slot: 3 as const, kind: 'ai' as const, strength: 'schwer' as const },
+  ];
+
+  it('ohne seats (älterer Server) keine Reihe', () => {
+    expect(describeSeats(undefined, 1)).toBeNull();
+    expect(describeSeats({}, 1)).toBeNull();
+  });
+
+  it('Spielleitung: „+ KI“ auf freien Plätzen, KI mit nächster Stärke und Entfernen', () => {
+    const view = describeSeats({ seats, lead: true }, 1);
+    expect(view?.lead).toBe(true);
+    expect(view?.chips).toEqual([
+      { slot: 1, kind: 'self', strength: null, text: 'Du', tap: null, removable: false },
+      { slot: 2, kind: 'free', strength: null, text: '+ KI', tap: 'mittel', removable: false },
+      {
+        slot: 3,
+        kind: 'ai',
+        strength: 'schwer',
+        text: 'KI · Schwer',
+        tap: 'dynamisch',
+        removable: true,
+      },
+      { slot: 4, kind: 'free', strength: null, text: '+ KI', tap: 'mittel', removable: false },
+    ]);
+  });
+
+  it('andere Spieler sehen KI-Plätze nur, ohne Knöpfe', () => {
+    const view = describeSeats({ seats: [...seats, { slot: 2, kind: 'human' }], lead: false }, 2);
+    expect(view?.chips.map((chip) => [chip.kind, chip.text, chip.tap, chip.removable])).toEqual([
+      ['human', 'Mitspieler', null, false],
+      ['self', 'Du', null, false],
+      ['ai', 'KI · Schwer', null, false],
+      ['free', 'frei', null, false],
+    ]);
+  });
+
+  it('ohne KI und ohne Spielleitung bleibt die Reihe weg', () => {
+    expect(describeSeats({ seats: [{ slot: 1, kind: 'human' }], lead: false }, 1)).toBeNull();
   });
 });

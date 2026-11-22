@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  aiTaglineOf,
+  botSeatsFromView,
+  botStrength,
   characterName,
   intentToMinigameInput,
   MIN_RESTART_MS,
@@ -188,5 +191,41 @@ describe('playersFromView', () => {
       'robot',
     ]);
     expect(characterName(view, 1)).toBe('Socke Sigi');
+  });
+});
+
+describe('KI-Plätze im Minispiel (CHAOS-182)', () => {
+  const base = minigameView('minigame-play');
+  const [first, second] = base.players;
+  if (first === undefined || second === undefined) throw new Error('Testansicht braucht 2 Spieler');
+  const view = {
+    ...base,
+    players: [
+      {
+        ...second,
+        kind: 'ai' as const,
+        strength: 'schwer' as const,
+        personality: 'fuchs' as const,
+      },
+      first,
+    ],
+  };
+
+  it('übergibt nur KI-Plätze mit ihrer Stärke an die Bots', () => {
+    expect(botSeatsFromView(view)).toEqual([{ slot: second.slot, strength: 1 }]);
+    expect(botSeatsFromView(base)).toEqual([]);
+  });
+
+  it('Stärke: leicht 0, mittel 0,5, schwer 1, dynamisch startet bei mittel', () => {
+    expect(botStrength('leicht')).toBe(0);
+    expect(botStrength('mittel')).toBe(0.5);
+    expect(botStrength('schwer')).toBe(1);
+    expect(botStrength('dynamisch')).toBe(0.5);
+    expect(botStrength(undefined)).toBe(0.5);
+  });
+
+  it('KI-Abzeichen mit Stil, Menschen ohne', () => {
+    expect(aiTaglineOf(view, second.slot)).toBe('KI · Fuchs');
+    expect(aiTaglineOf(view, first.slot)).toBeNull();
   });
 });

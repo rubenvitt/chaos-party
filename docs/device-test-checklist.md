@@ -939,3 +939,22 @@ Automatisch geprüft (Mac): Mikro-Vertrag, Kette, Bots und Fairness-Vorlage (Uni
 | SF9 | Bildwort am Controller (CHAOS-231): iPhone, iPad-Zone und native App während der Kette | Im Kopf steht dasselbe Bildwort wie am Fernseher („⏰ HAUEN!“, „1/5“), synchron zum Bildwort am Host; nur die Knöpfe des Mikro-Spiels (Wecker/Spaghetti/Kerze: nur A, Fliege/Kuchen: Stick + A); Finale mit „×2“ | | Video |
 | SF10 | Knöpfe wechseln während des Bildworts (CHAOS-231) | Der Stick erscheint bzw. verschwindet im Bildwort, nicht mitten im Spiel; kein Druck geht dabei verloren; nach WLAN-Wackler zeigt der Controller wieder das laufende Bildwort | | Video |
 
+## 49. KI-Spieler in Lobby, HUD und Ergebnis (für CHAOS-182)
+
+**Stand:** 2026-11-22 · **Aufgabe:** CHAOS-182 (Epic CHAOS-177) · **Entscheidung:** ADR-020 (Nachtrag 4) · **Playtest:** CHAOS-185
+
+Automatisch geprüft: PC-Lobby mit 1 Mensch (synthetischer Controller) und KI per Maus und Tastatur bis zum Endstand (Playwright, SwiftShader), Spielleitung am Browser-iPhone (Chromium-Emulation) setzt, ändert und entfernt eine KI, ein zweites iPhone sieht sie nur; Apple-Host-Kern (Node) mit KI-Platz bis zum ersten Minispiel-Ergebnis. Swift-Teile (Apple-Host-Lobby, native Controller-App) nur im macOS-CI gebaut und mit Logik-Tests. Bilder: `docs/screenshots/chaos182-host-lobby-ki.jpg`, `chaos182-host-brett-ki.jpg`, `chaos182-host-endstand-ki.jpg`. **Nicht** geprüft: echte Geräte, Siri Remote, Lesbarkeit am Fernseher, ob die KI Spaß macht.
+
+| ID  | Schritt | Erwartung | Ergebnis | Nachweis |
+| --- | ------- | --------- | -------- | -------- |
+| KI1 | PC: ein iPhone tritt bei, am PC „+ KI“ auf Platz 2 klicken | Karte „KI Orange“ mit Abzeichen „KI“, Stärke „Mittel ›“, „✕“; Hinweis vorher „holt euch eine KI dazu“ | | Foto |
+| KI2 | Stärke-Knopf mehrmals drücken (auch per Tab + Leertaste) | Leicht → Mittel → Schwer → Dynamisch → Leicht; „✕“ entfernt die KI, Platz wieder frei | | Video |
+| KI3 | Start mit 1 Mensch + 1–3 KI | Knopf leuchtet, sobald der Mensch bereit ist; die KI bekommt eine freie Figur und heißt danach wie sie | | Foto |
+| KI4 | Brett: Spielerleiste unten | KI-Karte trägt das Abzeichen „KI“ unter dem Namen, gut lesbar vom Sofa | | Foto |
+| KI5 | Minispiel mit KI | Anleitung, Punkte und Ergebnis zeigen bei der KI „KI“ statt der Figur; die KI bewegt sich und macht Punkte | | Video |
+| KI6 | Endstand | Rangliste zeigt das Abzeichen „KI“ neben dem Namen | | Foto |
+| KI7 | iPhone der Spielleitung (niedrigste Platznummer), Lobby | Reihe „Mitspieler“ mit „Du“, „+ KI“ auf freien Plätzen; Tippen setzt eine KI, erneutes Tippen wechselt die Stärke, „✕“ entfernt | | Video |
+| KI8 | Zweites iPhone | Sieht „KI · Schwer“ o. Ä., aber keine Knöpfe; tritt ein drittes iPhone bei, verdrängt es die KI mit der höchsten Nummer | | Foto |
+| KI9 | Native Controller-App als Spielleitung | Wie KI7 | | Video |
+| KI10 | Apple TV: Lobby per Siri Remote | Fokus erreicht „+ KI“, Stärke und „Entfernen“; Start erst mit einem Menschen; im Brett-HUD, Minispiel und Endstand das Abzeichen „KI“ | | Video |
+| KI11 | Mac-App: dieselbe Lobby mit der Maus | Wie KI10 | | Foto |

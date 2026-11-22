@@ -11,7 +11,7 @@ import {
 } from '@chaos-party/protocol';
 import { playerName } from '../board/texts.ts';
 import type { MinigameResultPayload } from '../net/hostConnection.ts';
-import { characterName } from './plan.ts';
+import { aiTaglineOf, characterName } from './plan.ts';
 import { teamHeadline } from './teams.ts';
 
 export interface ResultRow {
@@ -22,6 +22,8 @@ export interface ResultRow {
   readonly scoreText: string;
   readonly name: string;
   readonly character: string;
+  /** KI-Abzeichen („KI · Saboteur“, CHAOS-182) oder `null` bei Menschen. */
+  readonly ai: string | null;
   readonly color: string;
   readonly symbol: string;
   /**
@@ -89,6 +91,7 @@ export function resultsDisplay(
       scoreText: scoreText(entry.score, info.scoreUnit),
       name: playerName(view, entry.slot),
       character: characterName(view, entry.slot),
+      ai: aiTaglineOf(view, entry.slot),
       color: PLAYER_SLOTS[entry.slot].color,
       symbol: PLAYER_SLOTS[entry.slot].symbol,
       coins: coinsOf(entry.slot),

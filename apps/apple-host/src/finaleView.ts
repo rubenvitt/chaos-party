@@ -8,6 +8,7 @@
  * `skip()` springt zum Siegerbildschirm, `reset()` (Revanche, Lobby) vergisst alles.
  */
 import {
+  aiTagline,
   CHARACTER_NAMES,
   PLAYER_SLOTS,
   type BoardView,
@@ -53,6 +54,7 @@ function characterOf(view: BoardView, slot: SlotNumber): CharacterId {
 
 function playerFields(view: BoardView, slot: SlotNumber) {
   const character = characterOf(view, slot);
+  const ai = aiTagline(view.players.find((p) => p.slot === slot));
   return {
     slot,
     name: playerName(view, slot),
@@ -60,6 +62,8 @@ function playerFields(view: BoardView, slot: SlotNumber) {
     characterName: CHARACTER_NAMES[character].name,
     color: PLAYER_SLOTS[slot].color,
     symbol: PLAYER_SLOTS[slot].symbol,
+    // KI-Abzeichen (CHAOS-182), fehlt bei Menschen.
+    ...(ai === null ? {} : { ai }),
   };
 }
 

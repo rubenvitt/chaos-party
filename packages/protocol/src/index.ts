@@ -11,3 +11,4 @@ export type * from './types.ts';
 export * from './parse.ts';
 export * from './phase.ts';
 export * from './seq.ts';
+export * from './aiLabels.ts';

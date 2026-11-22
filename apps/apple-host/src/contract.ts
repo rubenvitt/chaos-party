@@ -368,6 +368,8 @@ export const HudPlayerSchema = z.strictObject({
   items: z.array(z.strictObject({ id: z.string(), name: z.string() })),
   connected: z.boolean(),
   active: z.boolean(),
+  /** KI-Abzeichen „KI“ bzw. „KI · Saboteur“ (`aiTagline`, CHAOS-182); fehlt bei Menschen. */
+  ai: z.string().optional(),
 });
 
 export const HudSchema = z.strictObject({
@@ -648,6 +650,11 @@ const playerLabel = {
   color: hexColor,
   /** Slot-Symbol (●, ▲, ■, ★), immer zusätzlich zur Farbe. */
   symbol: z.string(),
+  /**
+   * KI-Abzeichen „KI“ bzw. „KI · Saboteur“ (CHAOS-182); fehlt bei Menschen. Eine KI heißt nach
+   * ihrer Figur; Swift zeigt dann statt `character` das Abzeichen.
+   */
+  ai: z.string().optional(),
 };
 
 export const MinigameScoreSchema = z.strictObject({
@@ -806,6 +813,8 @@ const finalePlayer = {
   color: hexColor,
   /** Slot-Symbol (●, ▲, ■, ★), immer zusätzlich zur Farbe. */
   symbol: z.string(),
+  /** KI-Abzeichen „KI“ bzw. „KI · Saboteur“ (CHAOS-182); fehlt bei Menschen. */
+  ai: z.string().optional(),
 };
 
 /** Karte der Trophäenzählung (`FinaleCard`), Werte schon hochgezählt. */

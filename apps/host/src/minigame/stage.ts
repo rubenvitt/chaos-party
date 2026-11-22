@@ -29,6 +29,7 @@ import { Engine } from '@babylonjs/core/Engines/engine.js';
 import { Color4 } from '@babylonjs/core/Maths/math.color.js';
 import { Scene } from '@babylonjs/core/scene.js';
 import type {
+  MinigameBotSeat,
   MinigameCue,
   MinigameInput,
   MinigamePlacement,
@@ -65,6 +66,8 @@ export interface MinigameStageOptions {
   readonly canvas: HTMLCanvasElement;
   readonly module: MinigameModule;
   readonly players: readonly MinigamePlayer[];
+  /** KI-Plätze, deren Eingaben die Laufzeit erzeugt (CHAOS-182, `botSeatsFromView`). */
+  readonly bots?: readonly MinigameBotSeat[];
   readonly seed: number;
   /** Aufstellung bei Teams bzw. Koop vom Server (CHAOS-89); fehlt/`null` = jeder gegen jeden. */
   readonly teams?: MinigameTeams | null;
@@ -207,6 +210,7 @@ export function createMinigameStage(options: MinigameStageOptions): MinigameStag
     runner = createMinigameRunner(module, {
       scene,
       players: options.players,
+      ...(options.bots && options.bots.length > 0 ? { bots: options.bots } : {}),
       seed: options.seed,
       ...(options.teams ? { teams: options.teams } : {}),
       timeLimitMs: options.timeLimitMs,
