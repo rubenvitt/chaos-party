@@ -121,6 +121,19 @@ private func jsonObject(_ data: Data) throws -> NSDictionary {
         #expect(full.`repeat` == nil)
     }
 
+    /// v4 addendum (CHAOS-239): optional `activeSeat` (name and kind of the seat on turn).
+    @Test func activeSeatIsDecoded() throws {
+        func board(_ name: String) throws -> ControllerBoardInfo? {
+            guard case .context(let context) = try ServerMessage.decode(try Fixtures.text("server-to-controller", name))
+            else { return nil }
+            return context.board
+        }
+        let ai = try #require(try board("context-board-waiting-ai.json"))
+        #expect(ai.activeSlot == 3)
+        #expect(ai.activeSeat == ActiveSeat(name: "Schraubi", kind: "ai"))
+        #expect(try board("context-board-waiting.json")?.activeSeat == nil)
+    }
+
     /// v4 addendum (CHAOS-231): optional `cue` in `play` (Schnellfeuer micro game).
     @Test func minigameCueIsDecoded() throws {
         guard case .context(let context) = try ServerMessage.decode(

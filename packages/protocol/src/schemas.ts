@@ -918,6 +918,17 @@ export const ControllerBoardInfoSchema = z.strictObject({
    * fehlt, wenn es keine gab.
    */
   tailwind: z.int().positive().optional(),
+  /**
+   * v4-Nachtrag (CHAOS-239, optional): Name und Platzart des Slots in `activeSlot`, damit der
+   * Controller „Schraubi (KI) ist dran“ zeigt. Nur, wenn `activeSlot` gesetzt ist; fehlt bei
+   * älteren Servern (dann Name aus `welcome` bzw. Farbname, ohne KI-Kennzeichnung).
+   */
+  activeSeat: z
+    .strictObject({
+      name: PlayerLabelSchema,
+      kind: SeatKindSchema,
+    })
+    .optional(),
 });
 
 /** Ein belegter Platz in `ControllerLobbyInfo.seats` (v4-Nachtrag CHAOS-179). */

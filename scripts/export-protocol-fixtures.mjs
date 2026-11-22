@@ -146,6 +146,12 @@ const serverToController = {
     actions: [],
     board: board({ activeSlot: 2 }),
   }),
+  'context-board-waiting-ai': context({
+    phase: 'board',
+    layout: 'board',
+    actions: [],
+    board: board({ activeSlot: 3, activeSeat: { name: 'Schraubi', kind: 'ai' } }),
+  }),
   'context-board-roll-prompt': context({
     phase: 'board',
     layout: 'board',
