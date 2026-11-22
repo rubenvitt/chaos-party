@@ -143,6 +143,10 @@ export function createSockenregenBot(
   options: MinigameBotOptions,
   observe: () => SockenregenLogic | null,
 ): MinigameBotDriver {
-  const bot = new SockenregenBot(options.slot, profileForStrength(options.strength), options.rng);
+  const bot = new SockenregenBot(
+    options.slot,
+    profileForStrength(options.strength, options.style),
+    options.rng,
+  );
   return kitBotDriver(bot, observe);
 }

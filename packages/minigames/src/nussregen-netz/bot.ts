@@ -119,6 +119,10 @@ export function createNussBot(
   options: MinigameBotOptions,
   observe: () => NussLogic | null,
 ): MinigameBotDriver {
-  const bot = new NussBot(options.slot, profileForStrength(options.strength), options.rng);
+  const bot = new NussBot(
+    options.slot,
+    profileForStrength(options.strength, options.style),
+    options.rng,
+  );
   return kitBotDriver(bot, observe);
 }

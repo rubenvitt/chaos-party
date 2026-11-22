@@ -3022,3 +3022,45 @@ Diagnose (DoorLogic, 200 Seeds): Im Ausgang stehen die beiden starken Bots in **
 **Gegenprobe einer gegen drei** (fairer Anteil 0,25, 200 Seeds, Spiel und Bot unverändert): Drei Türen schwer 0,45 (16,4 gegen 9,7 Münzen), mittel 0,35; bei 64 Seeds 0,45/0,33. Zum Vergleich: Toaster-Timing 0,93/0,58, Nussregen-Netz 0,75/0,40, Schnapp den Käse 0,63/0,34, Bienenstock-Honig 0,82/0,52, Matschmaler 0,57/0,40.
 
 **Entscheidung:** Regeln und Bot **unverändert** (keine Variante war klar besser, jede Regeländerung hätte die knappe Fairness gefährdet). Ruben hat am 22.11.2026 die **Ausnahme** angenommen: Spiele mit `info.secretChoice` misst `checks/botStrength.test.ts` einer gegen drei (64 Seeds, schwer ≥ 0,375 = 1,5 × fair, mittel > 0,25, jeweils mehr Punkte). Drei Türen ist damit in `ROTATION`. Die private Rückmeldung der Wahl am Controller kam mit CHAOS-242. Offen bleibt, ob das Spiel Menschen Spaß macht (Spieltest, Gerätecheckliste §50).
+
+## EXP-044: KI-Spielstile – verschieden im Verhalten, gleich in der Stärke (2026-11-22, CHAOS-186)
+
+**Hypothese / gewünschtes Spielerlebnis:** Vier zufällig vergebene Spielstile (Saboteur, Sammler, Draufgänger, Fuchs) lassen KI-Plätze unterschiedlich wirken, ohne dass ein Stil stärker oder schwächer spielt. Ein Saboteur fällt durch Klau und Fallen auf, ein Fuchs durch aufgehobene Items, ein Draufgänger durch sofortigen Einsatz.
+
+**Varianten:**
+- **A** nur Zuschläge auf die Brett-Chancen plus Item-Vorliebe beim zufälligen Einsatz. Ergebnis: Bei mittel und schwer überdeckt der gezielte Einsatz (`smartItemOption`) die Vorliebe, der Sammler sabotierte so oft wie der Saboteur. Verworfen.
+- **B** A plus eigene Schwellen des gezielten Einsatzes je Stil (`SmartItemTuning`). Gewählt.
+- **B'** B, Saboteur ohne gezielten Doppelwürfel. Bei schwer hält er dann Würfel zurück und verliert (Siegquote 22 %). Verworfen.
+
+**Objektive Messgrößen:** Siegquote je Stil (fair 25 %), Klau + Falle je Partie, eingesetzte und am Ende aufgehobene Items, Doppelwürfel, getroffene Fallen.
+
+**Testumgebung:** `packages/game-core/src/ai/personalityExperiment.ts`. Vier Live-KI-Plätze (`answerBoardPrompt`, eigene Ströme je Platz wie im Server) gleicher Stärke, Standardbrett, 10 Runden, echte Minispiel-Rotation mit gleichverteilten Bot-Punkten. Stile rotieren je Seed über die Plätze. Seeds 1–1200 je Stärke. Kontrolle „ohne“: dieselben Seeds ohne Stil. Cloud-Container, Node 22. Befehl: `EXPERIMENTS=personality pnpm exec vitest run packages/game-core/src/ai/personalityExperiment.test.ts --silent=false`. CI: `personalityExperiment.test.ts` (Verhalten mit 600 Seeds, Siegquote ± 5 Prozentpunkte mit 800 Seeds bei mittel).
+
+**Ergebnisse (Variante B, Rotation mit Drei Türen seit CHAOS-243):**
+
+| Stärke | Stil | Siegquote | Klau+Falle | Items | Doppelwürfel | aufgehoben |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| leicht | Saboteur | 26,5 % | 2,29 | 3,51 | 1,09 | 1,29 |
+| leicht | Sammler | 22,4 % | 1,59 | 2,61 | 0,88 | 1,85 |
+| leicht | Draufgänger | 27,8 % | 2,33 | 3,63 | 1,15 | 1,27 |
+| leicht | Fuchs | 23,3 % | 1,55 | 2,30 | 0,62 | 1,97 |
+| leicht | ohne | 25,0 % | 1,79 | 2,78 | 0,86 | 1,72 |
+| mittel | Saboteur | 26,1 % | 2,32 | 3,64 | 1,10 | 1,16 |
+| mittel | Sammler | 23,6 % | 1,83 | 3,02 | 0,99 | 1,64 |
+| mittel | Draufgänger | 25,4 % | 2,35 | 3,73 | 1,18 | 1,14 |
+| mittel | Fuchs | 24,9 % | 1,95 | 3,04 | 0,83 | 1,53 |
+| mittel | ohne | 25,0 % | 2,13 | 3,35 | 0,99 | 1,36 |
+| schwer | Saboteur | 27,2 % | 2,18 | 3,45 | 1,03 | 1,21 |
+| schwer | Sammler | 20,8 % | 1,41 | 2,56 | 0,93 | 1,87 |
+| schwer | Draufgänger | 25,3 % | 2,32 | 3,66 | 1,10 | 1,12 |
+| schwer | Fuchs | 26,8 % | 2,01 | 3,09 | 0,82 | 1,48 |
+| schwer | ohne | 25,0 % | 2,13 | 3,34 | 0,97 | 1,31 |
+
+- Sabotage-Quote Saboteur ist 1,3–1,5× die des Sammlers (mittel 1,27×). Fuchs und Sammler heben deutlich mehr auf als Draufgänger und Saboteur.
+- Siegquote je Stil 20,8–27,8 % (Standardfehler ≈ 1,25 Prozentpunkte); am weitesten weg liegt der Sammler bei schwer (−4,2 Punkte). Wer Items aufhebt, liegt leicht unter 25 %: Items einzusetzen lohnt sich.
+- Getroffene Fallen unterscheiden sich kaum (0,43–0,55); „Fallen meiden“ greift nur an Gabeln und Fallen sind selten.
+- Minispiele: Die Neigung (`risk`, `mischief`) tauscht Tempo gegen Fehlstarts bzw. erhöht das Rempeln; Messung je Stil gegen neutral folgt im PR-Kommentar.
+
+**Entscheidung:** **B behalten.** Grenze vorläufig ± 5 Prozentpunkte um 25 % bei vier gleich starken KI; die endgültige Grenze stellt CHAOS-183 ein. Bot gegen Bot ist eine Näherung, kein Spaß-Beweis.
+
+**Offen für Playtest (CHAOS-185):** Merkt man den Stil am Tisch, oder bleibt „KI · Saboteur“ nur ein Etikett? Ist der Saboteur lustig oder nervig?

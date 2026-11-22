@@ -20,6 +20,7 @@ import type {
   MinigameOutcome,
   MinigameSpec,
   PlayerState,
+  Prompt,
   RankingEntry,
   RuleSet,
   Slot,
@@ -98,6 +99,17 @@ export interface SimulationOptions {
   readonly minigames?: readonly MinigameSpec[];
   /** Schnellfeuer-Minispiel (CHAOS-90); kommt nur mit `rules.rapidFire`. */
   readonly rapidFire?: MinigameSpec;
+  /**
+   * Live-KI-Plätze (CHAOS-186): Liefert der Haken für einen Prompt eine Antwort, gilt sie statt
+   * der `policy` (Option `null` = nicht antworten, die Frist entscheidet). `undefined` = wie
+   * bisher. Der Haken zieht aus eigenen Strömen; der Bot-Strom der Simulation bleibt unberührt.
+   */
+  readonly seatAnswer?: (
+    prompt: Prompt,
+    state: GameState,
+  ) => { readonly option: string | null; readonly delayMs: number } | undefined;
+  /** Jedes Regel-Ereignis mit Zeitpunkt, z. B. für Kennzahlen je Platz. */
+  readonly onEvent?: (event: GameEvent, at: number) => void;
 }
 
 /** Ein gewertetes Minispiel der Partie (Reihenfolge wie gespielt). */
@@ -278,6 +290,7 @@ export function simulateGame(options: SimulationOptions): SimulationResult {
 
   const record = (event: GameEvent, at: number): void => {
     eventCount += 1;
+    options.onEvent?.(event, at);
     const blockedTrap = trapWithoutLoss && event.type === 'item-used' && event.item === 'shield';
     trapWithoutLoss = event.type === 'trap-triggered' && event.amount === 0;
     if (blockedTrap) {
@@ -514,6 +527,30 @@ export function simulateGame(options: SimulationOptions): SimulationResult {
     if (prompt === null) {
       if (state.resumeAt === null) throw new Error(`Simulation hängt in Phase ${state.phase}`);
       apply(step(state, { type: 'tick', at: state.resumeAt }), state.resumeAt);
+      continue;
+    }
+    const seat = options.seatAnswer?.(prompt, state);
+    if (seat !== undefined) {
+      if (seat.option === null) {
+        const at = prompt.deadline ?? state.now;
+        apply(step(state, { type: 'tick', at }), at);
+        continue;
+      }
+      const at = state.now + Math.max(0, seat.delayMs);
+      const result = step(state, {
+        type: 'choose',
+        slot: prompt.slot,
+        promptId: prompt.id,
+        option: seat.option,
+        at,
+      });
+      if (!result.ok && result.error.code === 'stale-prompt') {
+        if (prompt.kind === 'reaction') lateReactions += 1;
+        const deadline = prompt.deadline ?? at;
+        apply(step(state, { type: 'tick', at: deadline }), deadline);
+        continue;
+      }
+      apply(result, at);
       continue;
     }
     if (prompt.kind === 'reaction' && !(bot.next() < policy.reactionChance)) {

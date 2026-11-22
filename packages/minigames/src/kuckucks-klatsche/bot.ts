@@ -176,7 +176,7 @@ export function createKuckuckBot(
 ): MinigameBotDriver {
   const bot = new KuckuckBot(
     options.slot,
-    profileForStrength(options.strength),
+    profileForStrength(options.strength, options.style),
     'normal',
     options.rng,
   );

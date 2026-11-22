@@ -86,6 +86,10 @@ export function createHalloBot(
   options: MinigameBotOptions,
   observe: () => HalloLogic | null,
 ): MinigameBotDriver {
-  const bot = new HalloBot(options.slot, profileForStrength(options.strength), options.rng);
+  const bot = new HalloBot(
+    options.slot,
+    profileForStrength(options.strength, options.style),
+    options.rng,
+  );
   return kitBotDriver(bot, observe);
 }

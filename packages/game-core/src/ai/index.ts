@@ -1,6 +1,8 @@
 /** Brett-KI (CHAOS-181, ADR-020): Entscheidungen, Stärke, Zeitmodelle, KI-Plätze. */
 export {
   decideBoardPrompt,
+  pickItem,
+  type SmartItemTuning,
   distanceTo,
   SMART_DOUBLE_MIN_DISTANCE,
   SMART_STEAL_MIN_COINS,
@@ -54,3 +56,12 @@ export {
   type LogNormalMs,
   type MsRange,
 } from './timing.ts';
+export {
+  assignBoardAiPersonalities,
+  BOARD_AI_PERSONALITIES,
+  BOARD_AI_STYLES,
+  boardAiStyleParams,
+  minigameBotStyleOf,
+  type BoardAiPersonality,
+  type BoardAiStyle,
+} from './personality.ts';

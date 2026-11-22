@@ -15,7 +15,7 @@ import { decideBoardPrompt, type BoardDecisionPolicy } from './board.ts';
 import type { BoardAiParams } from './strength.ts';
 import { sampleDelay, sampleRange } from './timing.ts';
 
-/** Wofür ein KI-Strom zieht; `personality` reserviert CHAOS-186 (Vergabe beim Start). */
+/** Wofür ein KI-Strom zieht; `personality` für die Vergabe der Spielstile beim Start (CHAOS-186). */
 export const AI_STREAM_PURPOSES = ['decision', 'delay', 'personality'] as const;
 export type AiStreamPurpose = (typeof AI_STREAM_PURPOSES)[number];
 
@@ -110,6 +110,8 @@ function decide(
   const policy: BoardDecisionPolicy = {
     itemUseChance: params.itemUseChance,
     smartItemChance: params.smartItemChance,
+    ...(params.itemWeights === undefined ? {} : { itemWeights: params.itemWeights }),
+    ...(params.smartItem === undefined ? {} : { smartItem: params.smartItem }),
     buyTrophies: true,
     target: 'richest',
     trophyPathChance: params.trophyPathChance,

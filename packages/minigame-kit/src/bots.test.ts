@@ -155,6 +155,28 @@ describe('KI-Stärke (CHAOS-180)', () => {
     expect(hard.mischief).toBe(0);
   });
 
+  it('Spielstil (CHAOS-186): Risiko tauscht Tempo gegen Fehlstarts, Unfug kommt durch', () => {
+    const plain = profileForStrength(0.5);
+    expect(profileForStrength(0.5, { risk: 0, mischief: 0 })).toEqual(plain);
+    const bold = profileForStrength(0.5, { risk: 1, mischief: 0 });
+    const careful = profileForStrength(0.5, { risk: -1, mischief: 0 });
+    expect(bold.reactionMs).toBeLessThan(plain.reactionMs);
+    expect(bold.falseStart).toBeGreaterThan(plain.falseStart);
+    expect(careful.reactionMs).toBeGreaterThan(plain.reactionMs);
+    expect(careful.falseStart).toBeLessThan(plain.falseStart);
+    // Treffsicherheit, Urteil und Aussetzer bleiben Sache der Stärke.
+    for (const key of ['aimNoise', 'judgement', 'lapse', 'awareness', 'timingSdMs'] as const) {
+      expect(bold[key]).toBe(plain[key]);
+    }
+    expect(profileForStrength(0.5, { risk: 0, mischief: 0.5 }).mischief).toBe(0.5);
+    const pawn = pawnSkillForStrength(0.5);
+    const rough = pawnSkillForStrength(0.5, { risk: 0.6, mischief: 0.5 });
+    expect(rough.dashChance).toBeGreaterThan(pawn.dashChance);
+    expect(rough.noise).toBe(pawn.noise);
+    expect(pawnSkillForStrength(1, { risk: 1, mischief: 1 }).dashChance).toBeLessThanOrEqual(1);
+    expect(pawnSkillForStrength(0, { risk: -1, mischief: 0 }).dashChance).toBeGreaterThanOrEqual(0);
+  });
+
   it('Figuren-Können zur Stärke: Neuling bis Profi, Gefahrenblick ab etwa einem Drittel', () => {
     expect(pawnSkillForStrength(0)).toMatchObject({
       replanSteps: PAWN_BOT_SKILLS.neuling.replanSteps,

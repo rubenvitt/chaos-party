@@ -309,4 +309,23 @@ describe('smartItemOption: gezielter Item-Einsatz (CHAOS-181)', () => {
     const random = decideBoardPrompt(poor.prompt, poor.state, DEFAULT_BOARD, base, rng);
     expect(random).toBe(itemOption('coin-steal'));
   });
+
+  it('Schwellen je Spielstil (CHAOS-186): früher klauen, gezielt keine Falle', () => {
+    const three = rollWith(['coin-steal'], (s) => patchPlayer(s, 2, { coins: 3 }));
+    expect(smartItemOption(three.prompt, three.state, DEFAULT_BOARD)).toBe(ROLL_OPTION);
+    expect(smartItemOption(three.prompt, three.state, DEFAULT_BOARD, { stealMinCoins: 3 })).toBe(
+      itemOption('coin-steal'),
+    );
+    const behind = rollWith(['trap'], (s) => {
+      const ids = DEFAULT_BOARD.spaces.map((space) => space.id);
+      const me = ids.find(
+        (id) => distanceTo(DEFAULT_BOARD, DEFAULT_BOARD.start, [id], s.round) === 4,
+      );
+      if (!me) throw new Error('kein Feld 4 vor dem Start');
+      return patchPlayer(patchPlayer(s, 1, { spaceId: me }), 2, { spaceId: DEFAULT_BOARD.start });
+    });
+    expect(smartItemOption(behind.prompt, behind.state, DEFAULT_BOARD, { trapMaxBehind: 0 })).toBe(
+      ROLL_OPTION,
+    );
+  });
 });

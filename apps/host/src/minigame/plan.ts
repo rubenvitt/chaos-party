@@ -2,6 +2,7 @@
  * Reine Entscheidungen der Minispiel-Bühne (M3, CHAOS-26): Wann zeigt der Host die Bühne
  * statt des Bretts, wie viel Spielzeit bleibt, was passiert nach einem Host-Neuladen.
  */
+import { minigameBotStyleOf } from '@chaos-party/game-core';
 import {
   BOT_LEVEL_STRENGTH,
   CHARACTER_NAMES,
@@ -213,8 +214,8 @@ export function botStrength(strength: AiStrength | undefined, strengthLevel?: nu
 
 /**
  * KI-Plätze des laufenden Minispiels für `createMinigameRunner({ bots })` (CHAOS-182, ADR-020
- * Nachtrag 1): alle KI-Plätze aus dem Brett-Stand nach Slot (alle Plätze spielen mit). PC- und Apple-Host
- * nutzen dieselbe Funktion.
+ * Nachtrag 1): alle KI-Plätze aus dem Brett-Stand nach Slot (alle Plätze spielen mit), mit Stärke
+ * und Spielstil (CHAOS-186). PC- und Apple-Host nutzen dieselbe Funktion.
  */
 export function botSeatsFromView(view: Pick<BoardView, 'players'>): MinigameBotSeat[] {
   return [...view.players]
@@ -223,6 +224,10 @@ export function botSeatsFromView(view: Pick<BoardView, 'players'>): MinigameBotS
     .map((player) => ({
       slot: player.slot,
       strength: botStrength(player.strength, player.strengthLevel),
+      // Spielstil (CHAOS-186): Neigung der Minispiel-Bots, neutral ohne Stil.
+      ...(player.personality === undefined
+        ? {}
+        : { style: minigameBotStyleOf(player.personality) }),
     }));
 }
 

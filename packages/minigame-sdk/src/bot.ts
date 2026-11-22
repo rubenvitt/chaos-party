@@ -58,11 +58,37 @@ export function botSeed(minigameSeed: number, slot: Slot): number {
   return (h ^ (h >>> 15)) >>> 0;
 }
 
+/**
+ * Neigung eines Bots aus dem Spielstil der KI (CHAOS-186, ADR-020 §5). Sie ändert, **was** der
+ * Bot tut, nicht **wie gut**: Risiko tauscht Tempo gegen Fehlstarts, Unfug lenkt den Bot öfter
+ * gegen die Führung. Jedes Spiel entscheidet, was das heißt (über `profileForStrength` bzw.
+ * `pawnSkillForStrength` im minigame-kit); fehlt sie, spielt der Bot neutral.
+ */
+export interface MinigameBotStyle {
+  /** −1 = vorsichtig … 0 = neutral … 1 = riskant. */
+  readonly risk: number;
+  /** 0 … 1: Wahrscheinlichkeit, der Führung zu schaden statt dem eigenen Vorteil (`mischief`). */
+  readonly mischief: number;
+}
+
+/** Ohne Spielstil. */
+export const NEUTRAL_BOT_STYLE: MinigameBotStyle = { risk: 0, mischief: 0 };
+
+/** Neigung auf gültige Werte begrenzen (Risiko [−1, 1], Unfug [0, 1]; Ungültiges = neutral). */
+export function clampBotStyle(style: MinigameBotStyle | undefined): MinigameBotStyle {
+  if (style === undefined) return NEUTRAL_BOT_STYLE;
+  const clamp = (value: number, min: number): number =>
+    Number.isFinite(value) ? Math.max(min, Math.min(1, value)) : 0;
+  return { risk: clamp(style.risk, -1), mischief: clamp(style.mischief, 0) };
+}
+
 /** Was ein Minispiel zum Erzeugen eines Bots bekommt. */
 export interface MinigameBotOptions {
   readonly slot: Slot;
   /** 0 = leicht … 1 = schwer (schon begrenzt). */
   readonly strength: number;
+  /** Neigung aus dem Spielstil (schon begrenzt; neutral, wenn die KI keinen hat). */
+  readonly style: MinigameBotStyle;
   /** Eigener Zufallsstrom des Bots (`botSeed`). */
   readonly rng: MinigameRng;
 }
@@ -83,6 +109,8 @@ export interface MinigameBotSeat {
   readonly slot: Slot;
   /** 0 = leicht … 1 = schwer; siehe `BOT_LEVEL_STRENGTH`. */
   readonly strength: number;
+  /** Spielstil der KI (CHAOS-186); fehlt = neutral. */
+  readonly style?: MinigameBotStyle | undefined;
 }
 
 /** Knopfdruck als Eingabefolge (drücken und loslassen). */

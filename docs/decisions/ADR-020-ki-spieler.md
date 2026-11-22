@@ -218,3 +218,18 @@ Ruben hat am 22.11.2026 eine Ausnahme für den KI-Stärke-Test (`packages/miniga
 - **Spiele mit `info.secretChoice`** messen **einen** stärkeren gegen drei leichte Plätze (Aufstellung `allein`, Sitz wechselt je Seed, 64 Seeds). Schwellen: schwer ≥ 0,375 Siege (1,5 × fairer Anteil 0,25), mittel > 0,25, jeweils mehr Punkte als leicht.
 - **Grund:** In Anti-Koordinations-Spielen (nur wer allein steht, punktet) stehen zwei gleich kluge Spieler ohne Absprache spieltheoretisch in ≥ 50 % der Runden an derselben Stelle. Das Duell 2 gegen 2 misst dort vor allem diese Kollision; selbst ein Orakel-Bot, der die Wahl der anderen kennt, gewinnt nur 0,81. Mehr Runden, Gedränge-Strafe, ohne Doppelrunde und ein Gleichgewichts-Bot mit Rang-Stil hoben Drei Türen nicht über 0,64 (EXP-043).
 - Alle anderen Spiele bleiben beim Duell 2 gegen 2 (schwer ≥ 0,65, mittel > 0,5).
+
+## Nachtrag 7 (2026-11-22, CHAOS-186): Spielstile
+
+Umsetzungsentscheidungen von Claude im Rahmen von §5, §7 und §8:
+
+- **Datensatz `packages/game-core/src/ai/personality.ts`:** vier Stile (`BOARD_AI_STYLES`), Namen wie `AI_PERSONALITIES` im Protokoll (Test in `apps/server/src/boardAi.integration.test.ts`). Je Stil:
+  - **Zuschläge** auf die Brett-Wahrscheinlichkeiten (`BoardAiWeights`, nach der Stärke, auf [0, 1] begrenzt): zufälliger und gezielter Item-Einsatz, Klau-Ziel, Fallen meiden.
+  - **Item-Vorliebe** beim zufälligen Einsatz (`itemWeights`, `pickItem` über `pickWeighted`; ohne Vorliebe genau `pickOne`, gleicher Zufallsverbrauch).
+  - **Schwellen des gezielten Einsatzes** (`SmartItemTuning`): Saboteur klaut ab 3 Münzen und legt Fallen bis 18 Felder vor Verfolgern, Sammler klaut erst ab 10 und legt gezielt keine Fallen, Fuchs wartet auf lohnende Ziele (Klau ab 9, Doppelwürfel ab 6 Feldern).
+  - **Minispiel-Neigung** (`MinigameBotStyle`: `risk` −1…1, `mischief` 0…1).
+- **Stärke bleibt Stärke:** Reaktionschance, Reaktionszeit, Denkpausen, Trophäenkauf und Bereit-Pause hängen nur an `s` (Test `personality.test.ts`). Gemessen in EXP-044: Siegquote je Stil 21–28 % bei vier gleich starken KI (fair 25 %), Grenze vorläufig ± 5 Prozentpunkte bis CHAOS-183.
+- **Vergabe:** `assignBoardAiPersonalities(seed, kiPlätze)` mischt die vier Stile einmal aus dem Strom `personality` (Anker Platz 1, unabhängig davon, welche Plätze KI sind) und verteilt sie nach Platznummer. Höchstens drei KI-Plätze (mindestens ein Mensch), also nie doppelt. Die Session zieht beim Partiestart (`startBoardGame`), also auch bei „Nochmal spielen“ mit dem neuen Seed; Übungsrunden ebenso. In der Lobby ist kein Stil sichtbar.
+- **Weg zum Bildschirm:** `BoardGamePlayer.ai.personality` → `BoardPlayer.personality` (v4-Feld aus CHAOS-179) → `aiTagline` „KI · Saboteur“ an allen Stellen aus Nachtrag 4, am PC- und Apple-Host. Der Controller zeigt den Stil nicht (Brett-Kontext ohne Platzart, CHAOS-239).
+- **Minispiel-Vertrag:** `MinigameBotOptions.style` (immer gesetzt, `clampBotStyle`, neutral ohne Stil) und `MinigameBotSeat.style` (optional). Die Hosts holen die Neigung mit `minigameBotStyleOf(personality)` in `botSeatsFromView`. `profileForStrength(s, style)`: Reaktionszeit × (1 − 0,12 · Risiko), Fehlstarts × (1 + 0,6 · Risiko), `mischief` aus dem Stil. `pawnSkillForStrength(s, style)`: Rempel-Neigung + 0,2 · Risiko + 0,2 · Unfug. Wackelturm hat ein eigenes Bot-Modell und bleibt ohne Stil. Nur Hallo-Baukasten wertet `mischief` heute aus.
+- **Simulation:** `simulateGame` hat zwei optionale Haken, `seatAnswer` (Live-KI-Antwort je Prompt, eigene Ströme) und `onEvent`. Ohne sie ist die Simulation unverändert (alle Balance-Tests gleich).
