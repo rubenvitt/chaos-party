@@ -466,28 +466,35 @@ async function playMinigame(
     }
     await host.evaluate(() => window.__chaosMinigame?.step(45));
   }
-  const buttonsBefore = new Map<SlotNumber, { presses: number; releases: number }>();
-  for (const seat of seats) {
-    const last = await lastNetworkInput(host, seat.slot);
-    buttonsBefore.set(seat.slot, { presses: last?.presses ?? 0, releases: last?.releases ?? 0 });
-  }
-  for (const seat of seats) {
-    const touch = touches.get(seat.page);
-    const button = seat.root.getByTestId('button-a');
-    await expect(button, `${seat.label}: Knopf A`).toBeVisible();
-    await touch?.tap(await centerOf(button), seat.slot);
-  }
-  for (const seat of seats) {
-    const was = buttonsBefore.get(seat.slot) ?? { presses: 0, releases: 0 };
-    await expect
-      .poll(
-        async () => {
-          const last = await lastNetworkInput(host, seat.slot);
-          return { presses: last?.presses ?? 0, releases: last?.releases ?? 0 };
-        },
-        { message: `${seat.label}: Knopf A am Host` },
-      )
-      .toEqual({ presses: was.presses + 1, releases: was.releases + 1 });
+  // Knopf A (nur wenn das Minispiel einen hat; Rasensprenger-Rodeo ist z. B. nur Stick, CHAOS-91).
+  if (getMinigameInfo(id)?.controls.a) {
+    const buttonsBefore = new Map<SlotNumber, { presses: number; releases: number }>();
+    for (const seat of seats) {
+      const last = await lastNetworkInput(host, seat.slot);
+      buttonsBefore.set(seat.slot, { presses: last?.presses ?? 0, releases: last?.releases ?? 0 });
+    }
+    for (const seat of seats) {
+      const touch = touches.get(seat.page);
+      const button = seat.root.getByTestId('button-a');
+      await expect(button, `${seat.label}: Knopf A`).toBeVisible();
+      await touch?.tap(await centerOf(button), seat.slot);
+    }
+    for (const seat of seats) {
+      const was = buttonsBefore.get(seat.slot) ?? { presses: 0, releases: 0 };
+      await expect
+        .poll(
+          async () => {
+            const last = await lastNetworkInput(host, seat.slot);
+            return { presses: last?.presses ?? 0, releases: last?.releases ?? 0 };
+          },
+          { message: `${seat.label}: Knopf A am Host` },
+        )
+        .toEqual({ presses: was.presses + 1, releases: was.releases + 1 });
+    }
+  } else {
+    for (const seat of seats) {
+      await expect(seat.root.getByTestId('button-a'), `${seat.label}: kein Knopf A`).toHaveCount(0);
+    }
   }
 
   // Fertig rechnen: Host meldet das Ergebnis, Server nimmt es an.
