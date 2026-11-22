@@ -14,6 +14,7 @@ import { ITEM_INFO } from '../board/items.ts';
 import type { ChoiceView } from '../board/prompt.ts';
 import {
   LOOK_AT_SCREEN,
+  otherTurnHeadline,
   placeHeadline,
   roundLabel,
   TAILWIND_LEAD,
@@ -169,7 +170,7 @@ export function WaitingCard({ view, compact = false }: { view: WaitingView; comp
           {PLAYER_SLOTS[view.slot].symbol}
         </span>
       );
-      headline = `${view.name} ist dran`;
+      headline = otherTurnHeadline(view);
       break;
     case 'own-turn':
       mark = (

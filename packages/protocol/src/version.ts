@@ -62,6 +62,10 @@
  * Lauf oder mit Bedienung außerhalb des Steckbriefs still. Controller ohne den Nachtrag zeigen
  * weiter `controls`; ein Server ohne ihn lehnt `minigame-cue` mit `bad-message` ab, das Spiel
  * läuft trotzdem.
+ * v4-Nachtrag (CHAOS-239, additiv, ohne Versionssprung): `ControllerBoardInfo.activeSeat`
+ * (optional, nur bei gesetztem `activeSlot`): Name und Platzart des Platzes am Zug, damit
+ * Controller „<Name> (KI) ist dran“ zeigen (ADR-020 §7). Controller ohne den Nachtrag zeigen
+ * weiter den Farbnamen.
  */
 export const PROTOCOL_VERSION = 4;
 

@@ -88,3 +88,42 @@ test('Spielleitung setzt, ändert und entfernt eine KI; Mitspieler sehen sie nur
   expectNoProblems(lead.problems, 'Spielleitung');
   expectNoProblems(other.problems, 'Mitspieler');
 });
+
+test('Während eines KI-Zugs zeigt das iPhone „<Name> (KI) ist dran“ (CHAOS-239)', async ({
+  openDevice,
+  chaosServer,
+}) => {
+  host = await SyntheticHost.connect(chaosServer);
+  const lead = await openPhone(openDevice, chaosServer, 1);
+  const session = chaosServer.server.session;
+
+  await lead.page.getByTestId('lobby-seat-tap-2').click();
+  await expect(lead.page.getByTestId('lobby-seat-2')).toHaveAttribute('data-kind', 'ai');
+  await lead.page.getByTestId('ready-button').tap();
+  await expect(lead.page.getByTestId('ready-done')).toBeVisible();
+  host.start(1);
+  await expect(lead.page.getByTestId('slot-1')).toHaveAttribute('data-screen', 'board');
+
+  // Bis die KI dran ist: eigene Entscheidungen mit der ersten Auswahl beantworten.
+  const waiting = lead.page.getByTestId('board-waiting');
+  await expect
+    .poll(
+      async () => {
+        const choice = lead.page.locator('[data-testid^="choice-"]').first();
+        if (await choice.isVisible().catch(() => false)) {
+          await choice.tap().catch(() => undefined);
+        }
+        return (await waiting.isVisible().catch(() => false))
+          ? await waiting.getAttribute('data-kind')
+          : null;
+      },
+      { timeout: 30_000, intervals: [250] },
+    )
+    .toBe('other-turn');
+
+  const ai = session.snapshot().game?.state.players.find((p) => p.slot === 2);
+  expect(ai?.name).toBeTruthy();
+  await expect(waiting).toContainText(`${ai?.name ?? ''} (KI) ist dran`);
+
+  expectNoProblems(lead.problems, 'Spielleitung');
+});

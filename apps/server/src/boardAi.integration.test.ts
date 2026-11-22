@@ -111,6 +111,25 @@ describe('Brett-KI im Live-Spiel (CHAOS-181)', () => {
     expect(results.some((result) => result !== 'timeout')).toBe(true);
   });
 
+  it('Controller-Kontext nennt Name und Platzart des Platzes am Zug (CHAOS-239)', () => {
+    const h = setupGame(1, INTEGRATION_SEEDS.three, { ai: ['mittel'], rounds: 3 });
+    const seen = new Map<SlotNumber, { name: string; kind: string }>();
+    h.runToEnd(200_000, (x) => {
+      const board = x.contexts.get(1)?.context.board;
+      if (!board) return;
+      if (board.activeSlot === null) {
+        expect(board.activeSeat).toBeUndefined();
+        return;
+      }
+      const seat = board.activeSeat;
+      expect(seat).toBeDefined();
+      if (seat) seen.set(board.activeSlot, seat);
+    });
+    const names = new Map(h.boards.at(-1)?.view.players.map((p) => [p.slot, p.name]));
+    expect(seen.get(2)).toEqual({ name: names.get(2), kind: 'ai' });
+    expect(seen.get(1)).toEqual({ name: names.get(1), kind: 'human' });
+  });
+
   it('„Nochmal spielen“: neue Partie mit KI-Sitzen läuft wieder durch', () => {
     const h = playMixed(INTEGRATION_SEEDS.two, ['dynamisch', 'schwer', 'leicht']);
     const first = h.events.length;
