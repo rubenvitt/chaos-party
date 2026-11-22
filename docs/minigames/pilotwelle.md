@@ -90,6 +90,7 @@ Abbruchkriterium der Fabrik (README §5.5): Fühlen sich die Spiele gleich an? B
 ## Folgeaufgaben
 
 - CHAOS-237: Requisiten laden (GLB im Browser, USDZ im Apple-Host).
-- Baukasten-Rahmen und Helfer aus der Pilotwelle (Zeilenbudget).
-- Havok-Figur und Havok-Harness im Baukasten.
-- Drei Türen: KI-Stärke für Anti-Koordinations-Spiele und private Rückmeldung bei geheimer Wahl am Controller.
+- CHAOS-240: Baukasten-Rahmen und Helfer aus der Pilotwelle (Zeilenbudget).
+- CHAOS-241: Havok-Figur und Havok-Harness im Baukasten.
+- CHAOS-242: private Rückmeldung bei geheimer Wahl am Controller.
+- CHAOS-243: Drei Türen in die Rotation (KI-Stärke für Anti-Koordinations-Spiele).
