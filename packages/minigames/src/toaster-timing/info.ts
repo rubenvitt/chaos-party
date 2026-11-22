@@ -9,7 +9,7 @@ export const TOASTER_TIMING_INFO: MinigameInfo = {
   id: 'toaster-timing',
   category: 'arcade',
   title: 'Toaster-Timing',
-  tagline: 'Goldbraun oder Kohle? Lass den Toast im richtigen Moment raus!',
+  tagline: 'Goldbraun oder Kohle? Lass den Toast rechtzeitig raus!',
   instructions: [
     'A lässt deinen Toast hochspringen: goldbraun gibt 10 Punkte.',
     'Zu früh ist er blass, zu spät verkohlt er (0 Punkte).',
