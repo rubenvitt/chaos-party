@@ -9,7 +9,7 @@
  * Session je Partie neu erzeugt ({@link AiPolicyFactory}). Standard ist die Brett-KI
  * ({@link createBoardAiPolicy}, CHAOS-181) aus `@chaos-party/game-core` (`ai/`): Stärke,
  * Denkpause, verpasste Reaktionen, eigene Zufallsströme je Platz. Persönlichkeiten (CHAOS-186)
- * und die dynamische Stärke (CHAOS-187) setzen dort an. Minispiel-Eingaben erzeugt nicht der
+ * setzen dort an; die dynamische Stärke (CHAOS-187) kommt als `strengthLevel` aus `BoardGame`. Minispiel-Eingaben erzeugt nicht der
  * Server, sondern der Host (CHAOS-180, ADR-020 §3).
  */
 import {
@@ -35,6 +35,11 @@ import type {
 export interface AiPromptRequest {
   readonly slot: SlotNumber;
   readonly strength: AiStrength;
+  /**
+   * Aktuelle Stärke `s` (0 = leicht … 1 = schwer, CHAOS-187). Bei „dynamisch“ der Stand nach dem
+   * letzten Rundenende; fehlt = aus `strength`.
+   */
+  readonly strengthLevel?: number | undefined;
   /** Spielstil (CHAOS-186); fehlt, solange keiner vergeben ist. */
   readonly personality?: AiPersonality | undefined;
   /** Offener Prompt dieses Platzes mit Optionen und Restzeit. */
@@ -70,7 +75,7 @@ export interface AiDecision {
 export interface AiSeatPolicy {
   decide(request: AiPromptRequest): AiDecision;
   /** Denkpause bis „Bereit“ in der Minispiel-Anleitung (CHAOS-214). */
-  readyDelayMs(slot: SlotNumber, strength: AiStrength): number;
+  readyDelayMs(slot: SlotNumber, strength: AiStrength, strengthLevel?: number): number;
 }
 
 /** Erzeugt die Politik einer Partie aus ihrem Seed (Ströme beginnen je Partie neu). */
@@ -78,7 +83,7 @@ export type AiPolicyFactory = (gameSeed: number) => AiSeatPolicy;
 
 /**
  * Brett-KI (CHAOS-181): je KI-Platz eigene Zufallsströme aus Partie-Seed und Platz
- * (ADR-020 §8), Parameter aus der Stärke (`boardAiParams`; „dynamisch“ vorerst wie mittel).
+ * (ADR-020 §8), Parameter aus der Stärke (`boardAiParams`; bei „dynamisch“ die aktuelle Stärke `strengthLevel`, CHAOS-187).
  */
 export function createBoardAiPolicy(gameSeed: number): AiSeatPolicy {
   const seats = new Map<SlotNumber, BoardAiSeat>();
@@ -90,17 +95,19 @@ export function createBoardAiPolicy(gameSeed: number): AiSeatPolicy {
     }
     return seat;
   };
-  const paramsOf = (strength: AiStrength) => boardAiParams(boardAiStrengthValue(strength));
+  const paramsOf = (strength: AiStrength, level: number | undefined) =>
+    boardAiParams(level ?? boardAiStrengthValue(strength));
   return {
     decide: (request) =>
       answerBoardPrompt(seatOf(request.slot), {
         prompt: request.game.prompt,
         state: request.game.state,
         board: request.game.board,
-        params: paramsOf(request.strength),
+        params: paramsOf(request.strength, request.strengthLevel),
         remainingMs: request.prompt.remainingMs,
       }),
-    readyDelayMs: (slot, strength) => boardAiReadyDelay(seatOf(slot), paramsOf(strength)),
+    readyDelayMs: (slot, strength, level) =>
+      boardAiReadyDelay(seatOf(slot), paramsOf(strength, level)),
   };
 }
 

@@ -11,6 +11,19 @@ export {
   type RouteChoice,
 } from './board.ts';
 export {
+  DYNAMIC_COIN_DEAD_ZONE,
+  DYNAMIC_COIN_FULL_GAP,
+  DYNAMIC_MAX_STEP,
+  DYNAMIC_PLACE_MAX_LEAD,
+  DYNAMIC_PLACE_WEIGHT,
+  DYNAMIC_STRENGTH_START,
+  DYNAMIC_TROPHY_MIN_GAP,
+  dynamicLead,
+  dynamicStanding,
+  nextDynamicStrength,
+  type DynamicStanding,
+} from './dynamic.ts';
+export {
   AI_DEADLINE_MARGIN_MS,
   AI_STREAM_PURPOSES,
   aiStreamSeed,
