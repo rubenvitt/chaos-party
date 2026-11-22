@@ -33,6 +33,7 @@ import type {
   MinigameCue,
   MinigameInput,
   MinigamePlacement,
+  MinigameSecret,
   MinigameTeams,
   Slot,
 } from '@chaos-party/minigame-sdk';
@@ -89,6 +90,8 @@ export interface MinigameStageOptions {
   readonly onResult: (result: RunnerResult) => void;
   /** Controller-Hinweis hat gewechselt (CHAOS-231, nur Minispiele mit Abschnitten). */
   readonly onCue?: (cue: MinigameCue | null) => void;
+  /** Private Rückmeldung eines Slots hat gewechselt (CHAOS-242, geheime Wahl). */
+  readonly onSecret?: (slot: Slot, secret: MinigameSecret | null) => void;
   /** Ladefehler (Havok, Figuren, `prepare`). */
   readonly onError?: (error: unknown) => void;
 }
@@ -229,6 +232,7 @@ export function createMinigameStage(options: MinigameStageOptions): MinigameStag
         options.onResult(result);
       },
       ...(options.onCue ? { onCue: options.onCue } : {}),
+      ...(options.onSecret ? { onSecret: options.onSecret } : {}),
     });
     if (flags.paused) runner.pause();
     await runner.prepare();

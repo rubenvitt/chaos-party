@@ -35,10 +35,12 @@ import { attachPerf } from '../debug/perf.ts';
 import { markFirstFrame, markScene } from '../debug/sceneMarks.ts';
 import { soundEngine } from '../fx/audio.ts';
 import type { IntentHub } from '../input/webSocketInputSource.ts';
-import type {
-  ConnectionStatus,
-  MinigameCuePayload,
-  MinigameResultPayload,
+import {
+  secretPayload,
+  type ConnectionStatus,
+  type MinigameCuePayload,
+  type MinigameResultPayload,
+  type MinigameSecretPayload,
 } from '../net/hostConnection.ts';
 import { ButtonIcon, JoystickIcon } from './icons.tsx';
 import { MinigameKeyboard } from './keyboard.ts';
@@ -77,6 +79,8 @@ export interface MinigameScreenProps {
   readonly onResult: (result: MinigameResultPayload) => void;
   /** Controller-Hinweis des laufenden Abschnitts (CHAOS-231); fehlt im lokalen Ablauf. */
   readonly onCue?: (cue: MinigameCuePayload) => void;
+  /** Private Rückmeldung an einen Slot (CHAOS-242); fehlt im lokalen Ablauf. Nie anzeigen. */
+  readonly onSecret?: (secret: MinigameSecretPayload) => void;
   readonly onReady?: (ready: boolean) => void;
   /** Zustand des Ergebnis-Versands für den Testhaken. */
   readonly getResultState?: () => string;
@@ -207,6 +211,9 @@ export function MinigameScreen(props: MinigameScreenProps) {
       },
       onCue: (cue) => {
         latest.current.props.onCue?.({ minigameId: module.info.id, round: setup.round, cue });
+      },
+      onSecret: (slot, secret) => {
+        latest.current.props.onSecret?.(secretPayload(module.info.id, setup.round, slot, secret));
       },
     });
     stageRef.current = stage;

@@ -64,7 +64,7 @@ import { readableTextColor, slotColorVars } from './color.ts';
 import { FinalCard, PauseCard } from './final.tsx';
 import { CharacterFace, LobbyHead, ReadyBadge } from './lobby.tsx';
 import { cardData, ownerStyle } from './lobbyCard.ts';
-import { IntroReadyDone, MinigameCard, MinigameHeader } from './minigame.tsx';
+import { IntroReadyDone, MinigameCard, MinigameHeader, MinigameSecretStrip } from './minigame.tsx';
 import { Toast } from './screens.tsx';
 import { useInterruption } from './useInterruption.ts';
 import { useArmedSlots, type WaitingIntro } from './useReadyGuard.ts';
@@ -535,6 +535,10 @@ const Zone = memo(function Zone({
           </div>
         ) : (
           badge
+        )}
+        {play?.secret && (
+          // CHAOS-242: geheime Wahl der Zone (die Nachbarin sieht sie mit, README §7 Nr. 4).
+          <MinigameSecretStrip secret={play.secret} className="zone-minigame-secret" />
         )}
 
         {lobby && <ZoneLobby zone={zone} view={lobby} />}

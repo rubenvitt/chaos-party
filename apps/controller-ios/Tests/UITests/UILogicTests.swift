@@ -125,6 +125,36 @@ import Testing
         #expect(finale != hauen)
     }
 
+    /// CHAOS-242: a secret choice shows the options with aim and pick next to the unchanged
+    /// controls; outside `play` there is none.
+    @Test func secretShowsAimAndPick() throws {
+        var minigame = try #require(ControllerState.minigamePlaySample.contexts[1]?.minigame)
+        minigame.controls = MinigameControls(joystick: "Tür zeigen", a: "Wählen", b: nil)
+        let options = [
+            MinigameSecretOption(id: "links", icon: "←", label: "5 Münzen"),
+            MinigameSecretOption(id: "mitte", icon: "↑", label: "9 Münzen"),
+            MinigameSecretOption(id: "rechts", icon: "→", label: "2 Münzen"),
+        ]
+        var secret = MinigameSecret(
+            prompt: "Runde 1/8: deine Tür?", options: options, aim: "mitte", pick: nil, locked: false)
+        minigame.secret = secret
+        let aimed = PlayLayout(actions: [.move, .buttonA], minigame: minigame)
+        #expect(aimed.stick && aimed.buttons.map(\.label) == ["Wählen"])
+        let shown = try #require(aimed.secret)
+        #expect(options.map { SecretStrip.state(of: $0, in: shown) } == [.idle, .aimed, .idle])
+        #expect(SecretStrip.spoken(shown) == "Zeigt auf: ↑ 9 Münzen")
+        secret.aim = nil
+        secret.pick = "rechts"
+        secret.locked = true
+        minigame.secret = secret
+        let picked = PlayLayout(actions: [.move, .buttonA], minigame: minigame)
+        #expect(options.map { SecretStrip.state(of: $0, in: secret) } == [.idle, .idle, .picked])
+        #expect(SecretStrip.spoken(secret) == "Deine Wahl: → 2 Münzen")
+        #expect(picked != aimed)
+        minigame.stage = .intro
+        #expect(PlayLayout(actions: [.move, .buttonA], minigame: minigame).secret == nil)
+    }
+
     @Test func controlsCanHideOfferedElements() throws {
         var minigame = try #require(ControllerState.minigamePlaySample.contexts[1]?.minigame)
         minigame.controls = MinigameControls(joystick: nil, a: "Springen", b: nil)

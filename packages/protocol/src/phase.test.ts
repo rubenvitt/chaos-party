@@ -22,6 +22,7 @@ const MATRIX: Record<ClientMessageType, [lobby: boolean, play: boolean, board: b
   rate: [false, false, true],
   'minigame-result': [false, false, true],
   'minigame-cue': [false, false, true],
+  'minigame-secret': [false, false, true],
   // v4 (ADR-015)
   'pick-character': [true, false, false],
   configure: [true, false, false],

@@ -55,6 +55,12 @@
  * v4-Nachtrag (CHAOS-90, additiv, ohne Versionssprung): Brett-Ereignis `rapid-fire`
  * („Schnellfeuer!“): Das Minispiel der Runde wird Schnellfeuer (`minigame.id` `schnellfeuer`).
  * Kommt nur, wenn der Server Schnellfeuer per Ereignis auslöst.
+ * v4-Nachtrag (CHAOS-242, additiv, ohne Versionssprung): private Rückmeldung bei geheimer Wahl –
+ * Host-Nachricht `minigame-secret` (je Slot, nur bei einem Wechsel, `secret: null` = keine mehr)
+ * und `ControllerMinigameInfo.secret` (optional, nur in `play`, nur im Kontext genau dieses
+ * Slots: Frage, 2–4 Optionen, `aim`, `pick`, `locked`). Der Server verwirft Meldungen zu einem
+ * fremden Lauf oder Slot still. Controller ohne den Nachtrag zeigen weiter `controls`; ein
+ * Server ohne ihn lehnt `minigame-secret` mit `bad-message` ab, das Spiel läuft trotzdem.
  * v4-Nachtrag (CHAOS-231, additiv, ohne Versionssprung): Controller-Hinweis eines Minispiels aus
  * Abschnitten (Schnellfeuer-Mikro-Spiele) – Host-Nachricht `minigame-cue` (nur bei einem Wechsel,
  * `cue: null` = keiner mehr) und `ControllerMinigameInfo.cue` (optional, nur in `play`: Bildwort,

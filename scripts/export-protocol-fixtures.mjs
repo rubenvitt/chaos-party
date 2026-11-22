@@ -297,6 +297,30 @@ const serverToController = {
       },
     }),
   }),
+  // v4-Nachtrag CHAOS-242: private Rückmeldung bei geheimer Wahl (nur im Kontext dieses Slots).
+  'context-minigame-play-secret': context({
+    phase: 'board',
+    layout: 'joystick-buttons',
+    actions: ['move', 'button-a'],
+    board: board({ gamePhase: 'minigame-play', activeSlot: null }),
+    minigame: minigame({
+      id: 'drei-tueren',
+      title: 'Drei Türen',
+      stage: 'play',
+      controls: { joystick: 'Tür zeigen', a: 'Wählen', b: null },
+      secret: {
+        prompt: 'Runde 3/8: gewählt',
+        options: [
+          { id: 'links', icon: '←', label: '5 Münzen' },
+          { id: 'mitte', icon: '↑', label: '9 Münzen' },
+          { id: 'rechts', icon: '→', label: '2 Münzen' },
+        ],
+        aim: null,
+        pick: 'rechts',
+        locked: false,
+      },
+    }),
+  }),
   'context-minigame-results': context({
     phase: 'board',
     layout: 'board',

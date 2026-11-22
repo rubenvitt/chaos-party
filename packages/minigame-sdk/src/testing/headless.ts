@@ -238,6 +238,8 @@ export interface HeadlessRunOptions {
   readonly keepScene?: boolean;
   /** Controller-Hinweise mitschreiben (CHAOS-231, `RunnerOptions.onCue`). */
   readonly onCue?: RunnerOptions['onCue'];
+  /** Private Rückmeldungen mitschreiben (CHAOS-242, `RunnerOptions.onSecret`). */
+  readonly onSecret?: RunnerOptions['onSecret'];
 }
 
 export interface HeadlessRun {
@@ -274,6 +276,7 @@ export async function runMinigameHeadless(
     havok,
     testMode: true,
     ...(options.onCue ? { onCue: options.onCue } : {}),
+    ...(options.onSecret ? { onSecret: options.onSecret } : {}),
     ...(options.teams ? { teams: options.teams } : {}),
     ...(options.bots ? { bots: options.bots } : {}),
   });

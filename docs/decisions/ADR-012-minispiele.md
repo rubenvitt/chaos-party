@@ -154,3 +154,15 @@ Nachtrag 6 ließ den nativen Host (Mac, Apple TV) ohne Bedienung für Sperrliste
 - **Bedienung:** Knopf „Minispiele“ neben „Partie starten“, Liste über der gesperrten Lobby (zwei Spalten, scrollt). Mac: Maus, ↑ ↓ ← → wählen, F Favorit, X Sperren, Esc. Apple TV: Fokus, Menü-Taste schließt die Liste.
 
 Verworfen: die Umschalt-Logik in Swift nachbauen (zweite Quelle für die Regel „schließt sich aus“, nur im macOS-CI prüfbar) und die Speicherung allein in Swift (der Zeitpunkt „erster Lobby-Stand mit Rotation“ ist im Kern bekannt, in Swift nur über einen Umweg). Grenzen: Auf dem Apple TV fasst `UserDefaults` nur wenig (der Stand braucht bei 200 Spielen wenige KB); einen Abgleich zwischen Geräten (iCloud) gibt es nicht, Mac und Apple TV merken sich ihren Stand getrennt. Gerätecheckliste §40, RO5–RO10.
+
+## Nachtrag 10 (2026-11-22, CHAOS-242): private Rückmeldung bei geheimer Wahl
+
+Spiele der Familie „Bluff & geheime Wahl“ (`secretChoice`) brauchen am Controller eine Anzeige, die nur die wählende Person sieht. Umsetzung nach dem Muster des Hinweises aus CHAOS-231:
+
+- **SDK:** optional `Minigame.getSecret(slot)` → `MinigameSecret` (Frage, 2–4 Optionen mit Kennung, Piktogramm und Text, `aim`, `pick`, `locked`), Prüfung `checkSecret`. Die Laufzeit fragt je Schritt und Slot und meldet nur Wechsel (`RunnerOptions.onSecret`).
+- **Protokoll (v4-Nachtrag, additiv):** Host-Nachricht `minigame-secret` mit `slot`; `ControllerMinigameInfo.secret` nur in `play`.
+- **Server:** übernimmt eine Rückmeldung nur für den laufenden Lauf, einen Slot der Partie und gültig; sie geht nur in den Kontext dieses Slots, nie in `board` an den Host. Sonst still verworfen.
+- **Host:** Web- und Apple-Host senden die Wechsel und nach einem Neuverbinden die letzte Rückmeldung je Slot erneut; der Host-Bildschirm zeigt sie nie.
+- **Controller:** Leiste unter dem Kopf (iPhone, iPad-Zone, native App), nicht antippbar; gewählt wird weiter mit Stick und A.
+
+Verworfen: die Wahl per Tippen auf die Optionen (bräuchte einen neuen Eingabeweg Controller → Host; zurückgestellt) und die Rückmeldung im allgemeinen Hinweis `cue` (der geht an alle Controller).

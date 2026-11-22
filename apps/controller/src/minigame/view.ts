@@ -15,6 +15,7 @@ import type {
   ItemKindName,
   MinigameControlsInfo,
   MinigameCueInfo,
+  MinigameSecretInfo,
   Vote,
 } from '@chaos-party/protocol';
 import type { SlotContext } from '../state/reducer.ts';
@@ -155,6 +156,43 @@ export interface CueView {
   readonly double: boolean;
 }
 
+/** Eine Option der geheimen Wahl am eigenen Controller (CHAOS-242). */
+export interface SecretOptionView {
+  readonly id: string;
+  readonly icon: string;
+  readonly label: string;
+  /** `picked` = festgelegt, `aimed` = Stick zeigt darauf, sonst `idle`. */
+  readonly state: 'picked' | 'aimed' | 'idle';
+}
+
+/** Private Rückmeldung (CHAOS-242): nur dieser Controller sieht sie. */
+export interface SecretView {
+  readonly prompt: string;
+  readonly options: readonly SecretOptionView[];
+  readonly locked: boolean;
+  /** Kurzfassung für Vorlesen („Deine Wahl: → 2 Münzen“). */
+  readonly spoken: string;
+}
+
+export function describeSecret(secret: MinigameSecretInfo): SecretView {
+  const options = secret.options.map((option): SecretOptionView => ({
+    id: option.id,
+    icon: option.icon,
+    label: option.label,
+    state: option.id === secret.pick ? 'picked' : option.id === secret.aim ? 'aimed' : 'idle',
+  }));
+  const picked = options.find((option) => option.state === 'picked');
+  const aimed = options.find((option) => option.state === 'aimed');
+  const spoken = picked
+    ? `Deine Wahl: ${picked.icon} ${picked.label}`
+    : aimed
+      ? `Zeigt auf: ${aimed.icon} ${aimed.label}`
+      : secret.locked
+        ? 'Keine Wahl'
+        : 'Noch keine Wahl';
+  return { prompt: secret.prompt, options, locked: secret.locked, spoken };
+}
+
 /** Was das Spiel-Layout (`joystick-buttons`) anzeigt. */
 export interface PlayView {
   /** Joystick angeboten; `stickHint` ist dann der Text darunter. */
@@ -165,6 +203,8 @@ export interface PlayView {
   readonly title: string | null;
   /** Bildwort des laufenden Abschnitts (CHAOS-231), sonst `null`. */
   readonly cue: CueView | null;
+  /** Private Rückmeldung bei geheimer Wahl (CHAOS-242), sonst `null`. */
+  readonly secret: SecretView | null;
 }
 
 export function describeCue(cue: MinigameCueInfo): CueView {
@@ -202,6 +242,7 @@ export function describePlay(context: Pick<SlotContext, 'actions' | 'minigame'>)
     buttons,
     title: minigame?.title ?? null,
     cue: minigame?.cue ? describeCue(minigame.cue) : null,
+    secret: minigame?.secret ? describeSecret(minigame.secret) : null,
   };
 }
 

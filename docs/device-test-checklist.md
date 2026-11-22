@@ -971,7 +971,18 @@ Automatisch geprüft (Mac/Linux): Vertragstest, Vielfalt, Fairness (200 Seeds), 
 | PW2 | Abbruchkriterium README §5.5 | Die Spiele fühlen sich verschieden an; besonders Toaster-Timing ↔ Schnapp den Käse | | Notiz |
 | PW3 | Eiswürfel-Sumo und Bienenstock-Honig | Tempo lustig, nicht frustig; Stich-Anflug rechtzeitig erkennbar | | Notiz |
 | PW4 | Matschmaler | Eigene Felder auch ohne Farbe am Muster erkennbar | | Foto |
-| PW5 | Drei Türen am iPhone | Wahl per Stickrichtung + A ist verständlich, obwohl das iPhone die gewählte Tür nicht zeigt (CHAOS-242) | | Notiz |
+| PW5 | Drei Türen am iPhone | Wahl per Stickrichtung + A ist verständlich; das iPhone zeigt Ziel und gewählte Tür (CHAOS-242, siehe §51) | | Notiz |
 | PW6 | iPad-Zone: Toaster-Timing, Schnapp den Käse, Bienenstock-Honig | Knöpfe in beiden Zonen gleichzeitig bedienbar | | Video |
 | PW7 | Partie mit Rotation am Mac oder auf der Apple TV | Pilotspiele erscheinen, Requisiten als Grundkörper sichtbar, kein Ruckeln beim Aufbau | | Log |
-||||||| c306265
+
+## 51. Geheime Wahl: private Rückmeldung am eigenen Controller (für CHAOS-242)
+
+**Stand:** 2026-11-22 · **Aufgabe:** CHAOS-242 · **Entscheidung:** ADR-012 Nachtrag 10
+
+Automatisch geprüft (Linux): SDK-Prüfung `checkSecret` und Laufzeit (Wechsel je Slot), Protokoll (Validierung, falscher Slot), Server-Integration (nur der eigene Kontext, nie Host und andere Controller, fremder Lauf/Slot still verworfen), Host-Verbindung (je Slot, nach Neuverbinden erneut), E2E mit zwei iPhones (Chromium-Emulation) gegen den echten Server: Stick zielt, A legt fest, nur das wählende iPhone zeigt es, der Host-Bildschirm nicht; iPad-Zonen mit nachgebautem Server (jede Zone nur ihre Wahl, Leiste überdeckt weder Stick noch A und lässt Berührungen durch). Native App nur Logik- und Fixture-Tests in der macOS-CI. **Nicht** geprüft: echte iPhones/iPads, Lesbarkeit im Spieltempo, ob Mitspielende am Tisch mitlesen.
+
+| ID  | Schritt | Erwartung | Ergebnis | Nachweis |
+| --- | ------- | --------- | -------- | -------- |
+| GW1 | Drei Türen, zwei iPhones (Browser) und die native App: Stick nach links/oben/rechts, dann A | Die Tür unter dem Daumen ist gestrichelt markiert, nach A farbig gefüllt („gewählt“); nach dem Aufdecken bleibt sie stehen, die anderen sind blass | | Video |
+| GW2 | Gleichzeitig Fernseher und das Handy der anderen Person ansehen | Fernseher zeigt nur den Haken über der Figur, das andere Handy nur die eigene (leere) Wahl | | Foto |
+| GW3 | Geteiltes iPad, zwei Zonen | Jede Zone zeigt ihre Wahl unter dem Kopfstreifen; Stick und A gehen auch unter der Leiste; die Nachbarin kann mitlesen (bewusst, README §7 Nr. 4) | | Video |

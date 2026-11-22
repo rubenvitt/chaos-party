@@ -553,3 +553,87 @@ test('Schnellfeuer (CHAOS-231): jede Zone zeigt das Bildwort und nur die Knöpfe
   await expect(zone(page, 2).getByTestId('joystick')).toBeVisible();
   await expect(zone(page, 2).getByTestId('button-a')).toContainText('Los!');
 });
+
+test('Geheime Wahl (CHAOS-242): jede Zone zeigt nur ihre eigene Wahl, Bedienung bleibt frei', async ({
+  page,
+}) => {
+  await joinLobby(page, 2);
+  const tueren: ControllerMinigameInfo = {
+    id: 'drei-tueren',
+    title: 'Drei Türen',
+    tagline: 'Wähl geheim eine Tür – aber stehst du dort allein?',
+    instructions: ['Stick zeigt auf eine Tür, A wählt.'],
+    controls: { joystick: 'Tür zeigen', a: 'Wählen', b: null },
+    stage: 'play',
+    scoreUnit: 'Münzen',
+    tied: false,
+    aborted: false,
+  };
+  const options = [
+    { id: 'links', icon: '←', label: '5 Münzen' },
+    { id: 'mitte', icon: '↑', label: '9 Münzen' },
+    { id: 'rechts', icon: '→', label: '2 Münzen' },
+  ];
+  const play = (slot: SlotNumber, secret: ControllerMinigameInfo['secret']) => {
+    fake.send(
+      createMessage('context', {
+        slot,
+        phase: 'board',
+        layout: 'joystick-buttons',
+        actions: ['move', 'button-a'],
+        board: boardInfo({ gamePhase: 'minigame-play', activeSlot: null }),
+        minigame: secret ? { ...tueren, secret } : tueren,
+      }),
+    );
+  };
+  // Zone 1 hat gewählt, Zone 2 zeigt nur ihr Ziel.
+  play(1, { prompt: 'Runde 1/8: gewählt', options, aim: null, pick: 'rechts', locked: false });
+  play(2, { prompt: 'Runde 1/8: deine Tür?', options, aim: 'mitte', pick: null, locked: false });
+  for (const slot of [1, 2] as const) {
+    await expect(zone(page, slot)).toHaveAttribute('data-screen', 'play');
+    await expect(zone(page, slot).getByTestId('minigame-secret')).toBeVisible();
+    await expect(zone(page, slot).getByTestId('joystick')).toBeVisible();
+    await expect(zone(page, slot).getByTestId('button-a')).toContainText('Wählen');
+  }
+  const states = async (slot: SlotNumber) =>
+    Promise.all(
+      ['links', 'mitte', 'rechts'].map((id) =>
+        zone(page, slot).getByTestId(`minigame-secret-${id}`).getAttribute('data-state'),
+      ),
+    );
+  expect(await states(1)).toEqual(['idle', 'idle', 'picked']);
+  expect(await states(2)).toEqual(['idle', 'aimed', 'idle']);
+  await expectInsideZones(page, 2);
+
+  // Die Leiste nimmt keine Berührung: Stick und Knopf liegen nicht darunter.
+  for (const slot of [1, 2] as const) {
+    const strip = await zone(page, slot).getByTestId('minigame-secret').boundingBox();
+    // Die Stick-Fläche ist groß (Daumen setzt irgendwo auf); geprüft wird der sichtbare Kreis.
+    // Über dem Rand der Fläche liegt die Leiste, lässt Berührungen aber durch (unten).
+    const stick = await zone(page, slot).locator('[data-role="stick-base"]').boundingBox();
+    const button = await zone(page, slot).getByTestId('button-a').boundingBox();
+    expect(strip && stick && button).toBeTruthy();
+    if (!strip || !stick || !button) continue;
+    for (const box of [stick, button]) {
+      const overlapX =
+        Math.min(strip.x + strip.width, box.x + box.width) - Math.max(strip.x, box.x);
+      const overlapY =
+        Math.min(strip.y + strip.height, box.y + box.height) - Math.max(strip.y, box.y);
+      expect(
+        overlapX > 0 && overlapY > 0,
+        `Leiste überdeckt Bedienung in Zone ${String(slot)}`,
+      ).toBe(false);
+    }
+  }
+
+  const passThrough = await zone(page, 1)
+    .getByTestId('minigame-secret')
+    .evaluate((element) => getComputedStyle(element).pointerEvents);
+  expect(passThrough).toBe('none');
+
+  // Ohne Rückmeldung (älterer Host) keine Leiste.
+  play(2, undefined);
+  await expect(zone(page, 2).getByTestId('minigame-secret')).toHaveCount(0);
+  await expect(zone(page, 1).getByTestId('minigame-secret')).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath('zonen-geheime-wahl.png') });
+});

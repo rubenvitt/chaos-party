@@ -8,11 +8,14 @@
 import {
   MINIGAME_CUE_LIMITS,
   MINIGAME_ID_PATTERN,
+  MINIGAME_SECRET_LIMITS,
+  MINIGAME_SECRET_OPTION_PATTERN,
   MINIGAME_TEXT_LIMITS,
   type MinigameCue,
   type MinigameInfo,
   type MinigamePlacement,
   type MinigameResult,
+  type MinigameSecret,
   type Slot,
 } from './info.ts';
 import {
@@ -214,6 +217,30 @@ export function checkCue(cue: MinigameCue, info: Pick<MinigameInfo, 'controls'>)
     if (info.controls[key] === null) return fail(`Bedienung ${key} fehlt im Steckbrief`);
     if (!shownText(label, MINIGAME_TEXT_LIMITS.controlLabel)) return fail('Bedien-Text');
   }
+  return { ok: true };
+}
+
+/**
+ * Prüft eine private Rückmeldung (CHAOS-242): Frage kurz, 2–4 Optionen mit eindeutiger
+ * Kennung, Piktogramm und Text, `aim`/`pick` nur aus den Optionen. Die Laufzeit meldet ungültige
+ * Rückmeldungen nicht weiter (der Server würde sie verwerfen).
+ */
+export function checkSecret(secret: MinigameSecret): ResultCheck {
+  const limits = MINIGAME_SECRET_LIMITS;
+  if (!shownText(secret.prompt, limits.prompt)) return fail('Frage');
+  const { options } = secret;
+  if (options.length < 2 || options.length > limits.options) return fail('Optionen 2–4');
+  const ids = new Set<string>();
+  for (const option of options) {
+    if (!MINIGAME_SECRET_OPTION_PATTERN.test(option.id)) return fail('Options-Kennung');
+    if (ids.has(option.id)) return fail('Option doppelt');
+    ids.add(option.id);
+    if (!shownText(option.icon, limits.icon)) return fail('Options-Piktogramm');
+    if (!shownText(option.label, limits.label)) return fail('Options-Text');
+  }
+  if (secret.aim !== null && !ids.has(secret.aim)) return fail('Ziel außerhalb');
+  if (secret.pick !== null && !ids.has(secret.pick)) return fail('Wahl außerhalb');
+  if (typeof secret.locked !== 'boolean') return fail('locked');
   return { ok: true };
 }
 

@@ -679,6 +679,16 @@ export class Session {
         // Szene und Figuren geladen (CHAOS-68). Wartet keine Auto-Pause darauf: nichts zu tun.
         if (this.hostReadyDeadline !== null) this.resumeAfterHostLoss();
         return;
+      case 'minigame-secret':
+        // CHAOS-242: private Rückmeldung an einen Slot. Fremder Lauf, fremder Slot oder zu spät:
+        // still verwerfen (der nächste Wechsel bringt den richtigen Stand).
+        if (
+          this.phaseValue === 'board' &&
+          this.game?.setSecret(message.minigameId, message.round, message.slot, message.secret)
+        ) {
+          this.syncContexts();
+        }
+        return;
       case 'minigame-cue':
         // CHAOS-231: Hinweis des laufenden Abschnitts. Verspätet oder zu einem fremden Lauf:
         // still verwerfen (keine Antwort; der nächste Wechsel bringt den richtigen Stand).

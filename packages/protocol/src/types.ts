@@ -56,6 +56,9 @@ import type {
   MinigameResultMessageSchema,
   MinigameCueMessageSchema,
   MinigameCueSchema,
+  MinigameSecretMessageSchema,
+  MinigameSecretOptionSchema,
+  MinigameSecretSchema,
   MoveMessageSchema,
   PHASES,
   PlayerInfoSchema,
@@ -127,6 +130,10 @@ export type MinigameResultMessage = z.infer<typeof MinigameResultMessageSchema>;
 /** v4-Nachtrag (CHAOS-231). */
 export type MinigameCueMessage = z.infer<typeof MinigameCueMessageSchema>;
 export type MinigameCueInfo = z.infer<typeof MinigameCueSchema>;
+/** v4-Nachtrag (CHAOS-242). */
+export type MinigameSecretMessage = z.infer<typeof MinigameSecretMessageSchema>;
+export type MinigameSecretInfo = z.infer<typeof MinigameSecretSchema>;
+export type MinigameSecretOptionInfo = z.infer<typeof MinigameSecretOptionSchema>;
 export type ConfigureMessage = z.infer<typeof ConfigureMessageSchema>;
 export type PauseMessage = z.infer<typeof PauseMessageSchema>;
 export type ResumeMessage = z.infer<typeof ResumeMessageSchema>;
