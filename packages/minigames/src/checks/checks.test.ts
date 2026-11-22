@@ -33,6 +33,9 @@ import {
   type FairnessReport,
 } from './fairness.ts';
 import { FAIRNESS_HARNESSES } from './harnesses.ts';
+import { dauerDruecker, kitHarness } from './kitHarness.ts';
+import { HALLO_BOT_ADAPTER } from '../hallo-baukasten/bot.ts';
+import { HALLO_BAUKASTEN_INFO } from '../hallo-baukasten/info.ts';
 import type { Steckbrief } from '@chaos-party/minigame-kit';
 import { getSteckbrief } from '../steckbriefe.ts';
 import { checkVariety, nearestGame, varietyTable, VARIETY_EXCEPTIONS } from './variety.ts';
@@ -124,6 +127,26 @@ describe('Bot-Fairness: Bausteine', () => {
       lead.update(scores);
     }
     expect(lead.changes).toBe(2);
+  });
+
+  it('Baukasten-Anbindung (kitHarness) misst ein Spiel mit Adapter und Dauerdrücker', async () => {
+    const harness = kitHarness({
+      info: HALLO_BAUKASTEN_INFO,
+      adapter: HALLO_BOT_ADAPTER,
+      intruders: [dauerDruecker()],
+      ciSeeds: 4,
+    });
+    expect(harness.intruders.map((intruder) => intruder.id)).toEqual(['dauer']);
+    const match = await harness.play(
+      [{ skill: 'profi' }, { skill: 'normal', strategy: 'dauer' }],
+      5,
+    );
+    expect(match.scores).toHaveLength(2);
+    expect(await harness.play([{ skill: 'profi' }, { skill: 'neuling' }], 5)).toEqual(
+      await harness.play([{ skill: 'profi' }, { skill: 'neuling' }], 5),
+    );
+    const report = await measureFairness(harness);
+    expect(report.intruders).toHaveLength(1);
   });
 
   it('Wilson-Bereich wird mit mehr Seeds enger', () => {
