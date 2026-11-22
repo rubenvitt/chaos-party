@@ -27,6 +27,7 @@ import { markVisual } from './visual.ts';
 import {
   FIXED_STEP_SECONDS,
   type CharacterFactory,
+  type PropFactory,
   type Minigame,
   type MinigameFx,
   type MinigameHud,
@@ -57,6 +58,8 @@ export interface RunnerOptions {
   readonly timeLimitMs?: number;
   readonly fx: MinigameFx;
   readonly characters: CharacterFactory;
+  /** Requisiten-Modelle (CHAOS-237); fehlt = Grundkörper (`MinigameContext.props`). */
+  readonly props?: PropFactory;
   /** Pflicht, wenn `info.physics`. */
   readonly havok?: HavokInstance | null;
   readonly testMode?: boolean;
@@ -431,6 +434,7 @@ export function createMinigameRunner(
             return handle;
           },
         },
+        ...(options.props ? { props: options.props } : {}),
         testMode: options.testMode ?? false,
         ...(options.look ? { look: options.look } : {}),
         ...(options.teams ? { teams: options.teams } : {}),

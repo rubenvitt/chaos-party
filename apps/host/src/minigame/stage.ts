@@ -49,6 +49,7 @@ import {
   type RunnerState,
 } from '@chaos-party/minigame-sdk/babylon';
 import { loadCharacters, type CharacterLibrary } from '../characters/index.ts';
+import { loadProps, type PropLibrary } from './props.ts';
 import type { PerfSource } from '../debug/perfTypes.ts';
 import { observeFrames, resourceStats } from '../debug/renderProbe.ts';
 import { createAdaptiveQuality } from '../nature/quality.ts';
@@ -178,6 +179,7 @@ export function createMinigameStage(options: MinigameStageOptions): MinigameStag
   let status: StageStatus = 'loading';
   let runner: MinigameRunner | null = null;
   let library: CharacterLibrary | null = null;
+  let props: PropLibrary | null = null;
   let handles = new Map<Slot, CharacterHandle>();
   // Als Objekt, damit TypeScript die Werte nach `await` nicht fälschlich festnagelt.
   const flags = { startRequested: false, celebrated: false, paused: false, ended: false };
@@ -200,12 +202,18 @@ export function createMinigameStage(options: MinigameStageOptions): MinigameStag
   };
 
   const ready = (async () => {
-    const loaded = await loadCharacters(scene, { keepPbr: true });
+    // Figuren und Requisiten des Spiels parallel (CHAOS-237: nur die Sets dieses Minispiels).
+    const [loaded, loadedProps] = await Promise.all([
+      loadCharacters(scene, { keepPbr: true }),
+      loadProps(scene, module.info.id),
+    ]);
     if (isDisposed()) {
       loaded.dispose();
+      loadedProps.dispose();
       return;
     }
     library = loaded;
+    props = loadedProps;
     const havok = module.info.physics ? await loadHavok() : null;
     if (isDisposed()) return;
     const tracked = trackingFactory(loaded, look);
@@ -219,6 +227,7 @@ export function createMinigameStage(options: MinigameStageOptions): MinigameStag
       timeLimitMs: options.timeLimitMs,
       fx,
       characters: tracked.factory,
+      props: loadedProps,
       havok,
       testMode,
       look,
@@ -365,6 +374,7 @@ export function createMinigameStage(options: MinigameStageOptions): MinigameStag
       } finally {
         fx.dispose();
         library?.dispose();
+        props?.dispose();
         scene.dispose();
         engine.dispose();
       }

@@ -38,3 +38,45 @@ export function visualOf(node: Node): VisualTag | undefined {
   }
   return undefined;
 }
+
+/**
+ * Requisit-Kennung (CHAOS-237): Wurzel eines Requisits aus dem Katalog (`@chaos-party/assets`,
+ * `PROP_SETS`), samt der zuletzt gesetzten Farben der Laufzeit-Materialien. Der Apple-Host setzt
+ * an diese Stelle `requisiten/<id>.usdz` und färbt `akzent`/`zustand` wie der Browser-Host;
+ * die Meshes darunter (Grundkörper-Rückfall) zeichnet er nur, solange das Modell fehlt.
+ */
+export interface PropTag {
+  readonly id: string;
+  /** Farben der Laufzeit-Materialien (`#rrggbb`), nur gesetzte. */
+  readonly tints: Readonly<Partial<Record<PropTint, string>>>;
+}
+
+/** Laufzeit-Materialien eines Requisits (`PROP_RUNTIME_MATERIALS` in `@chaos-party/assets`). */
+export const PROP_TINTS = ['akzent', 'zustand'] as const;
+export type PropTint = (typeof PROP_TINTS)[number];
+
+const PROP_FIELD = 'chaosProp';
+
+/** Kennzeichnet `node` als Wurzel des Requisits `id` und gibt ihn zurück. */
+export function markProp<T extends Node>(node: T, id: string): T {
+  const tag: PropTag = { id, tints: {} };
+  node.metadata = { ...(node.metadata as object | null), [PROP_FIELD]: tag };
+  return node;
+}
+
+/** Farbe eines Laufzeit-Materials in der Kennung festhalten (nur an einer `markProp`-Wurzel). */
+export function setPropTint(node: Node, tint: PropTint, hex: string): void {
+  const meta = node.metadata as Record<string, unknown> | null;
+  const tag = meta?.[PROP_FIELD] as PropTag | undefined;
+  if (!tag) return;
+  node.metadata = { ...meta, [PROP_FIELD]: { id: tag.id, tints: { ...tag.tints, [tint]: hex } } };
+}
+
+/** Nächste Requisit-Wurzel (einschließlich `node`) samt Kennung, sonst `undefined`. */
+export function propOf(node: Node): { readonly node: Node; readonly tag: PropTag } | undefined {
+  for (let current: Node | null = node; current; current = current.parent) {
+    const tag = (current.metadata as Record<string, unknown> | null)?.[PROP_FIELD];
+    if (tag) return { node: current, tag: tag as PropTag };
+  }
+  return undefined;
+}

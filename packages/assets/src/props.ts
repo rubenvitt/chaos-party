@@ -108,19 +108,21 @@ export const PROP_RUNTIME: Partial<Readonly<Record<PropId, readonly PropRuntimeM
 };
 
 /**
- * Requisiten-Sets je Minispiel (Katalog-Nummer). Daraus rechnet `check:assets` das Budget je
- * Spiel: alle Requisiten der Sets zusammen (jedes einmal, Instanzen kosten keinen Download).
- * Neue Spiele tragen sich hier ein, bevor sie Requisiten laden.
+ * Requisiten-Sets je Minispiel (Schlüssel = `MinigameInfo.id`, Katalog-Nummer im Kommentar).
+ * Daraus rechnet `check:assets` das Budget je Spiel: alle Requisiten der Sets zusammen (jedes
+ * einmal, Instanzen kosten keinen Download), und der Browser-Host lädt genau diese Requisiten,
+ * bevor das Spiel startet (CHAOS-237); andere liefert er nicht. Neue Spiele tragen sich hier ein,
+ * bevor sie Requisiten laden (`stage.prop` im Baukasten).
  */
 export const MINIGAME_PROP_SETS: Readonly<Record<string, readonly PropSetId[]>> = {
-  'MG-001': ['fangen', 'kulisse-garten'],
-  'MG-011': ['ausweichen', 'kulisse-garten'],
-  'MG-023': ['rempeln'],
-  'MG-033': ['timing', 'kulisse-kueche'],
-  'MG-045': ['reflex', 'kulisse-kueche'],
-  'MG-101': ['zocken', 'kulisse-garten'],
-  'MG-111': ['bluff', 'kulisse-garten'],
-  'MG-121': ['revier', 'kulisse-garten'],
+  'nussregen-netz': ['fangen', 'kulisse-garten'], // MG-001
+  'rasensprenger-rodeo': ['ausweichen', 'kulisse-garten'], // MG-011
+  'eiswuerfel-sumo': ['rempeln'], // MG-023
+  'toaster-timing': ['timing', 'kulisse-kueche'], // MG-033
+  'schnapp-den-kaese': ['reflex', 'kulisse-kueche'], // MG-045
+  'bienenstock-honig': ['zocken', 'kulisse-garten'], // MG-101
+  'drei-tueren': ['bluff', 'kulisse-garten'], // MG-111
+  matschmaler: ['revier', 'kulisse-garten'], // MG-121
 };
 
 /**

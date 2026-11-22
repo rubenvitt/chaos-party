@@ -565,6 +565,11 @@ export const BodySchema = z.strictObject({
   finish: z.enum(MATERIAL_FINISHES).optional(),
   /** Beide Seiten zeichnen (`backFaceCulling = false`). */
   twoSided: z.boolean().optional(),
+  /**
+   * Gehört zum Requisit `minigame.props[].id` (CHAOS-237): Grundkörper-Rückfall. Swift zeichnet
+   * den Körper nur, solange es `requisiten/<prop>.usdz` dieses Requisits nicht hat.
+   */
+  prop: z.string().optional(),
 });
 
 /**
@@ -597,6 +602,30 @@ export const MinigameFigureSchema = z.strictObject({
   anim: z.string(),
   /** Zählt bei jedem `play` hoch: gleiche Animation zweimal heißt zweimal abspielen. */
   animSeq: z.number().int().min(0),
+});
+
+/**
+ * Requisit aus dem Katalog (CHAOS-237, `stage.prop` im Baukasten): Swift setzt
+ * `requisiten/<prop>.usdz` an diese Stelle (Vertrag wie die Figuren: Boden bei y = 0, vorn +Z in
+ * Babylon) und blendet die Körper mit `prop` = `id` aus. Ohne USDZ zeichnet es diese Körper.
+ */
+export const MinigamePropSchema = z.strictObject({
+  /** `<prop>#<uniqueId>`, stabil solange das Requisit lebt. */
+  id: z.string(),
+  /** Requisit-ID aus `PROP_IDS` (`@chaos-party/assets/props`). */
+  prop: z.string(),
+  /** Welt-Lage der Wurzel (Boden), Rotation (x, y, z, w), Skalierung. */
+  pos: vec3,
+  rot: z.tuple([z.number(), z.number(), z.number(), z.number()]),
+  scale: vec3,
+  visible: z.boolean(),
+  /** Farbe des Materials `akzent` (Slot-Farbe), wenn das Spiel sie gesetzt hat. */
+  accent: hexColor.optional(),
+  /** Farbe des Materials `zustand` (Spielzustand), wenn gesetzt. */
+  state: hexColor.optional(),
+  /** Darstellungs-Rolle und Schlüssel (`markVisual`), wie bei den Körpern. */
+  role: z.string().optional(),
+  key: z.string().optional(),
 });
 
 export const MinigameCameraSchema = z.strictObject({
@@ -775,6 +804,8 @@ export const MinigameStateSchema = z.strictObject({
   camera: MinigameCameraSchema.nullable(),
   backdrop: MinigameBackdropSchema.nullable(),
   figures: z.array(MinigameFigureSchema),
+  /** Requisiten aus dem Katalog (CHAOS-237); leer bei Spielen ohne `stage.prop`. */
+  props: z.array(MinigamePropSchema),
   /** Nur im Spiel. */
   scoreboard: MinigameScoreboardSchema.nullable(),
   /** Nur im Ergebnis. */
@@ -1001,6 +1032,7 @@ export type SoundCue = z.infer<typeof SoundCueSchema>;
 export type BoardState = z.infer<typeof BoardStateSchema>;
 export type Light = z.infer<typeof LightSchema>;
 export type Body = z.infer<typeof BodySchema>;
+export type MinigameProp = z.infer<typeof MinigamePropSchema>;
 export type MinigameState = z.infer<typeof MinigameStateSchema>;
 export type MaterialFinish = (typeof MATERIAL_FINISHES)[number];
 export type MinigameGeometry = z.infer<typeof MinigameGeometrySchema>;

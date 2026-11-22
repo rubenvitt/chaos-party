@@ -34,6 +34,7 @@ import type {
 import {
   createMinigameRunner,
   PrepareAborted,
+  propOf,
   visualOf,
   type CharacterFactory,
   type HavokInstance,
@@ -61,6 +62,7 @@ import type {
   MinigameCamera,
   MinigameEffect,
   MinigameFigure,
+  MinigameProp,
   MinigameGeometry,
 } from './contract.ts';
 import {
@@ -208,6 +210,8 @@ export interface HeadlessStage {
   bodies(): Body[];
   /** Figuren je Slot (Wurzelknoten = Füße), ohne Kapsel-Körper. */
   figures(): MinigameFigure[];
+  /** Requisiten aus dem Katalog (`stage.prop`, CHAOS-237): Wurzel, Farben, Sichtbarkeit. */
+  props(): MinigameProp[];
   camera(): MinigameCamera | null;
   /** Spielfläche aus `look.backdrop`, sonst `null`. */
   readonly backdrop: MinigameBackdrop | null;
@@ -224,6 +228,11 @@ export interface HeadlessStage {
   /** Figuren jubeln (Platz 1, mit Konfetti) bzw. schmollen; einmal je Bühne (wie im Browser-Host). */
   celebrate(placements: readonly MinigamePlacement[]): void;
   dispose(): void;
+}
+
+/** Kennung eines Requisits in `minigame.props` und `Body.prop` (CHAOS-237). */
+export function propInstanceId(prop: string, uniqueId: number): string {
+  return `${prop}#${String(uniqueId)}`;
 }
 
 /** Höchstens so viele Effekte hält die Bühne vor. */
@@ -393,6 +402,18 @@ export function createHeadlessStage(options: HeadlessStageOptions): HeadlessStag
     return tag;
   };
 
+  /** Requisit je Mesh (`markProp`, CHAOS-237): ID der Requisit-Wurzel, `null` = keins. */
+  const propIds = new Map<number, string | null>();
+  const propIdOf = (mesh: AbstractMesh): string | null => {
+    let id = propIds.get(mesh.uniqueId);
+    if (id === undefined) {
+      const found = propOf(mesh);
+      id = found ? propInstanceId(found.tag.id, found.node.uniqueId) : null;
+      propIds.set(mesh.uniqueId, id);
+    }
+    return id;
+  };
+
   // --- Geometrie-Katalog (CHAOS-144) ----------------------------------------------------------
   /** Mesh → Geometrie-ID (`null`: ohne Dreiecke). */
   const meshGeometry = new Map<number, string | null>();
@@ -533,6 +554,8 @@ export function createHeadlessStage(options: HeadlessStageOptions): HeadlessStag
             entry.body.role = tag.role;
             if (tag.key !== undefined) entry.body.key = tag.key;
           }
+          const prop = propIdOf(mesh);
+          if (prop) entry.body.prop = prop;
           placed.set(mesh.uniqueId, entry);
         }
         // Geometrie: im Aufbau bestimmt; Meshes aus dem Spiel (neue Socken) liest `takeGeometry`
@@ -571,6 +594,36 @@ export function createHeadlessStage(options: HeadlessStageOptions): HeadlessStag
             entry.root.isEnabled() && body.isEnabled() && body.isVisible && body.visibility > 0,
           anim: entry.anim,
           animSeq: entry.seq,
+        });
+      }
+      return out;
+    },
+    props() {
+      if (!flags.ready || flags.disposed) return [];
+      const out: MinigameProp[] = [];
+      for (const node of scene.transformNodes) {
+        const found = propOf(node);
+        // Nur die Wurzel selbst (Kinder erben die Kennung).
+        if (found?.node !== node || node.isDisposed()) continue;
+        node.computeWorldMatrix().decompose(scratchScale, scratchRotation, scratchPosition);
+        const visual = visualOf(node);
+        const { akzent, zustand } = found.tag.tints;
+        out.push({
+          id: propInstanceId(found.tag.id, node.uniqueId),
+          prop: found.tag.id,
+          pos: [r(scratchPosition.x), r(scratchPosition.y), r(scratchPosition.z)],
+          rot: [
+            r(scratchRotation.x),
+            r(scratchRotation.y),
+            r(scratchRotation.z),
+            r(scratchRotation.w),
+          ],
+          scale: [r(scratchScale.x), r(scratchScale.y), r(scratchScale.z)],
+          visible: node.isEnabled(),
+          ...(akzent ? { accent: akzent } : {}),
+          ...(zustand ? { state: zustand } : {}),
+          ...(visual ? { role: visual.role } : {}),
+          ...(visual?.key !== undefined ? { key: visual.key } : {}),
         });
       }
       return out;

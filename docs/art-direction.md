@@ -272,11 +272,14 @@ Neue Grundformen gehören in `requisitkit.py`, nicht in ein einzelnes Requisit (
 sind weniger als eine Figur (bis 704 KiB) und im LAN unter 0,1 s. Der Ladetest
 (`packages/assets/src/propsLoad.test.ts`, NullEngine ohne Netz) misst je Pilot-Spiel 1–6 ms für
 das Parsen aller Requisiten und bricht über 1,5 s ab. Die Zuordnung Spiel → Sets steht in
-`MINIGAME_PROP_SETS`; neue Spiele tragen sich dort ein, bevor sie Requisiten laden.
+`MINIGAME_PROP_SETS` (Schlüssel = Minispiel-ID); neue Spiele tragen sich dort ein, bevor sie
+Requisiten laden. Der Browser-Host lädt genau diese Sets vor `prepare`, parallel zu den Figuren
+(CHAOS-237, `apps/host/src/minigame/props.ts`); im Spiel baut sie `stage.prop` (ADR-021
+Nachtrag 1), die Kulisse des Orts `buildArena(…, { kulisse: true })`.
 
 **Grenzen:** Die GLBs sind nicht byte-gleich reproduzierbar (Gleitkomma-Rauschen in den
 Normalen); `check:assets` prüft Maße, Budget und Materialien statt eines Byte-Vergleichs. Der
-native Apple-Host bekommt die Requisiten noch nicht als USDZ (Folgeaufgabe).
+native Apple-Host zeigt die Requisiten seit CHAOS-237 als USDZ (CHAOS-221, ADR-019 Nachtrag 8).
 
 ## Pipeline (hybrid)
 

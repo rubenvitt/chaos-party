@@ -18,6 +18,7 @@ import {
   celebrateFigures,
   createCamera,
   type StageMaterialOptions,
+  type StageProp,
 } from '@chaos-party/minigame-kit/babylon';
 import type {
   MinigameInput,
@@ -34,9 +35,18 @@ const ARENA = arenaLayout({ form: 'eckig', halfX: 5.2, halfZ: 3.2 });
 const DOOR_X = [-3.3, 0, 3.3] as const;
 const DOOR_Z = 1.8;
 const LEAF = ['#c2410c', '#7048e8', '#2b8a3e'] as const;
-const SIGN = { plain: '#f8f0dc', final: '#5f3dc4' } as const;
+const SIGN = { final: '#5f3dc4' } as const;
 const COINS = 9;
 const HOP_S = 0.6;
+
+/** Requisiten in Spielgröße: Tür ≈ 1,7 × 3 m (Modell 1,3 × 2,29 m), Schild ≈ 1,7 m. */
+const SCALE = { tuer: 1.3, schild: 3.6 } as const;
+/** Türblatt im Modell (Meter): halbe Breite, Unter- und Oberkante. */
+const LEAF_SIZE = { half: 0.51, bottom: 0.08, top: 2.16 } as const;
+/** Mitte des Münzrasters auf dem Schild (Welt). */
+const SIGN_Y = 3.95;
+/** Offene Tür: dunkle Öffnung statt Türblatt. */
+const DOORWAY = '#2b2118';
 
 type Part = readonly [
   shape: 'box' | 'cyl' | 'ball',
@@ -46,40 +56,48 @@ type Part = readonly [
   options?: StageMaterialOptions & { readonly rot?: readonly number[] },
 ];
 const wood = '#8a5a3c';
-const PROPS = {
+/**
+ * Grundkörper je Teil. `tuer` und `tuerschild` nur als Rückfall ohne Modell, in Modell-Maßen
+ * (Boden y = 0, vorn = +Z); `zustand` = Türblatt (Laufzeit-Farbe). Der Rest ist immer Grundkörper.
+ */
+const PARTS = {
   tuer: [
-    ['box', [0.25, 2.7, 0.3], wood, [-1, 1.35, 0]],
-    ['box', [0.25, 2.7, 0.3], wood, [1, 1.35, 0]],
-    ['box', [2.25, 0.3, 0.3], wood, [0, 2.8, 0]],
-    ['box', [1.75, 2.55, 0.05], '#2b2118', [0, 1.28, 0.1]],
-    ['box', [0.12, 0.6, 0.12], wood, [0, 3.05, 0.05]],
+    ['box', [0.14, 2.29, 0.5], wood, [-0.58, 1.145, 0], { finish: 'matt' }],
+    ['box', [0.14, 2.29, 0.5], wood, [0.58, 1.145, 0], { finish: 'matt' }],
+    ['box', [1.3, 0.13, 0.5], wood, [0, 2.225, 0], { finish: 'matt' }],
+    ['box', [1.02, 2.08, 0.08], 'zustand', [0, 1.12, 0]],
+    ['ball', [0.1], '#ffd43b', [0.34, 1.1, 0.08], { finish: 'metall' }],
   ],
+  /** Aufschwingendes Türblatt (Welt-Maße, Angel rechts): nur sichtbar, solange die Tür aufgeht. */
   tuerblatt: [
-    ['box', [1.75, 2.55, 0.12], 'slot', [0.875, 1.28, 0], { finish: 'lack' }],
-    ['ball', [0.16], '#ffd43b', [1.5, 1.25, -0.1], { finish: 'metall' }],
+    ['box', [1.33, 2.7, 0.08], 'zustand', [-0.665, 1.45, 0], { finish: 'lack' }],
+    ['ball', [0.14], '#ffd43b', [-1.2, 1.43, -0.08], { finish: 'metall' }],
   ],
-  tuerschild: [['box', [2.1, 1.2, 0.1], SIGN.plain, [0, 0, 0], { finish: 'matt' }]],
-  muenze: [['cyl', [0.3, 0.3, 0.06], '#f2c94c', [0, 0, 0], { emissive: 0.25, rot: [1.571] }]],
+  /** Dunkle Öffnung vor dem Türblatt des Modells (Welt-Maße), solange die Tür offen ist. */
+  oeffnung: [['box', [1.33, 2.7, 0.02], DOORWAY, [0, 1.35, 0], { finish: 'matt' }]],
+  tuerschild: [['box', [0.46, 0.47, 0.08], '#c9a27a', [0, 0.235, 0], { finish: 'matt' }]],
+  /** Rahmen hinter dem Schild: Holz, in der letzten Runde lila. */
+  rahmen: [['box', [1.86, 1.9, 0.06], 'zustand', [0, 0, 0], { finish: 'matt' }]],
+  muenze: [['cyl', [0.28, 0.28, 0.06], '#f2c94c', [0, 0, 0], { emissive: 0.25, rot: [1.571] }]],
   haken: [
     ['box', [0.1, 0.22, 0.06], '#2f9e44', [-0.08, -0.05, 0], { emissive: 0.3, rot: [0, 0, 0.7] }],
     ['box', [0.1, 0.42, 0.06], '#2f9e44', [0.08, 0.04, 0], { emissive: 0.3, rot: [0, 0, -0.5] }],
   ],
 } as const satisfies Record<string, readonly Part[]>;
 
-/** Requisit aus `PROPS` als Rollen-Knoten (Rolle = Name) an (x, y, z). */
-function prop(
+/** Grundkörper aus `PARTS` unter `parent`; liefert die in der Farbe `zustand` (`color`). */
+function build(
   stage: MinigameStage,
-  role: keyof typeof PROPS,
+  parent: TransformNode,
+  kind: keyof typeof PARTS,
   key: number,
-  at: number[],
-  slot = '',
-) {
-  const node = stage.node(role, role, key);
-  node.position.set(at[0] ?? 0, at[1] ?? 0, at[2] ?? 0);
+  color = '',
+): Mesh[] {
+  const tinted: Mesh[] = [];
   for (const [index, [shape, size, hex, pos, options]] of (
-    PROPS[role] as readonly Part[]
+    PARTS[kind] as readonly Part[]
   ).entries()) {
-    const name = stage.name(role, key, index);
+    const name = stage.name(kind, key, index);
     const [a = 1, b = a, c = a] = size;
     const mesh =
       shape === 'box'
@@ -87,12 +105,26 @@ function prop(
         : shape === 'cyl'
           ? CreateCylinder(name, { diameter: a, height: c }, stage.scene)
           : CreateSphere(name, { diameter: a }, stage.scene);
-    const part = stage.add(mesh, hex === 'slot' ? slot : hex, { ...options, parent: node });
+    const part = stage.add(mesh, hex === 'zustand' ? color : hex, { ...options, parent });
     part.position.set(pos[0] ?? 0, pos[1] ?? 0, pos[2] ?? 0);
     const [rx = 0, ry = 0, rz = 0] = options?.rot ?? [];
     part.rotation.set(rx, ry, rz);
+    if (hex === 'zustand') tinted.push(part);
   }
-  return node;
+  return tinted;
+}
+
+/** Grundkörper-Teil als Knoten an (x, y, z); mit `role` als Rollen-Knoten. */
+function part(
+  stage: MinigameStage,
+  kind: keyof typeof PARTS,
+  key: number,
+  at: number[],
+  options: { role?: string; color?: string } = {},
+) {
+  const node = stage.node(kind, options.role, key);
+  node.position.set(at[0] ?? 0, at[1] ?? 0, at[2] ?? 0);
+  return { node, tinted: build(stage, node, kind, key, options.color) };
 }
 
 interface Seat {
@@ -110,8 +142,10 @@ class DreiTueren implements Sdk.Minigame {
   private result: MinigameResult | null = null;
   private running = false;
   private revealedAt = -10;
+  private readonly doors: StageProp[] = [];
   private readonly leaves: TransformNode[] = [];
-  private readonly signs: Mesh[] = [];
+  private readonly doorways: TransformNode[] = [];
+  private readonly frames: Mesh[] = [];
   private readonly coins: TransformNode[][] = [];
   private readonly seats = new Map<Slot, Seat>();
 
@@ -126,25 +160,59 @@ class DreiTueren implements Sdk.Minigame {
     });
     await buildArena(stage, ARENA, { ort: 'garten' });
     for (const [door, x] of DOOR_X.entries()) {
-      prop(stage, 'tuer', door, [x, 0, DOOR_Z]);
-      this.leaves.push(prop(stage, 'tuerblatt', door, [x - 0.875, 0, DOOR_Z - 0.1], LEAF[door]));
-      const sign = prop(stage, 'tuerschild', door, [x, 3.85, DOOR_Z]);
-      this.signs.push(sign.getChildMeshes()[0] as Mesh);
+      const color = LEAF[door] ?? DOORWAY;
+      const frame = stage.prop('tuer', {
+        role: 'tuer',
+        key: door,
+        zustand: color,
+        fallback: (root) => ({ zustand: build(stage, root, 'tuer', door, color) }),
+      });
+      frame.root.position.set(x, 0, DOOR_Z);
+      // Vorderseite (+Z im Modell) zur Kamera; der Knauf sitzt dann links, die Angel rechts.
+      frame.root.rotation.y = Math.PI;
+      frame.root.scaling.setAll(SCALE.tuer);
+      this.doors.push(frame);
+      const bottom = LEAF_SIZE.bottom * SCALE.tuer;
+      const hinge = [x + LEAF_SIZE.half * SCALE.tuer, bottom - 0.1, DOOR_Z - 0.1];
+      this.leaves.push(part(stage, 'tuerblatt', door, hinge, { role: 'tuerblatt', color }).node);
+      const opening = [x, bottom - 0.1, DOOR_Z - 0.08];
+      this.doorways.push(part(stage, 'oeffnung', door, opening, { role: 'oeffnung' }).node);
+      // Schild über der Tür (Requisit) vor einem Rahmen, der die letzte Runde zeigt.
+      const sign = stage.prop('tuerschild', {
+        role: 'tuerschild',
+        key: door,
+        fallback: (root) => void build(stage, root, 'tuerschild', door),
+      });
+      sign.root.position.set(x, SIGN_Y - (0.47 * SCALE.schild) / 2, DOOR_Z);
+      sign.root.rotation.y = Math.PI;
+      sign.root.scaling.setAll(SCALE.schild);
+      const frameBack = part(stage, 'rahmen', door, [x, SIGN_Y, DOOR_Z + 0.08], { color: wood });
+      this.frames.push(...frameBack.tinted);
       await stage.pace();
       this.coins.push(
-        Array.from({ length: COINS }, (_, n) =>
-          prop(stage, 'muenze', door * 10 + n, [
-            x + ((n % 3) - 1) * 0.5,
-            4.2 - Math.floor(n / 3) * 0.34,
-            DOOR_Z - 0.1,
-          ]),
+        Array.from(
+          { length: COINS },
+          (_, n) =>
+            part(
+              stage,
+              'muenze',
+              door * 10 + n,
+              [
+                x + ((n % 3) - 1) * 0.34,
+                SIGN_Y + 0.34 - Math.floor(n / 3) * 0.34,
+                DOOR_Z - 0.04 * SCALE.schild - 0.06,
+              ],
+              { role: 'muenze' },
+            ).node,
         ),
       );
     }
     for (const [index, player] of ctx.players.entries()) {
       const home = { x: -3.6 + index * 2.4, z: -1.6 };
       const figure = await SlotFigure.create(stage, player, { badgeHeight: 2.3 });
-      const check = prop(stage, 'haken', player.slot, [home.x + 0.5, 2.6, home.z]);
+      const check = part(stage, 'haken', player.slot, [home.x + 0.5, 2.6, home.z], {
+        role: 'haken',
+      }).node;
       this.seats.set(player.slot, { figure, check, home, from: home, to: home });
     }
     this.sync(0);
@@ -268,10 +336,15 @@ class DreiTueren implements Sdk.Minigame {
     const factor = logic.final ? DOOR_RULES.finalFactor : 1;
     for (const [door, leaf] of this.leaves.entries()) {
       const open = !logic.open && crowd[door] === 1 ? Math.min(1, since / 0.3) : 0;
+      // Das Türblatt des Modells kann nicht aufgehen: Davor liegt dann eine dunkle Öffnung,
+      // und ein eigenes Blatt in Türfarbe schwingt zur Kamera (zum Öffnenden) auf.
+      leaf.setEnabled(open > 0);
       leaf.rotation.y = -open * 1.6;
-      const sign = this.signs[door];
-      if (sign)
-        sign.material = stage.material(logic.final ? SIGN.final : SIGN.plain, { finish: 'matt' });
+      this.doorways[door]?.setEnabled(open > 0);
+      this.doors[door]?.tint('zustand', open > 0 ? DOORWAY : (LEAF[door] ?? DOORWAY));
+      const frame = this.frames[door];
+      if (frame)
+        frame.material = stage.material(logic.final ? SIGN.final : wood, { finish: 'matt' });
       const coins = (logic.values[door] ?? 0) / factor;
       for (const [n, coin] of (this.coins[door] ?? []).entries()) coin.setEnabled(n < coins);
     }

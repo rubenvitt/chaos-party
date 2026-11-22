@@ -329,6 +329,8 @@ struct RenderState: Decodable, Equatable {
         var camera: Camera?
         var backdrop: Backdrop?
         var figures: [Figure]?
+        /// CHAOS-237: catalog props, shown as `requisiten/<prop>.usdz`.
+        var props: [Prop]?
         var scoreboard: Scoreboard?
         var results: Results?
         var effects: [Effect]?
@@ -361,6 +363,23 @@ struct RenderState: Decodable, Equatable {
         /// matt, lack (default), glanz, metall, stoff
         var finish: String?
         var twoSided: Bool?
+        /// CHAOS-237: primitive fallback of the prop `minigame.props[].id`; hidden while that prop shows its USDZ.
+        var prop: String?
+    }
+
+    /// CHAOS-237: a catalog prop (`stage.prop`): root in the world (floor), rotation (x, y, z, w), scale; colours of the
+    /// runtime materials `akzent` (slot colour) and `zustand` (game state) once the game set them.
+    struct Prop: Decodable, Equatable {
+        var id: String
+        var prop: String
+        var pos: [Float]
+        var rot: [Float]?
+        var scale: [Float]?
+        var visible: Bool?
+        var accent: String?
+        var state: String?
+        var role: String?
+        var key: String?
     }
 
     struct Info: Decodable, Equatable {

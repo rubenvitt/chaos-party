@@ -3,6 +3,7 @@
  * `bodies()` zeigt erst die fertige Szene, und eine während des Aufbaus entsorgte Bühne baut
  * nicht weiter und meldet keinen Fehler.
  */
+import { minigameProps } from '../../../packages/assets/src/props.ts';
 import { getMinigameModule, ROTATION } from '@chaos-party/minigames';
 import { loadHavokForNode } from '@chaos-party/minigame-sdk/testing';
 import type { MinigamePlayer, PrepareThrottle } from '@chaos-party/minigame-sdk/babylon';
@@ -159,6 +160,15 @@ describe('Headless-Bühne: Darstellung für Swift (CHAOS-144)', () => {
     // Ein zweiter Abruf liefert nichts doppelt.
     expect(stage.takeGeometry(Number.POSITIVE_INFINITY)).toEqual([]);
 
+    // Requisiten (CHAOS-237): nur aus den Sets des Spiels; Grundkörper verweisen auf ihr Requisit.
+    const props = stage.props();
+    const allowed = new Set<string>(minigameProps(id));
+    for (const prop of props) expect(allowed.has(prop.prop), `${id}: ${prop.prop}`).toBe(true);
+    const propIds = new Set(props.map((prop) => prop.id));
+    expect(propIds.size).toBe(props.length);
+    for (const body of bodies) if (body.prop) expect(propIds.has(body.prop), body.id).toBe(true);
+    if (allowed.size > 0) expect(props.length, id).toBeGreaterThan(0);
+
     stage.celebrate([
       { slot: 1, place: 1, score: 3 },
       { slot: 2, place: 2, score: 1 },
@@ -170,6 +180,47 @@ describe('Headless-Bühne: Darstellung für Swift (CHAOS-144)', () => {
     expect(stage.effects(0).some((effect) => effect.kind === 'confetti')).toBe(true);
     stage.dispose();
     expect(logs).toEqual([]);
+  });
+});
+
+describe('Headless-Bühne: Requisiten für Swift (CHAOS-237)', () => {
+  it('Toaster-Timing: je Slot Toaster mit Akzent und Toast mit Zustand', async () => {
+    const module = getMinigameModule('toaster-timing');
+    if (!module) throw new Error('toaster-timing fehlt');
+    const stage = createHeadlessStage({
+      module,
+      players: PLAYERS,
+      seed: 7,
+      timeLimitMs: 20_000,
+      havok: null,
+      onResult: () => undefined,
+      log: () => undefined,
+    });
+    for (let index = 0; index < 50 && !stage.ready; index++) {
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+    stage.start();
+    for (let index = 0; index < 60; index++) stage.advance(1 / 60);
+    const props = stage.props();
+    const toasters = props.filter((prop) => prop.prop === 'toaster');
+    expect(toasters.map((prop) => [prop.role, prop.key, prop.accent])).toEqual([
+      ['toaster', '1', '#0072B2'],
+      ['toaster', '2', '#E69F00'],
+    ]);
+    // Wurzel am Boden, Spielgröße, Vorderseite zur Kamera (Drehung um Y um π).
+    expect(toasters[0]?.pos[1]).toBe(0);
+    expect(toasters[0]?.scale.map((v) => Math.round(Math.abs(v) * 100) / 100)).toEqual([
+      1.75, 1.75, 1.75,
+    ]);
+    expect(Math.abs(toasters[0]?.rot[1] ?? 0)).toBeCloseTo(1, 3);
+    const toasts = props.filter((prop) => prop.prop === 'toast');
+    expect(toasts).toHaveLength(2);
+    for (const toast of toasts) expect(toast.state).toMatch(/^#[0-9a-f]{6}$/i);
+    // Grundkörper des Toasters gehören zu seinem Requisit (Swift blendet sie mit USDZ aus).
+    const own = stage.bodies().filter((body) => body.prop === toasters[0]?.id);
+    expect(own.length).toBeGreaterThan(0);
+    expect(own.every((body) => body.role === 'toaster' && body.key === '1')).toBe(true);
+    stage.dispose();
   });
 });
 

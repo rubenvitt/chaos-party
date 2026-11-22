@@ -116,7 +116,8 @@ Minispiel-Rotation (CHAOS-216, wie der Dialog „Minispiele“ am PC, CHAOS-85):
                  "pos": [0, 0, 0], "rot": [0, 0, 0, 1], "size": [1, 1, 1], "color": "#D7263D",
                  // CHAOS-144, alle optional:
                  "mesh": "g12", "role": "kirsche", "key": "2", "alpha": 0.4, "glow": "#3A0B11",
-                 "finish": "matt" | "glanz" | "metall" | "stoff", "twoSided": true }],
+                 "finish": "matt" | "glanz" | "metall" | "stoff", "twoSided": true,
+                 "prop": "honigtopf#87" }],                           // CHAOS-237: Grundkörper dieses Requisits
     "hud": "48 s · Anna 3 · Ben 1",                                      // Kurzfassung (Debug)
     "ready": true, "round": 3, "repeat": false, "countdown": 7 | null,
     // CHAOS-214, optional: Intro wartet auf „Bereit“ (dann "countdown": null)
@@ -133,6 +134,9 @@ Minispiel-Rotation (CHAOS-216, wie der Dialog „Minispiele“ am PC, CHAOS-85):
     "backdrop": null | { "halfX": 7.2, "halfZ": 7.2, "groundY": -3.3, "surface": "wiese" | "decke" },
     "figures": [{ "slot": 1, "character": "raccoon", "pos": [0, 0, 0], "rot": [0, 0, 0, 1], "scale": [1, 1, 1],
                   "visible": true, "anim": "run", "animSeq": 4 }],
+    // CHAOS-237: Requisiten aus dem Katalog (`stage.prop`); leer bei Spielen ohne
+    "props": [{ "id": "honigtopf#87", "prop": "honigtopf", "pos": [0, 0, 0], "rot": [0, 0, 0, 1], "scale": [1, 1, 1],
+                "visible": true, "accent": "#0072B2", "state": "#d08a2e", "role": "honigtopf", "key": "1" }],
     "scoreboard": null | { "seconds": 48, "banner": "…" | null, "waiting": false,
                            "scores": [{ "slot": 1, "name": "Anna", "character": "Wusel", "color": "#0072B2", "symbol": "●",
                                         "score": 3, "status": null, "connected": true }] },
@@ -178,7 +182,8 @@ Minispiel-Rotation (CHAOS-216, wie der Dialog „Minispiele“ am PC, CHAOS-85):
 ### Minispiel-Darstellung (CHAOS-144)
 
 - **Geometrie statt Grundform:** Die Minispiele bauen ihre Requisiten aus Babylon-Meshes. Der Kern schickt deren echte Geometrie einmal je Minispiel (`src/geometry.ts`): dedupliziert (gleiche Vertexdaten = ein Eintrag), um die Mitte der lokalen Bounding-Box verschoben, als Base64 der rohen Bytes (Float32-Positionen, Int8-Normalen ÷ 127, Uint16- bzw. Uint32-Indizes, little-endian). `geometry` enthält nur, was seit dem letzten `renderState` fertig kodiert ist (höchstens ≈ 256 KB und 2 ms Kodierzeit je Aufruf); jeder Eintrag kommt genau einmal. Ein Körper mit `mesh` wird mit Skalierung `size / extent` je Achse gezeichnet (Achse ohne Ausdehnung: 1); fehlt die Geometrie noch, zeichnet Swift `shape`. Swift spiegelt z an Positionen und Normalen; Babylons Vorderseiten (im Uhrzeigersinn) werden dadurch zu RealityKits Vorderseiten, die Indizes bleiben.
-- **Rollen:** `role`/`key` aus `markVisual` (CHAOS-149), fehlt = Kulisse. Swift kann einzelne Rollen später durch eigene Modelle oder Effekte ersetzen; heute zeichnet es jede Rolle mit ihrer Geometrie.
+- **Rollen:** `role`/`key` aus `markVisual` (CHAOS-149), fehlt = Kulisse. Swift kann einzelne Rollen später durch eigene Modelle oder Effekte ersetzen; heute zeichnet es jede Rolle mit ihrer Geometrie – außer den Requisiten aus dem Katalog (nächster Punkt).
+- **Requisiten (CHAOS-237):** Baut ein Minispiel ein Requisit mit `stage.prop(id, …)` (Baukasten), steht seine Wurzel in `props`: `prop` ist die Requisit-ID aus `PROP_IDS` (`packages/assets/src/props.ts`), `pos`/`rot`/`scale` die Weltlage der Wurzel (Boden), `visible` = Wurzel aktiviert, `accent`/`state` die zuletzt gesetzten Farben der Laufzeit-Materialien `akzent` (Slot-Farbe) und `zustand` (Spielzustand), `role`/`key` wie bei den Körpern. Headless baut der Kern die Grundkörper des Spiels (Rückfall); sie stehen in `bodies` mit `prop` = `props[].id`. Swift setzt `requisiten/<prop>.usdz` (`app/PropLibrary.swift`, alle beim Start geladen) an die Wurzel – Lage und Drehung wie bei den Figuren (`z` spiegeln, Quaternion `(-x, -y, z, w)`, dann π um Y, weil das GLB in Babylon nach +Z und das USDZ nach +z blickt), Skalierung `abs(scale)` – färbt `<id>_akzent`/`<id>_zustand` und blendet die Körper mit diesem `prop` aus. Fehlt das USDZ (`OHNE_ASSETS=1`, CI), bleibt es bei den Grundkörpern.
 - **Material:** `color` und `alpha` (Material × Sichtbarkeit) je Bild, `glow` = Eigenleuchten, `finish` aus `look.material` (Rauheit wie der Look des Browser-Hosts), `twoSided` = `backFaceCulling = false`.
 - **Look:** Die Bühne gibt dem Minispiel wie der Browser-Host einen `look` (gleicher Code-Pfad, kein eigenes Licht, kein Boden bis zum Horizont). `backdrop` ist die Spielfläche aus `look.backdrop`; die Kulisse drumherum (Wiese, Picknickdecke, Bäume, Steine, Blumen, Grashalme, Laternen, Dunst und Himmelskuppel) baut Swift, Licht und Dunst nach `light` (CHAOS-193).
 - **Figuren:** Wurzelknoten (Füße) mit Lage, Rotation und Skalierung; `anim` ist die zuletzt gespielte Animation, `animSeq` zählt jedes `play` (Einmal-Clips wie `hit` erneut abspielen). Im Ergebnis jubelt Platz 1, die anderen schmollen (wie `celebrate` im Browser-Host).
