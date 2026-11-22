@@ -92,7 +92,7 @@ final class MinigameScene {
     /// von hinten, Vorderseiten wie die Kuckucksuhr lagen im Schatten).
     static let sunDirection = SIMD3<Float>(0.5456, -0.6825, -0.4863)
 
-    init(models: [String: FigureModel], props: PropLibrary = PropLibrary(), grass: [GrassTemplate], sky: EnvironmentResource?,
+    init(models: [String: FigureModel], props: PropLibrary, grass: [GrassTemplate], sky: EnvironmentResource?,
          skyExponent: Float, clearColor: CGColor) {
         self.models = models
         propLibrary = props

@@ -64,7 +64,7 @@ final class Stage {
         defer { loaded = true }
         guard let folder = BoardScene.assetFolder(override: override) else {
             hostLog("FEHLER Brett-Assets fehlen (payload/szene) – Grundkörper statt echter Grafik")
-            loadMinigame(models: [:])
+            loadMinigame(models: [:], props: PropLibrary())
             return
         }
         assetRoot = folder
@@ -155,7 +155,7 @@ final class Stage {
     }
 
     /// Minispiel-Bühne (CHAOS-144) und Podest mit den schon geladenen Figuren, damit der Wechsel Brett → Minispiel nicht ruckelt.
-    private func loadMinigame(models: [String: FigureModel], props: PropLibrary = PropLibrary()) {
+    private func loadMinigame(models: [String: FigureModel], props: PropLibrary) {
         let scene = MinigameScene(models: models, props: props, grass: board?.grass ?? [], sky: board?.sky, skyExponent: board?.skyExponent ?? 0,
                                   clearColor: board?.clearColor ?? CGColor(red: 0.83, green: 0.9, blue: 0.96, alpha: 1))
         scene.root.isEnabled = false
