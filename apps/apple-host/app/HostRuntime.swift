@@ -145,6 +145,10 @@ final class HostRuntime: ObservableObject {
             env.setValue(rapidFire, forProperty: "rapidFire")
             hostLog("Startparameter: Schnellfeuer \(rapidFire)")
         }
+        if let minigames = launchMinigames(CommandLine.arguments) {
+            env.setValue(minigames, forProperty: "debugMinigames")
+            hostLog("Startparameter: nur Minispiele \(minigames.joined(separator: ", "))")
+        }
         let ref = context.jsGlobalContextRef
         let typed = JSObjectMakeTypedArray(ref, kJSTypedArrayTypeUint8Array, wasm.count, nil)
         wasm.copyBytes(to: JSObjectGetTypedArrayBytesPtr(ref, typed, nil).assumingMemoryBound(to: UInt8.self), count: wasm.count)

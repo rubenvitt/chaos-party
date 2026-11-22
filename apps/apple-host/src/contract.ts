@@ -63,6 +63,13 @@ export interface HostEnv {
    */
   debugStageDelayMs?: number;
   /**
+   * Nur Tests (CHAOS-230): Rotation der Partien durch genau diese Minispiele ersetzen, etwa um
+   * die Team-Testspiele (`pump-duell`, `pump-solo`, `pump-riese`) in einer Bot-Partie zu spielen.
+   * Unbekannte Kennungen loggt der Kern und lässt sie weg. Fehlt der Wert, gilt die Rotation des
+   * Katalogs.
+   */
+  debugMinigames?: readonly string[];
+  /**
    * Kleiner Schlüssel-Wert-Speicher, der App-Neustarts überdauert (CHAOS-216; Swift:
    * `UserDefaults`). Der Kern merkt sich darin Sperrliste und Favoriten der Minispiel-Rotation
    * (Schlüssel `MINIGAME_PREFS_KEY` aus `apps/host/src/lobby/minigamePrefs.ts`, JSON) und schickt
@@ -646,6 +653,29 @@ export const MinigameReadinessSchema = z.strictObject({
   players: z.array(MinigameReadyPlayerSchema),
 });
 
+/** Mitglied einer Gruppe in der Team-Ansage (CHAOS-230). */
+export const MinigameTeamMemberSchema = z.strictObject(playerLabel);
+
+/** Eine Gruppe der Team-Ansage: Name und Symbol, nie nur Farbe (CHAOS-89/230). */
+export const MinigameTeamGroupSchema = z.strictObject({
+  /** „Team Sonne“, „Allein“, „Die anderen“, „Alle zusammen“ oder der Spielername bei 1 gegen 1. */
+  label: z.string(),
+  /** ☀, ☾ oder ♥ */
+  symbol: z.string(),
+  color: hexColor,
+  members: z.array(MinigameTeamMemberSchema),
+});
+
+/** `teamLineup` aus `apps/host/src/minigame/teams.ts` (CHAOS-89/230). */
+export const MinigameTeamsSchema = z.strictObject({
+  layout: z.enum(['2v2', '1v3', '1v2', '1v1', 'koop']),
+  /** „2 gegen 2“, „Einer gegen alle“, „Einer gegen zwei“, „Eins gegen eins“, „Alle zusammen“ */
+  headline: z.string(),
+  /** Zusatz, etwa der Vorteil der Einzelperson zu dritt; sonst `null`. */
+  note: z.string().nullable(),
+  groups: z.array(MinigameTeamGroupSchema),
+});
+
 /** `resultsDisplay` aus `apps/host/src/minigame/results.ts`. */
 export const MinigameResultsSchema = z.strictObject({
   aborted: z.boolean(),
@@ -678,6 +708,11 @@ export const MinigameStateSchema = z.strictObject({
    * Countdowns zeigt Swift diese Chips. Fehlt oder `null` = feste Anleitungszeit.
    */
   readiness: MinigameReadinessSchema.nullable().optional(),
+  /**
+   * CHAOS-230 (optional): Aufstellung bei Teams bzw. Koop (Anleitung, Spiel und Ergebnis). Fehlt
+   * oder `null` = jeder gegen jeden. Die Team-Überschrift im Ergebnis steht in `results.headline`.
+   */
+  teams: MinigameTeamsSchema.nullable().optional(),
   camera: MinigameCameraSchema.nullable(),
   backdrop: MinigameBackdropSchema.nullable(),
   figures: z.array(MinigameFigureSchema),
@@ -876,6 +911,7 @@ export type MinigameInfoView = z.infer<typeof MinigameInfoSchema>;
 export type MinigameScoreboard = z.infer<typeof MinigameScoreboardSchema>;
 export type MinigameResults = z.infer<typeof MinigameResultsSchema>;
 export type MinigameReadiness = z.infer<typeof MinigameReadinessSchema>;
+export type MinigameTeamsView = z.infer<typeof MinigameTeamsSchema>;
 export type FinaleCard = z.infer<typeof FinaleCardSchema>;
 export type FinaleRank = z.infer<typeof FinaleRankSchema>;
 export type FinaleAward = z.infer<typeof FinaleAwardSchema>;

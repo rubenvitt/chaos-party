@@ -448,4 +448,33 @@ describe('Bündel', () => {
     expect(phases.slice(0, 2)).toEqual(['lobby', 'board']);
     expect(result.ok).toBe(true);
   }, 60_000);
+
+  it('spielt ein Team-Minispiel zu viert: Ansage im renderState, Ergebnis angenommen (CHAOS-230)', async () => {
+    const states = new Map<string, RenderState>();
+    const result = await runBotMatch({
+      code,
+      wasm,
+      full: false,
+      seed: 3,
+      players: 4,
+      minigames: ['pump-duell'],
+      onPhase: (key, state) => states.set(key, state),
+    });
+    expect(result.exceptions).toEqual([]);
+    expect(result.problems).toEqual([]);
+    expect(result.serverErrors).toEqual([]);
+    expect(result.contractErrors).toEqual([]);
+    expect(result.minigamesBuilt).toEqual(['pump-duell']);
+    expect(result.resultsAccepted).toBe(1);
+    expect(result.ok).toBe(true);
+    const teams = states.get('minigame-intro')?.minigame?.teams;
+    expect(teams?.headline).toBe('2 gegen 2');
+    expect(teams?.groups.map((group) => [group.label, group.symbol, group.members.length])).toEqual(
+      [
+        ['Team Sonne', '☀', 2],
+        ['Team Mond', '☾', 2],
+      ],
+    );
+    expect(states.get('minigame-play')?.minigame?.teams?.layout).toBe('2v2');
+  }, 60_000);
 });
