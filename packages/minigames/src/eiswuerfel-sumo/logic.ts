@@ -3,6 +3,8 @@
  * Gutschrift und Rückkehr nach dem Sturz. Die Physik (Havok) steckt in `index.ts`.
  */
 import {
+  arenaLayout,
+  offEdge,
   EventTally,
   MatchClock,
   Scoreboard,
@@ -25,20 +27,22 @@ export const LIMO = { y: -0.6, outY: -1.1, respawnS: 1.5, creditS: 3, finaleS: 8
 /** Punkte je Sekunde auf dem Eis, je Rauswurf und (abgezogen) je Sturz. */
 export const POINTS = { perS: 10, ko: 40, fall: 25 };
 
-/** Figuren auf dem Eis: wenig Beschleunigung, Schwung trägt weit (glatt). */
+/**
+ * Figuren auf dem Eis (`havokPawn`): wenig Beschleunigung, Schwung trägt weit (glatt). Rempeln
+ * setzt das Tempo; Stoß für das Opfer, Rückstoß des Remplers als Anteil davon (s bzw. m/s).
+ */
 export const PAWN = {
   radius: 0.42,
   height: 1.4,
-  maxSpeed: 4.2,
-  responsiveness: 3,
-  maxAcceleration: 11,
+  steering: { maxSpeed: 4.2, responsiveness: 3, maxAcceleration: 11 },
+  dash: { speed: 5.5, cooldownS: 1, hitS: 0.35, pauseS: 0.3 },
+  push: { speed: 3.8, recoil: 0.7, victimPauseS: 0.25, attackerPauseS: 0.25 * 0.6 },
 };
-/**
- * Rempeln: Antrittstempo, Abklingzeit, Trefferfenster, Lenkpause danach bzw. nach einem Treffer,
- * Stoß für das Opfer und Rückstoß des Remplers als Anteil davon (alles in s bzw. m/s).
- */
-export const BUMP = { dash: 5.5, cooldownS: 1, hitS: 0.35, pauseS: 0.3, hitPauseS: 0.25 };
-export const PUSH = { speed: 3.8, recoil: 0.7 };
+
+/** Der Würfel als eckige Insel (Oberkante y = 0); `offIce`: über die Kante geraten. */
+export const iceIsland = (half: number) =>
+  arenaLayout({ form: 'insel', halfX: half, halfZ: half, height: 0 });
+export const offIce = (half: number, x: number, z: number) => offEdge(iceIsland(half), x, z);
 
 /** Vorbei gegangene Schmelzstufen zur Zeit `t` (0 … `meltSteps`). */
 export function meltLevel(t: number): number {

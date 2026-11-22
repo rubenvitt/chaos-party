@@ -75,6 +75,7 @@ const SPECS: readonly ArenaSpec[] = [
   { form: 'eckig', halfX: 6, halfZ: 4 },
   { form: 'bahnen', lanes: 4, laneWidth: 2, length: 14 },
   { form: 'insel', radius: 4.5 },
+  { form: 'insel', halfX: 3, halfZ: 2.5 },
   { form: 'eigenbereiche', zoneHalf: 2.2, gap: 0.8 },
 ];
 

@@ -68,10 +68,12 @@ Die Schwellen sollen die **angenommenen** Spiele (Sockenregen A4, Pudding-Gerang
 | Sockenregen | `SockenregenBot` (EXP-005) auf der echten Logik | Profile aus EXP-005 | Dauerdrücken (Hechtsprung, sobald bereit) |
 | Kuckucks-Klatsche | `simulateKuckucksKlatsche` (EXP-016) | Profile aus EXP-005 | Dauerklatscher, Raffzahn, brav |
 | Wackelturm | `playWackelturm` (EXP-007) mit Bot-Modell `KIPPGEFUEHL_BOT_MODEL` (EXP-039), normale Spielweise „zufällig“ | Geschick 0,9 / 0,6 / 0,2 | Raufbold (rempelt immer), gierig, vorsichtig |
-| Pudding-Gerangel | `wackelBot` (EXP-006) auf dem echten Modul (Havok, headless) | `SKILLS` aus EXP-006 + Profi (plant alle 6 Schritte, Streuung 0,12) | Dauerrempler |
+| Pudding-Gerangel | `wackelBot` (EXP-006) auf dem echten Modul (Havok, headless, `havokHarness`) | `SKILLS` aus EXP-006 + Profi (plant alle 6 Schritte, Streuung 0,12) | Dauerrempler |
 | Krümel-Kehraus | `simulateKruemel` R3 (EXP-023, Havok, headless) | wie Pudding-Gerangel | Dauerrempler, Torsteher, Raufbold |
 
-Neue Spiele auf dem Baukasten (`CHAOS-83`) binden ihre Bots über dessen Bot-Profile an; sie brauchen dann nur einen kurzen Harness-Eintrag.
+| Eiswürfel-Sumo | `sumoDecision` auf dem echten Modul (Havok, headless, `havokHarness`) | `PAWN_BOT_SKILLS` | Dauerrempler, Mittelsteher |
+
+Neue Spiele auf dem Baukasten (`CHAOS-83`) binden ihre Bots über dessen Bot-Profile an; sie brauchen dann nur einen kurzen Harness-Eintrag: `kitHarness` aus dem `BotMatchAdapter` (reine Logik), `havokHarness` für Havok-Spiele (echtes Modul headless, Entscheid je Platz und Strategie, CHAOS-241).
 
 ### Prüfbericht
 
