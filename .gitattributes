@@ -1,0 +1,3 @@
+# Parallele PRs fügen fast immer Zeilen in docs/progress.md ein; union behält beide Seiten (CHAOS-236).
+# GitHub ignoriert merge=union, lokal (git merge origin/main) greift es. Regel: docs/progress.md, „Einträge in dieser Datei“.
+docs/progress.md merge=union

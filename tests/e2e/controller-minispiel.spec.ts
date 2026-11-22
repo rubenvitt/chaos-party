@@ -10,6 +10,10 @@ import { expect, test } from './fixtures/test.ts';
 import { boardInfo, FakeSession, VALID_CODE } from './fixtures/fakeSession.ts';
 import { centerOf, TouchScreen } from './fixtures/touch.ts';
 import { expectStableWrapping } from './fixtures/wrapping.ts';
+import type { MinigameInfo } from '../../packages/minigame-sdk/src/index.ts';
+import { PUMP_DUELL_INFO } from '../../packages/minigames/src/pump-duell/info.ts';
+import { PUMP_RIESE_INFO } from '../../packages/minigames/src/pump-riese/info.ts';
+import { PUMP_SOLO_INFO } from '../../packages/minigames/src/pump-solo/info.ts';
 
 /**
  * Minispiele am Controller (M3, CHAOS-33) gegen den Production-Build mit nachgebautem
@@ -340,6 +344,84 @@ test('Intro mit Teams (CHAOS-89): eigene Rolle mit Symbol, Mitspieler und Gegner
   await expectStableWrapping(page.locator('body'));
   // Rahmen, Farbe und Symbol des Teams bleiben im Bild; Texte maskiert wie überall (ADR-004).
   await expect(page).toHaveScreenshot('minispiel-intro-team.png', { mask: screenshotMask(page) });
+});
+
+/** Echte Texte aus dem Katalog statt Testdaten (CHAOS-236). */
+function realInfo(info: MinigameInfo): Info {
+  const { id, title, tagline, instructions, controls, scoreUnit } = info;
+  return { id, title, tagline, instructions: [...instructions], controls, scoreUnit };
+}
+
+/** Zeilen eines Textelements: verschiedene Oberkanten der Zeilenrechtecke. */
+async function lineCount(el: Locator): Promise<number> {
+  return el.evaluate((node) => {
+    const range = document.createRange();
+    range.selectNodeContents(node);
+    const tops = new Set([...range.getClientRects()].map((r) => Math.round(r.top)));
+    return tops.size;
+  });
+}
+
+const PUMP_TEAMS = [
+  {
+    info: PUMP_DUELL_INFO,
+    team: {
+      layout: '2v2',
+      role: 'team',
+      index: 0,
+      mates: [3],
+      opponents: [2, 4],
+      advantage: false,
+    },
+  },
+  {
+    info: PUMP_SOLO_INFO,
+    team: {
+      layout: '1v3',
+      role: 'solo',
+      index: 1,
+      mates: [],
+      opponents: [2, 3, 4],
+      advantage: true,
+    },
+  },
+  {
+    info: PUMP_RIESE_INFO,
+    team: {
+      layout: 'koop',
+      role: 'koop',
+      index: 0,
+      mates: [2, 3, 4],
+      opponents: [],
+      advantage: false,
+    },
+  },
+] satisfies { info: MinigameInfo; team: NonNullable<ControllerMinigameInfo['team']> }[];
+
+test('Intro mit Teams und echten Pump-Texten (CHAOS-236): Anleitung höchstens zweizeilig', async ({
+  page,
+}, testInfo) => {
+  const fake = await attach(page);
+  await join(page);
+  for (const { info, team } of PUMP_TEAMS) {
+    sendMinigame(fake, 1, realInfo(info), 'intro', { team });
+    const intro = page.getByTestId('minigame-intro');
+    await expect(intro).toHaveAttribute('data-minigame', info.id);
+    await expect(page.getByTestId('minigame-team-role')).toHaveAttribute('data-role', team.role);
+    const steps = page.getByTestId('minigame-steps').locator('li');
+    await expect(steps).toHaveText([...info.instructions]);
+
+    await expectInside(intro, viewportBox(page));
+    await expectNoScrollOrZoom(page);
+    // Hochkant liegt „Der größere Team-Ballon gewinnt.“ an einer Umbruchkante (ein- oder
+    // zweizeilig ist dort beides in Ordnung); der Test macht kein Bild, geprüft wird quer.
+    if (testInfo.project.name === 'iphone-quer') await expectStableWrapping(page.locator('body'));
+    for (const step of await steps.all()) {
+      const text = await step.textContent();
+      expect(await lineCount(step), `„${text ?? ''}“ in ${info.id}`).toBeLessThanOrEqual(2);
+    }
+    await beleg(page, `controller-intro-team-${info.id}-${testInfo.project.name}`);
+  }
 });
 
 test('Intro wartet auf „Bereit“ (CHAOS-214): Schonfrist, Knopf sendet `ready`, dann Warten', async ({

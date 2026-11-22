@@ -113,7 +113,7 @@ Try a bounded series of materially different fixes (default maximum **three** se
 Maintain:
 - `docs/decisions/` for architecture decision records (ADRs).
 - `docs/experiments.md` for gameplay and art experiments.
-- `docs/progress.md` for milestone status, validated commands and next steps.
+- `docs/progress.md` for milestone status, validated commands and next steps. **One entry per line:** add your status entry as its own line `- CHAOS-<n> (YYYY-MM-DD): …` at the top of the „Stand“ list, never append to an existing line. The file merges with `merge=union` (`.gitattributes`); after merging `main`, delete any duplicated old version of a line both sides changed (details in the file, section „Einträge in dieser Datei“).
 - `docs/device-test-checklist.md` for actual iPhone/iPad verification.
 - `docs/acceptance/M<n>.md` for each milestone acceptance report (template in `ROADMAP.md`).
 
