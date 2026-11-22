@@ -35,7 +35,11 @@ import { attachPerf } from '../debug/perf.ts';
 import { markFirstFrame, markScene } from '../debug/sceneMarks.ts';
 import { soundEngine } from '../fx/audio.ts';
 import type { IntentHub } from '../input/webSocketInputSource.ts';
-import type { ConnectionStatus, MinigameResultPayload } from '../net/hostConnection.ts';
+import type {
+  ConnectionStatus,
+  MinigameCuePayload,
+  MinigameResultPayload,
+} from '../net/hostConnection.ts';
 import { ButtonIcon, JoystickIcon } from './icons.tsx';
 import { MinigameKeyboard } from './keyboard.ts';
 import {
@@ -69,6 +73,8 @@ export interface MinigameScreenProps {
   /** Geprüfte Controller-Eingaben vom Server (`null` lokal). */
   readonly hub: Pick<IntentHub, 'subscribe'> | null;
   readonly onResult: (result: MinigameResultPayload) => void;
+  /** Controller-Hinweis des laufenden Abschnitts (CHAOS-231); fehlt im lokalen Ablauf. */
+  readonly onCue?: (cue: MinigameCuePayload) => void;
   readonly onReady?: (ready: boolean) => void;
   /** Zustand des Ergebnis-Versands für den Testhaken. */
   readonly getResultState?: () => string;
@@ -170,6 +176,9 @@ export function MinigameScreen(props: MinigameScreenProps) {
       sound: soundEngine(),
       onResult: (result) => {
         latest.current.props.onResult(resultPayload(result.result, setup.round));
+      },
+      onCue: (cue) => {
+        latest.current.props.onCue?.({ minigameId: module.info.id, round: setup.round, cue });
       },
     });
     stageRef.current = stage;
@@ -375,14 +384,15 @@ export function MinigameScreen(props: MinigameScreenProps) {
       soundEngine().play('tick', { pitch: introSeconds === 1 ? 1.25 : 1 });
     }
   }, [introSeconds]);
-  // CHAOS-214: Statt Countdown tickt jedes neue „Bereit“, das letzte etwas höher.
+  // CHAOS-214: Statt Countdown tickt jedes neue „Bereit“, das letzte etwas höher; mehrere in
+  // derselben Nachricht ticken einzeln.
   const progress = stageName === 'intro' ? readyProgress(view) : null;
   const readyDone = progress?.done ?? 0;
   const readyTotal = progress?.total ?? 0;
   const lastReady = useRef(readyDone);
   useEffect(() => {
-    if (readyDone > lastReady.current) {
-      soundEngine().play('tick', { pitch: readyDone >= readyTotal ? 1.25 : 1 });
+    for (let count = lastReady.current + 1; count <= readyDone; count++) {
+      soundEngine().play('tick', { pitch: count >= readyTotal ? 1.25 : 1 });
     }
     lastReady.current = readyDone;
   }, [readyDone, readyTotal]);

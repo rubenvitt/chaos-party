@@ -484,3 +484,72 @@ test('Neuladen im Brett und im Minispiel: jede Zone bekommt ihren Bildschirm zur
   await expect(zone(page, 1)).toHaveAttribute('data-screen', 'play');
   await expect(zone(page, 1).getByTestId('button-a')).toBeVisible();
 });
+
+test('Schnellfeuer (CHAOS-231): jede Zone zeigt das Bildwort und nur die Knöpfe des Mikro-Spiels', async ({
+  page,
+}) => {
+  await joinLobby(page, 2);
+  const schnellfeuer: ControllerMinigameInfo = {
+    id: 'schnellfeuer',
+    title: 'Schnellfeuer!',
+    tagline: 'Fünf Mikro-Spiele am Stück – das Bildwort sagt, was zu tun ist.',
+    instructions: ['Fünf Mikro-Spiele, je ein paar Sekunden.'],
+    controls: { joystick: 'Zielen', a: 'Los!', b: null },
+    stage: 'play',
+    scoreUnit: 'Punkte',
+    tied: false,
+    aborted: false,
+  };
+  const play = (slot: SlotNumber, cue: ControllerMinigameInfo['cue']) => {
+    fake.send(
+      createMessage('context', {
+        slot,
+        phase: 'board',
+        layout: 'joystick-buttons',
+        actions: ['move', 'button-a'],
+        board: boardInfo({ gamePhase: 'minigame-play', activeSlot: null }),
+        minigame: cue ? { ...schnellfeuer, cue } : schnellfeuer,
+      }),
+    );
+  };
+  const hauen = {
+    step: 0,
+    steps: 5,
+    icon: '⏰',
+    word: 'HAUEN!',
+    controls: { joystick: null, a: 'Hauen', b: null },
+    double: false,
+  };
+  for (const slot of [1, 2] as const) play(slot, hauen);
+  for (const slot of [1, 2] as const) {
+    await expect(zone(page, slot)).toHaveAttribute('data-screen', 'play');
+    await expect(zone(page, slot).getByTestId('minigame-cue-word')).toHaveText('HAUEN!');
+    await expect(zone(page, slot).getByTestId('joystick')).toHaveCount(0);
+    await expect(zone(page, slot).getByTestId('button-a')).toContainText('Hauen');
+  }
+  await expectInsideZones(page, 2);
+
+  // Finale mit Stick: Zone 1 bekommt es zuerst, Zone 2 zeigt noch das alte Bildwort.
+  const halbieren = {
+    ...hauen,
+    step: 4,
+    icon: '🍰',
+    word: 'HALBIEREN!',
+    controls: { joystick: 'Messer', a: 'Schneiden', b: null },
+    double: true,
+  };
+  play(1, halbieren);
+  await expect(zone(page, 1).getByTestId('minigame-cue-word')).toHaveText('HALBIEREN!');
+  await expect(zone(page, 1).getByTestId('minigame-header')).toHaveAttribute('data-double', 'true');
+  await expect(zone(page, 1).getByTestId('joystick')).toBeVisible();
+  await expect(zone(page, 1).getByTestId('button-a')).toContainText('Schneiden');
+  await expect(zone(page, 2).getByTestId('minigame-cue-word')).toHaveText('HAUEN!');
+  await expectInsideZones(page, 2);
+
+  // Ohne Hinweis (älterer Host): Titel und die Vereinigung wie bisher.
+  play(2, undefined);
+  await expect(zone(page, 2).getByTestId('minigame-cue-word')).toHaveCount(0);
+  await expect(zone(page, 2).getByTestId('minigame-header')).toContainText('Schnellfeuer!');
+  await expect(zone(page, 2).getByTestId('joystick')).toBeVisible();
+  await expect(zone(page, 2).getByTestId('button-a')).toContainText('Los!');
+});

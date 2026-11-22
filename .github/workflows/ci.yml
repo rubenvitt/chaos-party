@@ -90,6 +90,13 @@ jobs:
       - name: Apple-Host – Bot-Partie mit Rückenwind (Node)
         run: pnpm --filter @chaos-party/apple-host bots --full --rueckenwind
 
+      # Schnellfeuer-Schalter über `HostEnv.rapidFire` (CHAOS-232): `aus` spielt nie Schnellfeuer,
+      # `halbzeit` genau in Runde 5 (der Standard `an` läuft in den Bot-Partien oben mit).
+      - name: Apple-Host – Bot-Partien mit Schnellfeuer aus/halbzeit (Node)
+        run: |
+          pnpm --filter @chaos-party/apple-host bots --full --ohne-extras --schnellfeuer=aus
+          pnpm --filter @chaos-party/apple-host bots --full --ohne-extras --schnellfeuer=halbzeit
+
       # Spielformen am Apple-Host (CHAOS-230): Partie nur aus den Team-Testspielen (2 gegen 2,
       # Einer gegen alle, Koop) mit vier Bots; jedes Team-Ergebnis muss angenommen werden.
       - name: Apple-Host – Bot-Partie mit Team-Spielen (Node)

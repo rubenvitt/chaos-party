@@ -2894,3 +2894,59 @@ Reaktionszeit, Lenk-Drehrate, Zielstreuung, Greiftempo, Ausweichen und Strategie
 **Entscheidung:** **C behalten.** Die Eckwerte stehen in `profileForStrength` und `pawnSkillForStrength`. Im Wackelturm gilt `WACKELTURM_SKILL_CORNERS` mit `KIPPGEFUEHL_BOT_MODEL`. KI-Platz, Fairness-Prüfung und Bot-Partien nutzen damit je Spiel denselben Bot. Die Eckwerte sind Bot gegen Bot gemessen. Sie sind ein Startpunkt für CHAOS-183 (Messung gegen eine Mensch-Näherung) und kein Beweis, dass die KI Spaß macht.
 
 **Offen für Playtest (CHAOS-185):** Ist „leicht“ in Sockenregen und Krümel-Kehraus noch ein Gegner, oder steht es nur herum? Wirkt „schwer“ in Pudding-Gerangel (Siegquote 1,00) unfair?
+
+## EXP-041: Schnellfeuer – Auslöser, Wertung und Mikro-Fairness (2026-11-21, CHAOS-90)
+
+**Hypothese / gewünschtes Spielerlebnis:** Schnellfeuer (fünf Mikro-Spiele à 5–8 s am Stück, je mit Bildwort statt Anleitung) ist eine eigene Rundenart, die das Minispiel einer Runde ersetzt (Ruben, CHAOS-82). Es soll überraschen, in jeder Partie vorkommen, die Partie nicht spürbar verlängern und den Sieg nicht stärker entscheiden als ein normales Minispiel. Innerhalb der Kette soll Können zählen, aber auch ein Neuling manchmal gewinnen.
+
+**Varianten Auslöser** (game-core, `RapidFireRules`, ADR-024):
+- **(a) Brett-Ereignis „Schnellfeuer!“** mit gleichem Gewicht wie die fünf festen Ereignisse (beliebig oft bzw. höchstens 1× je Partie), mit 3 und 5 Losen im Ereignis-Topf, und mit 5 Losen plus **Rückfall aufs Finale**, wenn bis dahin keins kam (Ra5f).
+- **(b) Halbzeit** (Runde ⌈Runden/2⌉) und **(c) Finale** (letzte Runde).
+
+**Varianten Wertung der Kette** (Fairness-Vorlage aus CHAOS-84, 200 Seeds je Tisch):
+- Rang-Punkte je Mikro-Spiel (bei vier 3/2/1/0): Neuling gegen drei Normale 1,2 %, Führungswechsel 1,07, besteht alle Schwellen (Wilson-Intervall).
+- Nur der Sieger bekommt einen Punkt: Neuling 3,5 %, aber 0,65 Führungswechsel und 25 % geteilte Siege, also „zu früh entschieden“.
+- Top 2 (2/1/0/0): Neuling 2,4 %, 0,92 Führungswechsel, also „zu früh entschieden“.
+- Gewählt: Rang-Punkte, das letzte Mikro-Spiel zählt doppelt. Ohne Glücksanteile je Bahn (gleiche Fliege und Flamme für alle, keine Zufalls-Soße) gewann der Neuling nur 0,5 % bei 0,89 Führungswechseln. Mit eigener Fliege und Flammen-Phase je Bahn, gelegentlicher Soße (10 %) und kürzerer Nudel (14 statt 18 Schlürfer) besteht die Kette.
+
+**Objektive Messgrößen:** Schnellfeuer je Partie, Anteil Partien mit ≥ 1 bzw. ≥ 2, Runde des ersten, Partiedauer (Bot-Zeit), Anteil der Partien, die der alleinige Schnellfeuer-Sieger auch gewinnt, im Vergleich zum Sieger eines normalen Minispiels. Für die Kette die Kennzahlen der Fairness-Vorlage (Gleichstand, Abstand 1/2, Führungswechsel, Neuling bzw. Profi gegen drei Normale, Dauerdrücken).
+
+**Testumgebung:** `simulateGame` mit `M4_RULES`, Wackelwald, Minispiel-Rotation, Schnellfeuer mit 42,5 s Spielzeit, 10 Runden, Seeds 1–200 je Zeile. Kette mit den Bots aus `packages/minigames/src/schnellfeuer/bot.ts` (Profile des Baukastens). MacBook, Node 26. Befehl: `EXPERIMENTS=rapidfire pnpm exec vitest run packages/game-core/src/rules/experimentsRapidFire.test.ts --silent=false`.
+
+**Ergebnisse:**
+
+| Variante | Sp. | Schnellfeuer je Partie | ≥ 1 | ≥ 2 | erste Runde | Dauer (min) | Sieger SF → Partie | Sieger normal → Partie |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| R0 ohne Schnellfeuer | 2 | 0,00 | 0 % | 0 % | – | 10,1 | – | 54 % |
+| R0 ohne Schnellfeuer | 3 | 0,00 | 0 % | 0 % | – | 11,8 | – | 37 % |
+| R0 ohne Schnellfeuer | 4 | 0,00 | 0 % | 0 % | – | 13,5 | – | 32 % |
+| Ra (a) Ereignis, beliebig oft | 2 | 0,24 | 23 % | 1 % | 5,5 | 10,2 | 57 % | 54 % |
+| Ra (a) Ereignis, beliebig oft | 3 | 0,32 | 28 % | 4 % | 4,4 | 11,9 | 30 % | 38 % |
+| Ra (a) Ereignis, beliebig oft | 4 | 0,48 | 41 % | 7 % | 5,1 | 13,6 | 31 % | 32 % |
+| Ra1 (a) Ereignis, höchstens 1× je Partie | 2 | 0,23 | 23 % | 0 % | 5,5 | 10,2 | 55 % | 54 % |
+| Ra1 (a) Ereignis, höchstens 1× je Partie | 3 | 0,28 | 28 % | 0 % | 4,4 | 11,9 | 31 % | 38 % |
+| Ra1 (a) Ereignis, höchstens 1× je Partie | 4 | 0,41 | 41 % | 0 % | 5,1 | 13,6 | 31 % | 32 % |
+| Ra3 (a) Ereignis, 3 Lose, höchstens 1× | 2 | 0,47 | 47 % | 0 % | 5,1 | 10,2 | 53 % | 52 % |
+| Ra3 (a) Ereignis, 3 Lose, höchstens 1× | 3 | 0,58 | 58 % | 0 % | 4,4 | 11,9 | 39 % | 37 % |
+| Ra3 (a) Ereignis, 3 Lose, höchstens 1× | 4 | 0,73 | 74 % | 0 % | 4,7 | 13,6 | 31 % | 31 % |
+| Ra5 (a) Ereignis, 5 Lose, höchstens 1× | 2 | 0,53 | 53 % | 0 % | 4,8 | 10,2 | 54 % | 54 % |
+| Ra5 (a) Ereignis, 5 Lose, höchstens 1× | 3 | 0,69 | 69 % | 0 % | 4,6 | 12,0 | 37 % | 36 % |
+| Ra5 (a) Ereignis, 5 Lose, höchstens 1× | 4 | 0,79 | 79 % | 0 % | 4,4 | 13,7 | 32 % | 31 % |
+| Ra5f (a) Ereignis, 5 Lose, 1×, sonst Finale | 2 | 1,00 | 100 % | 0 % | 7,2 | 10,3 | 51 % | 54 % |
+| Ra5f (a) Ereignis, 5 Lose, 1×, sonst Finale | 3 | 1,00 | 100 % | 0 % | 6,3 | 12,0 | 35 % | 36 % |
+| Ra5f (a) Ereignis, 5 Lose, 1×, sonst Finale | 4 | 1,00 | 100 % | 0 % | 5,6 | 13,7 | 30 % | 31 % |
+| Rb (b) Halbzeit | 2 | 1,00 | 100 % | 0 % | 5,0 | 10,3 | 54 % | 54 % |
+| Rb (b) Halbzeit | 3 | 1,00 | 100 % | 0 % | 5,0 | 12,0 | 35 % | 37 % |
+| Rb (b) Halbzeit | 4 | 1,00 | 100 % | 0 % | 5,0 | 13,7 | 32 % | 30 % |
+| Rc (c) Finale (letzte Runde) | 2 | 1,00 | 100 % | 0 % | 10,0 | 10,3 | 47 % | 55 % |
+| Rc (c) Finale (letzte Runde) | 3 | 1,00 | 100 % | 0 % | 10,0 | 12,0 | 40 % | 36 % |
+| Rc (c) Finale (letzte Runde) | 4 | 1,00 | 100 % | 0 % | 10,0 | 13,7 | 29 % | 32 % |
+
+- Ein Ereignis mit gleichem Gewicht kommt zu selten: Nur 23–41 % der Partien sehen Schnellfeuer. Mit 5 Losen sind es 53–79 %, die Hälfte der Zweierpartien bliebe ohne.
+- Ra5f bringt jedes Mal genau eins: mit vier Personen meist überraschend mitten in der Partie (79 %), mit zwei oft erst im Finale. Erste Schnellfeuer-Runde im Mittel 5,6–7,2.
+- Partiedauer: +0,1–0,2 min gegenüber ohne (Schnellfeuer hat 42,5 s Spielzeit, die anderen 30–35 s).
+- Sieg: Wer Schnellfeuer gewinnt, gewinnt die Partie etwa so oft wie der Sieger eines normalen Minispiels (Ra5f 51/35/30 % gegen 54/36/31 %). Die Minispiel-Ergebnisse sind in der Brett-Simulation Zufall; die Zahl zeigt nur, dass die Runde nicht schwerer wiegt.
+- Kette (Fairness, 60 Seeds wie in der CI): Gleichstand 12 %, Abstand 1/2 0,23, Führungswechsel 1,12, Profi gegen drei Normale 91 %, Neuling 0,8 %, Dauerdrücken Faktor 0 (zu früh beim Wecker, Soße beim Schlürfen). Der Profi gewinnt fast immer, weil sich in fünf kurzen Reaktions- und Takt-Spielen der Vorsprung summiert. Das ist die größte Unsicherheit für den Spieltest.
+- PC-Host (Chrome, SwiftShader, Testmodus): Bildwort im Banner, alle vier Figuren über dem Banner, Gegenstände groß darunter. E2E mit 2, 3 und 4 Personen bis zum angenommenen Ergebnis. Apple-Host: `bots --full` spielt Schnellfeuer in Runde 6 ohne Fehler, Bauschritte ohne JIT unter 4 ms.
+
+**Entscheidung:** **Behalten** als Standard am Server und im Apple-Host: (a) Ereignis mit 5 Losen, höchstens einmal je Partie, sonst im Finale (`RAPID_FIRE_RULE`, ADR-024), am Server mit `SCHNELLFEUER=aus|ereignis|halbzeit|finale` umstellbar. Wertung: Rang-Punkte je Mikro-Spiel, das letzte doppelt. Alles Bot-Simulation, kein Spieltest. Offen für Ruben (Zwischenabnahme CHAOS-92, Gerätecheckliste §48): Ist das Bildwort in 1,3 s lesbar? Ist das Tempo lustig oder hektisch? Gewinnt immer dieselbe Person?

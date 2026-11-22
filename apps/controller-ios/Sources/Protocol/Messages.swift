@@ -292,6 +292,18 @@ struct MinigameControls: Codable, Equatable, Sendable {
     var b: String?
 }
 
+/// `MinigameCueSchema` (v4 addendum CHAOS-231): cue of the running section of a minigame
+/// (Schnellfeuer: micro game `step` of `steps`) with its picture word and only its controls.
+struct MinigameCue: Codable, Equatable, Sendable {
+    var step: Int
+    var steps: Int
+    var icon: String
+    var word: String
+    var controls: MinigameControls
+    /// The section counts double (Schnellfeuer finale, „×2“).
+    var double: Bool
+}
+
 /// `ControllerMinigameTeamSchema` (v4 addendum CHAOS-89, Swift: CHAOS-229): own role in a
 /// team or koop minigame, from the intro on; `result`/`tier` only in `results`.
 struct ControllerMinigameTeam: Codable, Equatable, Sendable {
@@ -339,6 +351,9 @@ struct ControllerMinigameInfo: Codable, Equatable, Sendable {
     /// v4 addendum (CHAOS-87, optional), only in `results`: own thumbs vote for this run.
     /// Missing = not voted yet. Voting is possible while `actions` contains `rate`.
     var vote: Vote?
+    /// v4 addendum (CHAOS-231, optional), only in `play`: picture word and controls of the running
+    /// section. Missing = no sections or an older host; then `controls` apply.
+    var cue: MinigameCue?
     /// v4 addendum (CHAOS-89, optional): own role in a team or koop minigame. Missing = every
     /// player for themselves (and older servers): no role card, no team outcome.
     var team: ControllerMinigameTeam?

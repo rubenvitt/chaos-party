@@ -1,4 +1,4 @@
-import type { CatchUpRules, Pacing, RuleSet, TeamRewards } from '../types.ts';
+import type { CatchUpRules, Pacing, RapidFireRules, RuleSet, TeamRewards } from '../types.ts';
 
 /**
  * Standardregeln. Festgelegt per Bot-Simulation in CHAOS-24 (`docs/experiments.md`,
@@ -89,6 +89,29 @@ export const TAILWIND_RULE: NonNullable<CatchUpRules['tailwind']> = { perTrophy:
 /** Regeln mit eingeschaltetem Rückenwind (übrige Aufholhilfen bleiben). */
 export function withTailwind(base: RuleSet = DEFAULT_RULES): RuleSet {
   return { ...base, catchUp: { ...base.catchUp, tailwind: TAILWIND_RULE } };
+}
+
+/**
+ * Schnellfeuer im Spiel (CHAOS-90, EXP-041 Ra5f): Brett-Ereignis „Schnellfeuer!“ mit 5 Losen,
+ * höchstens einmal je Partie, sonst im Finale. So kommt es in jeder Partie genau einmal, meist
+ * überraschend (2 Sp. 53 %, 4 Sp. 79 % per Ereignis), ohne Partiedauer oder Sieg zu verschieben.
+ */
+export const RAPID_FIRE_RULE: RapidFireRules = {
+  trigger: 'event',
+  maxPerGame: 1,
+  eventWeight: 5,
+  finaleFallback: true,
+};
+
+/**
+ * Regeln mit Schnellfeuer (Standard `RAPID_FIRE_RULE`). `DEFAULT_RULES` hat keins: game-core-Tests
+ * und Experimente bleiben unverändert; der Server schaltet es ein (`SCHNELLFEUER`, `apps/server`).
+ */
+export function withRapidFire(
+  rule: RapidFireRules = RAPID_FIRE_RULE,
+  base: RuleSet = DEFAULT_RULES,
+): RuleSet {
+  return { ...base, rapidFire: { ...rule } };
 }
 
 /** Regeln mit überschriebenen Teilen (flach je Gruppe zusammengeführt). */

@@ -47,6 +47,12 @@ function specs(ctx: Ctx): readonly MinigameSpec[] {
  * Gewichten und Mischen über die Achsen (CHAOS-85, `rotation.ts`).
  */
 function drawMinigame(ctx: Ctx): MinigameSpec | null {
+  const rapid = rapidFireDue(ctx);
+  if (rapid) {
+    // Eigene Rundenart (CHAOS-90): ersetzt das Minispiel, Mischung und Gedächtnis bleiben.
+    ctx.d.internal.rapidFireCount = (ctx.d.internal.rapidFireCount ?? 0) + 1;
+    return rapid;
+  }
   const all = specs(ctx);
   if (all.length === 0) return null;
   const { internal } = ctx.d;
@@ -62,6 +68,27 @@ function drawMinigame(ctx: Ctx): MinigameSpec | null {
   internal.minigameHistory = rememberMinigame(internal.minigameHistory, id);
   internal.minigameLast = id;
   return byId.get(id) ?? null;
+}
+
+/**
+ * Wird das Minispiel dieser Runde Schnellfeuer (CHAOS-90)? Halbzeit = Runde ⌈Runden/2⌉, Finale =
+ * letzte Runde, Ereignis = in dieser Runde kam „Schnellfeuer!“. Nie im Übungsmodus und nie
+ * allein (Schnellfeuer braucht mindestens zwei).
+ */
+export function rapidFireDue(ctx: Ctx): MinigameSpec | null {
+  const { d } = ctx;
+  const spec = d.config.rapidFire;
+  const rule = ctx.rules.rapidFire;
+  if (!spec || !rule || d.config.practice === true || d.players.length < 2) return null;
+  const last = d.round === d.rounds;
+  const due =
+    rule.trigger === 'halftime'
+      ? d.round === Math.ceil(d.rounds / 2)
+      : rule.trigger === 'finale'
+        ? last
+        : d.internal.rapidFireRound === d.round ||
+          (rule.finaleFallback === true && last && (d.internal.rapidFireCount ?? 0) === 0);
+  return due ? spec : null;
 }
 
 /** Minispiele, die in dieser Partie schon liefen (Reihenfolge des ersten Starts, CHAOS-85). */
@@ -246,7 +273,9 @@ export function checkMinigameResult(
       message: `Ergebnis für Runde ${String(command.round)}, läuft ${String(minigame.round)}`,
     };
   }
-  const spec = specs(ctx).find((candidate) => candidate.id === minigame.id);
+  const spec = [...specs(ctx), ...(d.config.rapidFire ? [d.config.rapidFire] : [])].find(
+    (candidate) => candidate.id === minigame.id,
+  );
   const check = checkResult(
     {
       minigameId: command.minigameId,

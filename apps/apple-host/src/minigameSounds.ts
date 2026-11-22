@@ -91,10 +91,13 @@ export function createMinigameSounds(now: () => number): MinigameSounds {
         play('tick', { pitch: shown === 1 ? 1.25 : 1 }, key ?? undefined);
       }
       lastCountdown = shown;
-      // CHAOS-214: Statt Countdown tickt jedes neue „Bereit“, das letzte etwas höher.
+      // CHAOS-214: Statt Countdown tickt jedes neue „Bereit“, das letzte etwas höher. Kommen
+      // mehrere im selben Tick, tickt jedes einzeln (sonst schluckt ein Sprung 0 → 2 einen Tick).
       const done = key !== null && stage === 'intro' && ready ? ready.done : 0;
-      if (ready && done > lastReady) {
-        play('tick', { pitch: done >= ready.total ? 1.25 : 1 }, key ?? undefined);
+      if (ready) {
+        for (let count = lastReady + 1; count <= done; count++) {
+          play('tick', { pitch: count >= ready.total ? 1.25 : 1 }, key ?? undefined);
+        }
       }
       lastReady = done;
       expire();

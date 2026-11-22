@@ -149,7 +149,8 @@ function assertConfig(config: GameConfig): void {
     throw new RangeError('items.sabotageGrowthRounds muss eine ganze Zahl ≥ 0 sein');
   }
   const minigameIds = new Set<string>();
-  for (const spec of config.minigames ?? []) {
+  const rapidFire = config.rapidFire === undefined ? [] : [config.rapidFire];
+  for (const spec of [...(config.minigames ?? []), ...rapidFire]) {
     if (!/^[a-z0-9-]{3,32}$/.test(spec.id))
       throw new RangeError(`Minispiel-ID ${spec.id} ungültig`);
     if (minigameIds.has(spec.id)) throw new RangeError(`Minispiel ${spec.id} doppelt`);
@@ -234,6 +235,7 @@ export function createGame(config: GameConfig): GameState {
       ...(config.minigameRotation === undefined
         ? {}
         : { minigameRotation: copyRotationOptions(config.minigameRotation) }),
+      ...(config.rapidFire === undefined ? {} : { rapidFire: { ...config.rapidFire } }),
     },
     internal: internal as unknown as Readonly<Record<string, unknown>>,
   };

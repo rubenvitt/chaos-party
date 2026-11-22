@@ -675,6 +675,16 @@ export class Session {
         // Szene und Figuren geladen (CHAOS-68). Wartet keine Auto-Pause darauf: nichts zu tun.
         if (this.hostReadyDeadline !== null) this.resumeAfterHostLoss();
         return;
+      case 'minigame-cue':
+        // CHAOS-231: Hinweis des laufenden Abschnitts. Verspätet oder zu einem fremden Lauf:
+        // still verwerfen (keine Antwort; der nächste Wechsel bringt den richtigen Stand).
+        if (
+          this.phaseValue === 'board' &&
+          this.game?.setCue(message.minigameId, message.round, message.cue)
+        ) {
+          this.syncContexts();
+        }
+        return;
       default:
         break;
     }

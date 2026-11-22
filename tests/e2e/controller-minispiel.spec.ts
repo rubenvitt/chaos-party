@@ -106,6 +106,16 @@ const SCHUBSEN: Info = {
   scoreUnit: 'Punkte',
 };
 
+/** Nur A, Spielform 2 gegen 2 (wie `pump-duell`, CHAOS-89). */
+const DUELL: Info = {
+  id: 'pump-duell',
+  title: 'Pump-Duell',
+  tagline: 'Pumpt im Team den größeren Ballon auf!',
+  instructions: ['Tippe ganz oft A.', 'Der größere Ballon gewinnt.'],
+  controls: { joystick: null, a: 'Pumpen', b: null },
+  scoreUnit: 'Pumpstöße',
+};
+
 function actionsFor(info: Info): Action[] {
   const actions: Action[] = [];
   if (info.controls.joystick !== null) actions.push('move');
@@ -121,7 +131,7 @@ function sendMinigame(
   info: Info,
   stage: ControllerMinigameInfo['stage'],
   result: Partial<
-    Pick<ControllerMinigameInfo, 'place' | 'score' | 'reward' | 'prizes' | 'repeat'>
+    Pick<ControllerMinigameInfo, 'place' | 'score' | 'reward' | 'prizes' | 'repeat' | 'team'>
   > = {},
 ) {
   const play = stage === 'play';
@@ -296,6 +306,40 @@ test('Intro bei Wiederholung (CHAOS-66): nur Titel und Bedienlegende, keine Anle
   await expect(intro).toHaveAttribute('data-repeat', 'false');
   await expect(page.getByTestId('minigame-steps').locator('li')).toHaveText(PUMPEN.instructions);
   await expect(page.getByTestId('minigame-kicker')).toHaveText('Minispiel');
+});
+
+test('Intro mit Teams (CHAOS-89): eigene Rolle mit Symbol, Mitspieler und Gegnern', async ({
+  page,
+}) => {
+  const fake = await attach(page);
+  await join(page);
+  // Wie `controllerTeamOf` für Slot 1 in Team Sonne mit Grün gegen Orange und Rosa.
+  sendMinigame(fake, 1, DUELL, 'intro', {
+    team: {
+      layout: '2v2',
+      role: 'team',
+      index: 0,
+      mates: [3],
+      opponents: [2, 4],
+      advantage: false,
+    },
+  });
+
+  const intro = page.getByTestId('minigame-intro');
+  const role = page.getByTestId('minigame-team-role');
+  await expect(page.getByTestId('minigame-title')).toHaveText('Pump-Duell');
+  await expect(role).toHaveAttribute('data-role', 'team');
+  await expect(role).toContainText('Team Sonne');
+  await expect(role).toContainText('Du und Grün gegen Orange und Rosa.');
+  await expect(role.locator('.minigame-team-role-mark')).toHaveText('☀');
+  await expect(page.getByTestId('minigame-steps').locator('li')).toHaveText(DUELL.instructions);
+  await expect(page.getByTestId('legend-a')).toContainText('Pumpen');
+
+  await expectInside(intro, viewportBox(page));
+  await expectNoScrollOrZoom(page);
+  await expectStableWrapping(page.locator('body'));
+  // Rahmen, Farbe und Symbol des Teams bleiben im Bild; Texte maskiert wie überall (ADR-004).
+  await expect(page).toHaveScreenshot('minispiel-intro-team.png', { mask: screenshotMask(page) });
 });
 
 test('Intro wartet auf „Bereit“ (CHAOS-214): Schonfrist, Knopf sendet `ready`, dann Warten', async ({

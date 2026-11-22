@@ -19,8 +19,8 @@ import {
   type MinigameBotDriver,
   type MinigameBotSeat,
 } from '../bot.ts';
-import type { MinigameInput, MinigameResult, Slot } from '../info.ts';
-import { checkResult, rankByScore } from '../result.ts';
+import type { MinigameCue, MinigameInput, MinigameResult, Slot } from '../info.ts';
+import { checkCue, checkResult, rankByScore } from '../result.ts';
 import { createMinigameRng } from '../rng.ts';
 import { teamPlacements, type MinigameTeams } from '../teams.ts';
 import { markVisual } from './visual.ts';
@@ -76,6 +76,11 @@ export interface RunnerOptions {
   /** Einmal, sobald ein gültiges Ergebnis feststeht. */
   readonly onResult?: (result: RunnerResult) => void;
   /**
+   * Controller-Hinweis hat gewechselt (CHAOS-231): nur für Minispiele mit `getCue`, nur in
+   * `running`, nur geprüfte Hinweise (`checkCue`), nur bei einer Änderung.
+   */
+  readonly onCue?: (cue: MinigameCue | null) => void;
+  /**
    * Taktgeber für einen verteilten Aufbau (CHAOS-141). Fehlt er, rechnet `prepare` am Stück
    * (`ctx.pace()` löst sofort auf; Tests bleiben deterministisch und schnell).
    */
@@ -128,6 +133,8 @@ export interface MinigameRunner {
   readonly paused: boolean;
   /** Plätze, die gerade ein Bot spielt (nach `start`). */
   readonly botSlots: readonly Slot[];
+  /** Zuletzt gemeldeter Controller-Hinweis (CHAOS-231), `null` = keiner. */
+  readonly cue: MinigameCue | null;
   prepare(): Promise<void>;
   start(): void;
   /**
@@ -170,6 +177,9 @@ export function createMinigameRunner(
 
   let state: RunnerState = 'created';
   let paused = false;
+  let cue: MinigameCue | null = null;
+  /** Vergleichsschlüssel des gemeldeten Hinweises (Objekte dürfen je Aufruf neu sein). */
+  let cueKey = 'null';
   let accumulator = 0;
   const maxSteps = Math.max(1, Math.floor(options.maxStepsPerAdvance ?? MAX_STEPS_PER_ADVANCE));
   let steps = 0;
@@ -248,6 +258,30 @@ export function createMinigameRunner(
     options.onResult?.(value);
   };
 
+  /** Hinweis fragen und Wechsel melden (CHAOS-231); Fehler im Minispiel bleiben folgenlos. */
+  const pollCue = () => {
+    if (!game.getCue || !options.onCue || state !== 'running') return;
+    let next: MinigameCue | null;
+    try {
+      next = game.getCue();
+    } catch (error) {
+      console.error(error);
+      return;
+    }
+    const key = JSON.stringify(next);
+    if (key === cueKey) return;
+    if (next) {
+      const check = checkCue(next, info);
+      if (!check.ok) {
+        console.error(`Minispiel ${info.id}: ungültiger Hinweis (${check.reason})`);
+        return;
+      }
+    }
+    cueKey = key;
+    cue = next;
+    options.onCue(next);
+  };
+
   const tickBots = () => {
     for (const bot of bots) {
       if (bot.failed) continue;
@@ -277,6 +311,7 @@ export function createMinigameRunner(
     game.update(FIXED_STEP_SECONDS);
     physicsStep?.(FIXED_STEP_SECONDS);
     steps++;
+    pollCue();
     if (state === 'running') settle(game.getResult());
   };
 
@@ -327,6 +362,9 @@ export function createMinigameRunner(
     },
     get botSlots() {
       return bots.map((bot) => bot.driver.slot);
+    },
+    get cue() {
+      return cue;
     },
     async prepare() {
       if (state !== 'created') throw new Error(`prepare in Zustand ${state}`);
@@ -392,6 +430,7 @@ export function createMinigameRunner(
           console.error(`Minispiel ${info.id}: KI-Bot für Platz ${seat.slot} fehlt`, error);
         }
       }
+      pollCue();
     },
     finishNow() {
       if (state !== 'running') return;

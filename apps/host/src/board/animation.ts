@@ -66,6 +66,7 @@ const BOARD_EVENT_POPUP: Readonly<Record<string, string>> = {
   swap: 'Tausch!',
   'trophy-shuffle': 'Wirbel!',
   'lucky-find': 'Glück!',
+  'rapid-fire': 'Schnellfeuer!',
 };
 
 function popup(

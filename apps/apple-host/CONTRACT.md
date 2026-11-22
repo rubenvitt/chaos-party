@@ -24,6 +24,7 @@ interface HostEnv {
   ratings?: string | null;                           // gespeicherte Stimmen-Datei (CHAOS-220), Format wie am Node-Server
   saveRatings?(json: string): void;                  // nach jeder Stimme der ganze neue Dateiinhalt (CHAOS-220)
   ratingsUnreadable?(reason: string): void;          // `ratings` unlesbar: Swift legt die Datei beiseite (CHAOS-220)
+  rapidFire?: string;                                // Schnellfeuer: an|aus|ereignis|halbzeit|finale (CHAOS-232, wie SCHNELLFEUER am PC)
   storage?: { getItem(key: string): string | null;   // überdauert Neustarts (CHAOS-216); Swift: UserDefaults,
               setItem(key: string, value: string): void }; // Schlüssel mit Präfix „js.“
 }

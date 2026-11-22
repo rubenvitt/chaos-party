@@ -36,3 +36,4 @@ Hier stehen Architekturentscheidungen, die über eine einzelne Aufgabe hinaus ge
 | [ADR-021](ADR-021-minispiel-baukasten.md) | Minispiel-Baukasten als eigenes Paket `minigame-kit`: Unterbau, keine Spielvorlage; Vielfalts-Steckbrief | Angenommen | CHAOS-83 |
 | [ADR-022](ADR-022-drehende-felder.md) | Drehende Felder (Karussell): Ausgang als feste Funktion der Runde, keine Wegwahl, kein neues Protokollfeld | Angenommen (2026-11-20) | CHAOS-199 |
 | [ADR-023](ADR-023-eis-seilbahn-lawine.md) | Eis, Seilbahn und Lawine (Frostgipfel) als optionale Brett-Daten, Lawine als Funktion der Runde, kein neues Protokollfeld | Angenommen (2026-11-20) | CHAOS-198 |
+| [ADR-024](ADR-024-schnellfeuer.md) | Schnellfeuer als zusammengesetztes Minispiel-Modul (fünf Mikro-Spiele, Bildwort im HUD-Banner), Auslöser `rules.rapidFire` in game-core, Brett-Ereignis `rapid-fire` | Angenommen (2026-11-21) | CHAOS-90 |

@@ -29,6 +29,7 @@ import { Engine } from '@babylonjs/core/Engines/engine.js';
 import { Color4 } from '@babylonjs/core/Maths/math.color.js';
 import { Scene } from '@babylonjs/core/scene.js';
 import type {
+  MinigameCue,
   MinigameInput,
   MinigamePlacement,
   MinigameTeams,
@@ -83,6 +84,8 @@ export interface MinigameStageOptions {
   readonly sound: SoundEngine;
   /** Genau einmal, sobald das Minispiel ein (geprüftes) Ergebnis hat. */
   readonly onResult: (result: RunnerResult) => void;
+  /** Controller-Hinweis hat gewechselt (CHAOS-231, nur Minispiele mit Abschnitten). */
+  readonly onCue?: (cue: MinigameCue | null) => void;
   /** Ladefehler (Havok, Figuren, `prepare`). */
   readonly onError?: (error: unknown) => void;
 }
@@ -221,6 +224,7 @@ export function createMinigameStage(options: MinigameStageOptions): MinigameStag
       onResult: (result) => {
         options.onResult(result);
       },
+      ...(options.onCue ? { onCue: options.onCue } : {}),
     });
     if (flags.paused) runner.pause();
     await runner.prepare();
