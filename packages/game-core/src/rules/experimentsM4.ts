@@ -41,6 +41,14 @@ export const ROTATION_SPECS: readonly MinigameSpec[] = [
   { id: 'wackelturm', playMs: 35_000, scoring: 'higher' },
   { id: 'kuckucks-klatsche', playMs: 30_000, scoring: 'higher' },
   { id: 'kruemel-kehraus', playMs: 30_000, scoring: 'higher' },
+  // Pilotwelle (CHAOS-91)
+  { id: 'toaster-timing', playMs: 25_000, scoring: 'higher' },
+  { id: 'nussregen-netz', playMs: 25_000, scoring: 'higher' },
+  { id: 'matschmaler', playMs: 25_000, scoring: 'higher' },
+  { id: 'rasensprenger-rodeo', playMs: 30_000, scoring: 'higher' },
+  { id: 'schnapp-den-kaese', playMs: 25_000, scoring: 'higher' },
+  { id: 'eiswuerfel-sumo', playMs: 30_000, scoring: 'higher' },
+  { id: 'bienenstock-honig', playMs: 25_000, scoring: 'higher' },
 ];
 
 /**

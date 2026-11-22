@@ -2950,3 +2950,40 @@ Reaktionszeit, Lenk-Drehrate, Zielstreuung, Greiftempo, Ausweichen und Strategie
 - PC-Host (Chrome, SwiftShader, Testmodus): Bildwort im Banner, alle vier Figuren über dem Banner, Gegenstände groß darunter. E2E mit 2, 3 und 4 Personen bis zum angenommenen Ergebnis. Apple-Host: `bots --full` spielt Schnellfeuer in Runde 6 ohne Fehler, Bauschritte ohne JIT unter 4 ms.
 
 **Entscheidung:** **Behalten** als Standard am Server und im Apple-Host: (a) Ereignis mit 5 Losen, höchstens einmal je Partie, sonst im Finale (`RAPID_FIRE_RULE`, ADR-024), am Server mit `SCHNELLFEUER=aus|ereignis|halbzeit|finale` umstellbar. Wertung: Rang-Punkte je Mikro-Spiel, das letzte doppelt. Alles Bot-Simulation, kein Spieltest. Offen für Ruben (Zwischenabnahme CHAOS-92, Gerätecheckliste §48): Ist das Bildwort in 1,3 s lesbar? Ist das Tempo lustig oder hektisch? Gewinnt immer dieselbe Person?
+
+## EXP-042: Pilotwelle – acht Minispiele aus acht Familien auf dem Baukasten (2026-11-22, CHAOS-91)
+
+**Hypothese / gewünschtes Spielerlebnis:** Mit dem Baukasten (ADR-021) und den gemeinsamen Prüfungen (CHAOS-84) entsteht ein Minispiel aus einer Katalog-Skizze in wenigen Stunden und mit ≤ 500 Zeilen Spielcode, ohne dass sich die Spiele gleich anfühlen (README §5.5). Mindestens 6 von 8 Skizzen schaffen die Fairness-Schwellen und kommen in die Rotation. Bericht für die Zwischenabnahme: [`minigames/pilotwelle.md`](minigames/pilotwelle.md).
+
+**Verfahren:** Toaster-Timing als Referenz vom Koordinator gebaut (alle Andockstellen: Katalog, `lazy.ts`, Steckbrief, Fairness über das neue `checks/kitHarness.ts`, Darstellungs-Rollen); die übrigen sieben Spiele von vier Agenten parallel in eigenen Worktrees nach demselben Auftrag, je Spiel Regeln schärfen → Bot-Partien → Szene → Bild ansehen. Steckbriefe vorab zentral festgelegt (jedes Paar ≥ 3 von 7 Merkmalen verschieden).
+
+**Messgrößen:** Fairness-Vorlage (200 Seeds je Tisch: Gleichstand, Abstand 1–2, Führungswechsel, Neuling und Profi gegen drei Normale, Eindringlinge), KI-Stärke (zwei „schwer“ gegen zwei „leicht“ über die echte Laufzeit, 16–40 Seeds), Zeilen je Datei nach Prettier, Arbeitszeit, Ausfallquote.
+
+**Testumgebung:** MacBook, Node 26, `PRUEFBERICHT=1 PRUEFBERICHT_NUR=<id> FAIRNESS_SEEDS=200 pnpm exec vitest run packages/minigames/src/checks --silent=false`; Stärke mit `botStrengthDuel` (`packages/minigames/src/checks/botStrength.ts`). Alles Bot gegen Bot, kein Spieltest.
+
+**Ergebnisse je Spiel** (Endfassung; Spalten wie im Prüfbericht):
+
+| Spiel | Gleichst. | Abstand | Wechsel | Neuling | Profi | Eindringling max. | schwer/leicht | Zeilen |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| MG-033 Toaster-Timing | 5 % | 10 % | 9,2 | 8 % | 75 % | 0,00 Dauerdrücken | 1,00 | 521 |
+| MG-001 Nussregen-Netz | 1 % | 21 % | 4,9 | 18 % | 57 % | 0,00 immer weit schwingen | 0,75 | 655 |
+| MG-121 Matschmaler | 10 % | 14 % | 17,0 | 20 % | 45 % | 0,83 Dauerplatschen | 0,74 | 593 |
+| MG-011 Rasensprenger-Rodeo | 2 % | 2 % | 3,6 | 8 % | 52 % | 1,06 Dauerdrücken | 1,00 | 645 |
+| MG-045 Schnapp den Käse | 6 % | 15 % | 5,9 | 11 % | 44 % | 0,76 greift beim Zucken | 0,84 | 500 |
+| MG-023 Eiswürfel-Sumo | 3 % | 23 % | 2,0 | 7 % | 30 % | 0,88 Dauerrempler | 0,85 | 625 |
+| MG-101 Bienenstock-Honig | 2 % | 13 % | 5,7 | 7 % | 51 % | 0,92 nur zapfen | 0,95 | 618 |
+| MG-111 Drei Türen | 2,5 % | 40 % | 1,1 | 21 % | 35 % | 1,15 stur | 0,71 (mittel/leicht 0,50) | 696 |
+
+**Verworfene Varianten** (Auszug, volle Liste in den Commit-Nachrichten und `pilotwelle.md`):
+- **Toaster-Timing:** keine; die erste Fassung (Punkte 10 − 25 × |Bräunung − 0,9|, je Toast ein Tempo aus vier) bestand.
+- **Nussregen-Netz:** keine; ein Bot, der nie weit schwingt, kommt auf Faktor 0,90 (der Kniff zählt, ohne zu dominieren).
+- **Matschmaler:** M1 (14×10, Tempo 5, Regen alle 5 s): Profi 19 %, schlechter als der Neuling, weil alle guten Bots zur selben Stelle liefen; M2/M3 (Ausrutschen, Gedränge im Bot) ohne Wirkung bzw. Stärke 0,63; M3e (großer Platscher): Dauerplatschen 1,80 dominant; Endphase mit dichtem Regen griff nie und ist gestrichen. Gewählt: 16×12 Felder, Tempo 4 (schwer/leicht 0,74, knapp).
+- **Rasensprenger-Rodeo:** V1 Punkte = Herzen: 74 % Gleichstand, 0,01 Wechsel; Rodeo-Bonus (dicht am Strahl) und Stotter-Umkehr eingeführt; ohne Sprenger als Hindernis fiel der Profi auf 24,5 %. Letzter Schritt war Bot-Kalibrierung (Urteil: zweitbester statt zufälliger Punkt).
+- **Schnapp den Käse:** V1 (0,4 s je Scheibe, höchstens 8): Dauerdrücken 0,87, Profi 34 %; über V2/V3 zur Endfassung (Zuschnappen 1,0–4,0 s, Pfote 0,5 s länger als die Warnung).
+- **Eiswürfel-Sumo:** harte Stöße (7,5 m/s): 5–9 Stürze je Spieler, Bots rempelten aus Angst vor Rückstoß nicht mehr; Punkte 30/20 und 40/25: Profi 24 % (Physik-Zufall); erst Treffer nur im Vorwärtskegel brachte den Profi auf 30 %.
+- **Bienenstock-Honig:** V1 (Stichrate niedriger): Gierhals Faktor 1,93, Profi 12 %; gewählt: Stichrate 8 × Stockwut × Wut^1,5, Anflug 1,1–0,8 s angekündigt.
+- **Drei Türen:** V1 Gewohnheits-Modell: Profi 14 %, Gierhals 2,00; V2–V4 Rang-Modell, Denken mit judgement³, 8 Runden: Fairness besteht, aber KI-Stärke mittel/leicht 0,50 (zwei gleich starke Bots kollidieren an derselben Tür); drei Versuche am Bot-Modell ohne Erfolg.
+
+**Aufwand:** Mittel 607 Zeilen Spielcode (Ziel ≤ 500, verfehlt), 118 Zeilen Tests (≤ 300); Bestandsspiele ohne Baukasten 1 430–1 880. Etwa 1,5 h je Spiel (0,75–2,5 h). Größter Posten ist die Szene (Rahmen und Grundkörper-Requisiten), bei Havok die Figuren-Physik.
+
+**Entscheidung:** **Behalten**: sieben Spiele in die Rotation (`ROTATION`, hinten angehängt), Drei Türen **spielbar, nicht in der Rotation** (Galerie). Fabrik grundsätzlich bestätigt (Ausfall 1/8, alle Familien und Bedienungen machbar), Zeilenziel nur mit Baukasten-Rahmen erreichbar (Folgeaufgabe). Offen für Ruben (CHAOS-92): Fühlen sich die Spiele verschieden an (besonders Toaster-Timing ↔ Schnapp den Käse)? Tempo von Eiswürfel-Sumo und Bienenstock-Honig? Lohnt Drei Türen den Umbau?
