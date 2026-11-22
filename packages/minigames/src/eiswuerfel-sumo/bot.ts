@@ -10,24 +10,12 @@ import {
   pawnBotDriver,
   pawnSkillForStrength,
   type PawnBotSkill,
+  type PawnBotView,
   type PawnDecision,
 } from '@chaos-party/minigame-kit';
-import type {
-  MinigameBotDriver,
-  MinigameBotOptions,
-  MinigameRng,
-  Slot,
-} from '@chaos-party/minigame-sdk';
+import type { MinigameBotDriver, MinigameBotOptions, MinigameRng } from '@chaos-party/minigame-sdk';
 
-export interface SumoBotPawn {
-  readonly slot: Slot;
-  readonly x: number;
-  readonly z: number;
-  readonly vx: number;
-  readonly vz: number;
-  readonly out: boolean;
-  readonly canDash: boolean;
-}
+export type SumoBotPawn = PawnBotView;
 
 /** Halbe Kante jetzt und nach dem angekündigten Schmelzen (nasser Rand). */
 export interface SumoBotView {

@@ -102,6 +102,18 @@ Der Mindestabstand ist `MIN_DIFFERENCES = 3` Merkmale zum ähnlichsten Spiel (RE
 - Arena-Vorlagen und Orte sind bisher nur Farbwelten mit Grundkörpern. Ob sie am Fernseher unterscheidbar genug wirken, zeigt erst die Pilotwelle (CHAOS-91) und die Zwischenabnahme (CHAOS-92).
 - Pudding-Gerangel, Wackelturm, Kuckucks-Klatsche und Krümel-Kehraus nutzen erst einzelne Bausteine. Weiter umgestellt wird nur, wenn ein Spiel ohnehin angefasst wird.
 
+## Nachtrag 1 (2026-11-22, CHAOS-241): Havok-Figur und Havok-Harness
+
+Die Pilotwelle (CHAOS-91) zeigte, dass jedes Physik-Spiel dieselbe Figuren-Physik und denselben headless Fairness-Harness neu schreibt (Eiswürfel-Sumo ≈ 105 + 55 Zeilen). 28 % des Katalogs sind Physik-Skizzen. Darum kommen in den Baukasten:
+
+- **`havokPawn(stage, player, opts)` → `HavokPawn`** (`minigame-kit/babylon/pawn.ts`): aufrechte Kapsel (Trägheit 0, Füße am Knotenursprung), `input` (Stick, Blick, A vormerken), `steer(now, dt)` (Antritt setzt das Tempo in Blickrichtung, Abklingzeit, Lenkpause, sonst Lenk-Impuls aus `steeringDeltaV`), `park`/`recall`/`teleport` mit `settle()` am Anfang jedes `update` (`disablePreStep`), `view(now)` als `PawnBotView` für Bots und `show(...)` für Figur und Animation. Wann gelenkt wird (auf dem Boden, auf dem Eis), entscheidet das Spiel.
+- **`bonkPawns(pawns, now)`** löst Rempler auf (Treffer im Vorwärtskegel in Reichweite, Stoß für das Opfer, Rückstoß und Lenkpausen) und meldet sie; Punkte, Gutschrift und Geräusch macht das Spiel (`bonkFx` für die übliche Wirkung).
+- **`HavokBlock`**: statischer Körper mit tauschbarer Box (schmelzende Scholle, schrumpfende Insel).
+- **Eckige Insel**: `arenaLayout({ form: 'insel', halfX, halfZ })` mit Kante ringsum (`offEdge` über die Ecke), `buildArena` baut Block und Deckel.
+- **`havokHarness`** (`packages/minigames/src/checks/havokHarness.ts`), Gegenstück zu `kitHarness`: echtes Modul headless, Instanz über `create`, sichtbare Lage über `view`, Entscheid je Platz und Strategie über `decide`, getaktet wie `pawnBotDriver` (auch der erste Plan sofort), Können `PAWN_BOT_SKILLS`, Führungswechsel über `LeadCounter`.
+
+Umgestellt: Eiswürfel-Sumo (Spielcode 625 → 500 Zeilen; Physik und KI-Partien bit-gleich, der Harness plant jetzt wie der Laufzeit-Bot gleich im ersten Schritt, Zahlen bei 200 Seeds weiter in allen Schwellen) und der Fairness-Harness von Pudding-Gerangel (bit-gleiche Zahlen). Pudding-Gerangel und Krümel-Kehraus behalten ihre eigene Figuren-Physik: Pudding rempelt additiv ohne Vorwärtskegel und mit Führungs-Zuschlag auf einem kippenden Pudding, Krümel misst seine Fairness über die Simulation aus EXP-023. Eine Umstellung würde Verhalten und Baselines ändern, ohne dass die Spiele ohnehin angefasst werden (Regel aus „Negativ / Risiken“).
+
 ## Überprüfung
 
 Neu bewerten bei der Zwischenabnahme nach der Pilotwelle (CHAOS-92): Liegen die Pilot-Spiele bei höchstens 500 Zeilen Spielcode? Fühlen sie sich verschieden an? Wenn Spiele den Baukasten umgehen müssen, um ihren Kniff zu bauen, ist ein Baustein zu eng geschnitten.

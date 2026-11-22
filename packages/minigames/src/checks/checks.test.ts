@@ -33,7 +33,11 @@ import {
   type FairnessReport,
 } from './fairness.ts';
 import { FAIRNESS_HARNESSES } from './harnesses.ts';
+import { havokHarness } from './havokHarness.ts';
 import { dauerDruecker, kitHarness } from './kitHarness.ts';
+import { sumoDecision } from '../eiswuerfel-sumo/bot.ts';
+import { EiswuerfelSumo } from '../eiswuerfel-sumo/index.ts';
+import { EISWUERFEL_SUMO_INFO } from '../eiswuerfel-sumo/info.ts';
 import { HALLO_BOT_ADAPTER } from '../hallo-baukasten/bot.ts';
 import { HALLO_BAUKASTEN_INFO } from '../hallo-baukasten/info.ts';
 import type { Steckbrief } from '@chaos-party/minigame-kit';
@@ -147,6 +151,29 @@ describe('Bot-Fairness: Bausteine', () => {
     );
     const report = await measureFairness(harness);
     expect(report.intruders).toHaveLength(1);
+  });
+
+  it('Havok-Anbindung (havokHarness) spielt das echte Modul mit Strategie je Platz', async () => {
+    const strategies: string[] = [];
+    const harness = havokHarness({
+      info: EISWUERFEL_SUMO_INFO,
+      create: () => new EiswuerfelSumo(),
+      view: (game) => game.view(),
+      pawns: (view) => view.pawns,
+      decide: (me, view, skill, rng, strategy) => {
+        strategies.push(`${me.slot}:${strategy}`);
+        return sumoDecision(me, view, skill, rng, strategy === 'mitte' ? 'mitte' : 'normal');
+      },
+      intruders: [{ id: 'dauer', label: 'Dauerrempler' }],
+    });
+    expect(harness.ciSeeds).toBe(8);
+    expect(harness.scoring).toBe('higher');
+    const seats = [{ skill: 'profi' as const }, { skill: 'neuling' as const, strategy: 'mitte' }];
+    const match = await harness.play(seats, 2);
+    expect(match.scores).toHaveLength(2);
+    // Gleich zu Beginn plant jeder Platz (wie `pawnBotDriver`), danach im Takt seines Könnens.
+    expect(strategies.slice(0, 2)).toEqual(['1:normal', '2:mitte']);
+    expect(await harness.play(seats, 2)).toEqual(match);
   });
 
   it('Wilson-Bereich wird mit mehr Seeds enger', () => {

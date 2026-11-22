@@ -435,6 +435,19 @@ export interface PawnDecision {
   readonly dash: boolean;
 }
 
+/** Was ein Figuren-Bot von einer Figur sieht (`HavokPawn.view`, CHAOS-241). */
+export interface PawnBotView {
+  readonly slot: Slot;
+  readonly x: number;
+  readonly z: number;
+  /** Rutschen (waagrechte Geschwindigkeit). */
+  readonly vx: number;
+  readonly vz: number;
+  /** Gefallen bzw. geparkt. */
+  readonly out: boolean;
+  readonly canDash: boolean;
+}
+
 /** Richtung (dx, dz) → Stick mit gleichverteiltem Zielfehler ±`noise` und Tempo `speed`. */
 export function aim(
   dx: number,
