@@ -175,7 +175,8 @@ class DreiTueren implements Sdk.Minigame {
       const bottom = LEAF_SIZE.bottom * SCALE.tuer;
       const hinge = [x + LEAF_SIZE.half * SCALE.tuer, bottom - 0.1, DOOR_Z - 0.1];
       this.leaves.push(part(stage, 'tuerblatt', door, hinge, { role: 'tuerblatt', color }).node);
-      this.doorways.push(part(stage, 'oeffnung', door, [x, bottom - 0.1, DOOR_Z - 0.08]).node);
+      const opening = [x, bottom - 0.1, DOOR_Z - 0.08];
+      this.doorways.push(part(stage, 'oeffnung', door, opening, { role: 'oeffnung' }).node);
       // Schild über der Tür (Requisit) vor einem Rahmen, der die letzte Runde zeigt.
       const sign = stage.prop('tuerschild', {
         role: 'tuerschild',
