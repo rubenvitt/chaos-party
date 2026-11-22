@@ -65,6 +65,7 @@
         "long": "5 im Topf"
       }
     },
+    "galleryRevision": 0,
     "players": [
       {
         "slot": 1,
@@ -407,7 +408,9 @@
           "coins": 2,
           "prizes": []
         }
-      ]
+      ],
+      "practice": false,
+      "practiceNote": null
     },
     "effects": [],
     "geometry": [],

@@ -21,6 +21,9 @@ interface HostEnv {
   joinCode: string;
   deferSceneReady?: boolean;                         // true: host-ready erst nach sceneReady() (CHAOS-142)
   tailwind?: boolean;                                // true: Regel Rückenwind an (CHAOS-188, wie RUECKENWIND=1 am PC)
+  ratings?: string | null;                           // gespeicherte Stimmen-Datei (CHAOS-220), Format wie am Node-Server
+  saveRatings?(json: string): void;                  // nach jeder Stimme der ganze neue Dateiinhalt (CHAOS-220)
+  ratingsUnreadable?(reason: string): void;          // `ratings` unlesbar: Swift legt die Datei beiseite (CHAOS-220)
   rapidFire?: string;                                // Schnellfeuer: an|aus|ereignis|halbzeit|finale (CHAOS-232, wie SCHNELLFEUER am PC)
   storage?: { getItem(key: string): string | null;   // überdauert Neustarts (CHAOS-216); Swift: UserDefaults,
               setItem(key: string, value: string): void }; // Schlüssel mit Präfix „js.“
@@ -35,15 +38,21 @@ interface ChaosHostInstance {
   tick(nowMs: number): void; // ~60× pro s (Anzeige-Takt), monotone ms-Uhr; treibt
   // Zeitgeber, Session-Fristen und 1/60-Schritte der Minispiele
   renderState(): string; // JSON, siehe unten; je Bild nach tick
-  hostCommand(cmd: string): void; // 'start' | 'pause' | 'resume' | 'end-game' | 'rematch' | 'configure:…' | 'skip-finale'
+  hostCommand(cmd: string): void; // 'start' | 'pause' | 'resume' | 'end-game' | 'rematch' | 'configure:…' | 'practice:<id>' | 'skip-finale'
   //                                 | 'minigame:favorite=<id>' | 'minigame:blocked=<id>' (CHAOS-216)
   sceneReady(): void; // Brett und Figuren geladen → host-ready (CHAOS-68/142)
+  gallery(): string; // JSON nach GalleryStateSchema: Minispiel-Galerie mit Daumen (CHAOS-220)
+  ratingsExport(): string; // JSON wie /ratings.json am Node-Server (CHAOS-220)
 }
 ```
 
 `configure` (CHAOS-166): `configure:rounds=12`, `configure:moreReactionTime=1` (`0`/`1`/`true`/`false`), `configure:board=wackelwald` (Brett-ID oder `zufall`, CHAOS-197), `configure:minigameBlocklist=wackelturm+sockenregen,minigameFavorites=` (ganze Listen der Minispiel-Rotation, `+` trennt, leer = keine, CHAOS-216), `configure:aiSeat=3:mittel` bzw. `configure:aiSeat=3:aus` (KI-Platz setzen, Stärke ändern oder entfernen, CHAOS-179; einen Platz mit Mensch lehnt der Server mit `bad-message` ab) oder mehreres mit Komma, `configure:rounds=12,moreReactionTime=1`. Runden 1–20; ein unbekanntes Brett lehnt der Server ab (Log „Server-Fehler an Host: bad-message …“). Wirkt nur in der Lobby; außerhalb loggt der Kern „ignoriert: nur in der Lobby“, Ungültiges „Ungültiger Host-Befehl“, gesendet wird dann nichts. Der neue Stand steht im nächsten `renderState().lobby.settings`.
 
 Minispiel-Rotation (CHAOS-216, wie der Dialog „Minispiele“ am PC, CHAOS-85): `minigame:favorite=<id>` bzw. `minigame:blocked=<id>` schaltet ein Spiel der Rotation um. Der Kern rechnet den neuen Stand aus dem Server-Stand (`toggleMinigame`: Favorit und Sperre schließen sich aus), speichert ihn in `env.storage` (Schlüssel `chaos-party:minigame-rotation`, JSON `{ blocklist, favorites }`, wie `localStorage` am PC) und schickt ihn als `configure`. Auch ganze Listen per `configure:minigame…` werden gespeichert. Beim ersten Lobby-Stand mit Rotation schickt der Kern den gespeicherten Stand an die frische Session (Log „Minispiel-Rotation aus dem Speicher: …“). Nur in der Lobby; ein Spiel außerhalb der Rotation loggt „ignoriert: Minispiel nicht in der Rotation“. Ohne `env.storage` oder bei kaputtem Inhalt gilt der Stand nur bis zum Beenden.
+
+`practice:<id>` (CHAOS-220): Übungsrunde aus der Galerie, wie „Üben“ am PC-Host (CHAOS-87): `start` mit `practice` an den Server, ein Minispiel ohne Münzen, danach zurück in die Lobby. Nur in der Lobby und nur mit einer Kennung aus `gallery()`; sonst loggt der Kern „ignoriert: nur in der Lobby“ bzw. „ignoriert: Minispiel nicht in der Galerie“, eine Kennung in falscher Form „Ungültiger Host-Befehl“. Ohne verbundenen Controller lehnt der Server ab (`out-of-phase`); die App bietet „Üben“ darum erst ab einem verbundenen Handy an.
+
+**Minispiel-Galerie und Stimmen (CHAOS-220):** Die Session hält die Daumen-Stimmen wie am Node-Server (`apps/server/src/ratings.ts`). Beim Start gibt Swift den gespeicherten Inhalt als `env.ratings` hinein (Format `{ "version": 1, "votes": [...] }`, `parseRatingsFile`); nach jeder Stimme ruft der Kern `env.saveRatings` mit dem ganzen neuen Inhalt (`serializeRatingsFile`). Ist `ratings` unlesbar, loggt der Kern „WARN Stimmen-Datei unlesbar …“, beginnt ohne Stimmen und ruft `env.ratingsUnreadable`; Swift legt die Datei dann beiseite (`app/RatingsStorage.swift`: Mac `~/Library/Application Support/Chaos Party/minispiel-stimmen.json`, tvOS `UserDefaults`). `renderState().lobby.galleryRevision` steigt mit jeder gespeicherten Stimme; nur dann holt Swift `gallery()` (Zeilen wie `galleryRows` am PC: Status, Kategorie, Familie, Bedienung, Sekunden, Daumen, `votesText`, Rauswurf-Vorschlag) und am Mac `ratingsExport()` als Datei fürs Teilen-Menü. Im Ergebnis einer Übungsrunde ist `minigame.results.practice` wahr, `coins` je Zeile `null` und `practiceNote` der Hinweis „Übungsrunde – keine Münzen …“.
 
 `pause`, `resume`, `end-game` und `rematch` (CHAOS-145) gehen nur an den Server, wenn sie passen: `pause` nur bei `renderState().pause.canPause` (Brett und Minispiel, nicht vor dem Start und nicht im Finale), `resume` nur in der Pause, `end-game` nur in der laufenden Partie, `rematch` nur im Finale. Sonst loggt der Kern „Host-Befehl … ignoriert: passt gerade nicht“ (kein Server-Fehler; die Fernbedienung drückt man auch in der Lobby). `skip-finale` wirkt nur im Kern: Die Trophäenzählung springt zum Siegerbildschirm.
 

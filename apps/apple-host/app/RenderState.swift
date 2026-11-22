@@ -20,6 +20,8 @@ struct RenderState: Decodable, Equatable {
         var players: [Player]?
         /// Einstellungen der nächsten Partie (CHAOS-166); null, bis die Host-Rolle ihre erste `lobby` hat.
         var settings: LobbySettings?
+        /// Stand der Minispiel-Galerie (CHAOS-220): ändert er sich, holt die App `gallery()` neu.
+        var galleryRevision: Int?
     }
 
     /// Server-Stand der Lobby-Einstellungen; ändern über `hostCommand("configure:…")`.
@@ -467,6 +469,9 @@ struct RenderState: Decodable, Equatable {
         var headline: String?
         var rows: [ResultRow]?
         var highlights: [String]?
+        /// Übungsrunde aus der Galerie (CHAOS-220): keine Münzen, `practiceNote` unter den Plätzen.
+        var practice: Bool?
+        var practiceNote: String?
     }
 
     struct ResultRow: Decodable, Equatable {
@@ -649,5 +654,40 @@ extension RenderState.Geometry {
         let e = extent ?? []
         return DecodedGeometry(positions: positions, normals: normals, indices: indices,
                                extent: e.count == 3 ? SIMD3(e[0], e[1], e[2]) : .zero)
+    }
+}
+
+/// `gallery()` of the JS core (CHAOS-220, `GalleryStateSchema` in `src/contract.ts`): all minigames the gallery can
+/// start, with thumbs. Fetched only when `renderState().lobby.galleryRevision` changes. Lenient like `RenderState`.
+struct GalleryState: Decodable, Equatable {
+    var revision: Int
+    /// Alle gespeicherten Stimmen (auch zu Spielen, die es nicht mehr gibt).
+    var votes: Int?
+    var rows: [Row]
+
+    struct Row: Decodable, Equatable, Identifiable, Hashable {
+        var id: String
+        var title: String
+        var tagline: String?
+        /// `rotation` (kommt in Partien vor) oder `spielbar` (nur über die Galerie).
+        var status: String?
+        /// „Rotation“, „Spielbar“.
+        var statusLabel: String?
+        /// „Arcade“, „Physik“, „Hybrid“.
+        var category: String?
+        var family: String?
+        /// „Stick: Laufen · A: Springen“.
+        var controls: String?
+        var seconds: Int?
+        var up: Int?
+        var down: Int?
+        /// „Noch keine Stimmen“, „1 Stimme“, „7 Stimmen“.
+        var votesText: String?
+        /// Rotation, genug Stimmen, überwiegend Daumen runter: Rauswurf vorschlagen (Ruben entscheidet).
+        var suggestRemoval: Bool?
+    }
+
+    static func decode(_ json: String) throws -> GalleryState {
+        try JSONDecoder().decode(GalleryState.self, from: Data(json.utf8))
     }
 }

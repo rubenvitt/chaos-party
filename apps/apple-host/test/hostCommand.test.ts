@@ -8,6 +8,26 @@ describe('parseHostCommand', () => {
     }
   });
 
+  it('liest practice mit Minispiel-Kennung (CHAOS-220)', () => {
+    expect(parseHostCommand('practice:sockenregen')).toEqual({
+      type: 'practice',
+      minigameId: 'sockenregen',
+    });
+    // Form stimmt, Spiel unbekannt: der Kern prüft gegen die Galerie, der Server noch einmal.
+    expect(parseHostCommand('practice:gibt-es-nicht')).toEqual({
+      type: 'practice',
+      minigameId: 'gibt-es-nicht',
+    });
+    for (const bad of [
+      'practice:',
+      'practice:Socken Regen',
+      'practice:ab',
+      'practice:x'.padEnd(50, 'x'),
+    ]) {
+      expect(parseHostCommand(bad)).toBeNull();
+    }
+  });
+
   it('kennt den lokalen Befehl skip-finale (CHAOS-145)', () => {
     expect(parseHostCommand('skip-finale')).toEqual({ type: 'skip-finale' });
   });

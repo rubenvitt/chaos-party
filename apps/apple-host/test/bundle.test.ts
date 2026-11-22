@@ -85,6 +85,8 @@ describe('Bündel', () => {
       joinUrl: 'http://10.0.0.5:8787/?code=WXYZ',
       joinCode: 'WXYZ',
       players: [],
+      // Galerie ohne Stimmen (CHAOS-220).
+      galleryRevision: 0,
       // Die Host-Rolle hat die erste `lobby` schon in `create` (Verbindung im Prozess).
       settings: {
         rounds: 10,
