@@ -161,13 +161,10 @@ describe('Minispiel-Galerie am Apple-Host (CHAOS-220)', () => {
     expect(before.rows[0]?.votesText).toBe('Noch keine Stimmen');
     expect(h.state().lobby.galleryRevision).toBe(0);
 
-    // Kürzestes Spiel ohne Physik, damit der Test schnell bleibt; ohne Teams, denn den
-    // Team-Ausgang liefert der Apple-Host erst mit CHAOS-230.
+    // Kürzestes Spiel ohne Physik, damit der Test schnell bleibt; seit CHAOS-230 dürfen das auch
+    // die Team-Testspiele sein (Team-Ausgang im Ergebnis).
     const target = [...before.rows]
-      .filter((row) => {
-        const info = getMinigameInfo(row.id);
-        return info?.physics !== true && info?.teamPlay === undefined;
-      })
+      .filter((row) => getMinigameInfo(row.id)?.physics !== true)
       .sort((a, b) => a.seconds - b.seconds)[0];
     if (!target) throw new Error('kein Spiel in der Galerie');
 
