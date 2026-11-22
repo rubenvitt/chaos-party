@@ -76,6 +76,17 @@ export const STECKBRIEFE: Readonly<Record<string, Steckbrief>> = {
     tempo: 'wechselnd',
     ort: 'teich',
   },
+  // Pilotwelle (CHAOS-91): Abstand ≥ 3 zur Rotation und untereinander.
+  'toaster-timing': {
+    kernverb: 'timen',
+    ziel: 'genau',
+    arena: 'eigenbereiche',
+    kamera: 'fest',
+    bedienung: 'A',
+    spielform: 'FFA',
+    tempo: 'ruhig',
+    ort: 'kueche',
+  },
   // Testspiel der Spielform 2v2 (CHAOS-89), nicht in der Rotation: bewusst nah an der Pump-Parade.
   'pump-duell': {
     kernverb: 'pumpen',

@@ -15,6 +15,8 @@ import { PAWN_BOT_SKILLS } from '@chaos-party/minigame-kit';
 import { createMinigameRng, type Slot } from '@chaos-party/minigame-sdk';
 import { runMinigameHeadless } from '@chaos-party/minigame-sdk/testing';
 import { KRUEMEL_KEHRAUS_INFO } from '../kruemel-kehraus/info.ts';
+import { TOASTER_BOT_ADAPTER } from '../toaster-timing/bot.ts';
+import { TOASTER_TIMING_INFO } from '../toaster-timing/info.ts';
 import { KUCKUCKS_KLATSCHE_INFO } from '../kuckucks-klatsche/info.ts';
 import { PUDDING_GERANGEL_INFO } from '../pudding-gerangel/info.ts';
 import { SOCKENREGEN_INFO } from '../sockenregen/info.ts';
@@ -44,6 +46,7 @@ import {
   type FairnessSeat,
   type FairnessSkill,
 } from './fairness.ts';
+import { dauerDruecker, kitHarness } from './kitHarness.ts';
 
 const ARCADE_PROFILES: Record<FairnessSkill, BotProfile> = {
   profi: BOT_PROFILES.profi,
@@ -247,4 +250,10 @@ export const FAIRNESS_HARNESSES: Readonly<Record<string, FairnessHarness>> = {
     ciSeeds: 8,
     play: playKruemel,
   },
+  // Pilotwelle (CHAOS-91): Baukasten-Spiele über `kitHarness`.
+  [TOASTER_TIMING_INFO.id]: kitHarness({
+    info: TOASTER_TIMING_INFO,
+    adapter: TOASTER_BOT_ADAPTER,
+    intruders: [dauerDruecker(['a'], 'Dauerdrücken (Toast sofort raus)')],
+  }),
 };

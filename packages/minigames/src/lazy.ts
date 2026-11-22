@@ -26,6 +26,7 @@ import { PUMP_RIESE_INFO } from './pump-riese/info.ts';
 import { PUMP_SOLO_INFO } from './pump-solo/info.ts';
 import { SCHNELLFEUER_INFO } from './schnellfeuer/info.ts';
 import { SOCKENREGEN_INFO } from './sockenregen/info.ts';
+import { TOASTER_TIMING_INFO } from './toaster-timing/info.ts';
 import { WACKELTURM_INFO } from './wackelturm/info.ts';
 
 export * from './catalog.ts';
@@ -56,6 +57,8 @@ export const MINIGAME_LOADERS: ReadonlyMap<string, MinigameLoader> = new Map<
     HALLO_BAUKASTEN_INFO.id,
     () => import('./hallo-baukasten/index.ts').then((m) => m.halloBaukasten),
   ],
+  // Pilotwelle (CHAOS-91).
+  [TOASTER_TIMING_INFO.id, () => import('./toaster-timing/index.ts').then((m) => m.toasterTiming)],
   // Testspiele der Spielformen (CHAOS-89).
   [PUMP_DUELL_INFO.id, () => import('./pump-duell/index.ts').then((m) => m.pumpDuell)],
   [PUMP_SOLO_INFO.id, () => import('./pump-solo/index.ts').then((m) => m.pumpSolo)],

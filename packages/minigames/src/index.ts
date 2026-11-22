@@ -16,6 +16,7 @@ import { pumpRiese } from './pump-riese/index.ts';
 import { pumpSolo } from './pump-solo/index.ts';
 import { schnellfeuer } from './schnellfeuer/index.ts';
 import { sockenregen } from './sockenregen/index.ts';
+import { toasterTiming } from './toaster-timing/index.ts';
 import { wackelturm } from './wackelturm/index.ts';
 
 export * from './catalog.ts';
@@ -28,6 +29,7 @@ export const MINIGAME_MODULES: readonly MinigameModule[] = [
   kuckucksKlatsche,
   kruemelKehraus,
   halloBaukasten,
+  toasterTiming,
   pumpDuell,
   pumpSolo,
   pumpRiese,
