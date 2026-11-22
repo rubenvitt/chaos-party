@@ -173,12 +173,17 @@ struct LobbyView: View {
     #endif
 
     private var players: [RenderState.Player] { overlay.players.sorted { $0.slot < $1.slot } }
-    private var canStart: Bool { overlay.sceneLoaded && !players.isEmpty && players.allSatisfy { $0.ready == true } }
+    /// Start ab einem verbundenen Menschen, wenn alle bereit sind (KI ist immer bereit; ADR-020 §1, CHAOS-182).
+    private var canStart: Bool {
+        overlay.sceneLoaded && players.contains { !$0.isAi && $0.connected != false } && players.allSatisfy { $0.ready == true }
+    }
     /// Üben wie im Babylon-Host: ab einem verbundenen Controller, bereit muss niemand sein (CHAOS-220).
     private var canPractice: Bool { overlay.sceneLoaded && players.contains { $0.connected != false } }
     private var hint: String {
         if !overlay.sceneLoaded { return overlay.status.hasPrefix("Fehler") ? overlay.status : "Brett lädt …" }
         if players.isEmpty { return "Warte auf Spieler …" }
+        if !players.contains(where: { !$0.isAi && $0.connected != false }) { return "Mindestens ein Mensch mit Handy muss dabei sein" }
+        if players.count == 1 { return "Allein? Hol dir eine KI dazu (+ KI)" }
         let waiting = players.filter { $0.ready != true }.count
         return waiting == 0 ? "Alle bereit!" : waiting == 1 ? "Ein Spieler ist noch nicht bereit" : "\(waiting) Spieler sind noch nicht bereit"
     }
@@ -242,7 +247,7 @@ struct LobbyView: View {
                 .frame(width: 1068)
                 LazyVGrid(columns: [GridItem(.fixed(520), spacing: 28), GridItem(.fixed(520))], spacing: 28) {
                     ForEach(1...4, id: \.self) { slot in
-                        PlayerCard(slot: slot, player: players.first { $0.slot == slot })
+                        PlayerCard(slot: slot, player: players.first { $0.slot == slot }, command: command)
                     }
                 }
                 LobbySettingsView(settings: overlay.settings, playerCount: players.count, command: command)
@@ -291,9 +296,12 @@ struct LobbyView: View {
 }
 
 /// Spielerkarte: Porträt der Figur mit Akzent in Slot-Farbe, Name, Figur, verbunden/bereit.
+/// KI-Plätze (CHAOS-182, ADR-020): freier Platz mit „+ KI“, KI-Karte mit Abzeichen, Stärke als Wechselknopf und
+/// „Entfernen“, je als `configure:aiSeat=<platz>:<stärke|aus>`. Am Mac per Maus, an der Apple TV per Fernbedienung.
 struct PlayerCard: View {
     let slot: Int
     let player: RenderState.Player?
+    var command: ((String) -> Void)? = nil
 
     private static let names = ["robot": "Schraubi", "cactus": "Kalle Kaktus", "raccoon": "Wusel", "sock": "Socke Sigi"]
     private static let fallbackColors = ["#0072B2", "#D55E00", "#009E73", "#CC79A7"]
@@ -306,7 +314,9 @@ struct PlayerCard: View {
                 .background(color.opacity(0.25), in: .rect(cornerRadius: 22))
                 .opacity(player?.character == nil ? 0.35 : 1)
             VStack(alignment: .leading, spacing: 8) {
-                if let player {
+                if let player, player.isAi {
+                    aiContent(player)
+                } else if let player {
                     Text(player.name ?? "Spieler \(slot)").font(.system(size: 38, weight: .heavy, design: .rounded)).lineLimit(1)
                     Text(player.character.flatMap { Self.names[$0] } ?? "wählt noch …")
                         .font(.system(size: 24, weight: .medium, design: .rounded)).foregroundStyle(.white.opacity(0.8))
@@ -315,7 +325,7 @@ struct PlayerCard: View {
                         chip(player.ready == true ? "bereit ✓" : "nicht bereit", player.ready == true ? .green : .white.opacity(0.35))
                     }
                 } else {
-                    Text("Platz \(slot) frei").font(.system(size: 32, weight: .bold, design: .rounded)).foregroundStyle(.white.opacity(0.6))
+                    freeContent
                 }
             }
             Spacer(minLength: 0)
@@ -326,6 +336,50 @@ struct PlayerCard: View {
         .overlay {
             RoundedRectangle(cornerRadius: 28)
                 .strokeBorder(player == nil ? Color.white.opacity(0.3) : color, style: StrokeStyle(lineWidth: player == nil ? 3 : 6, dash: player == nil ? [12, 10] : []))
+        }
+    }
+
+    /// KI-Karte: Name mit Abzeichen, Stärke als Wechselknopf und „Entfernen“ (ohne `command` nur die Stärke).
+    @ViewBuilder private func aiContent(_ player: RenderState.Player) -> some View {
+        let strength = player.strength
+        let next = AiStrength.next(after: strength)
+        HStack(spacing: 12) {
+            Text(player.name ?? "KI").font(.system(size: 34, weight: .heavy, design: .rounded)).lineLimit(1)
+            AiBadge(text: AiStrength.badge, size: 24)
+        }
+        Text("Figur beim Start").font(.system(size: 22, weight: .medium, design: .rounded)).foregroundStyle(.white.opacity(0.8))
+        if let command {
+            HStack(spacing: 12) {
+                Button { command("configure:aiSeat=\(slot):\(next)") } label: {
+                    Text("\(AiStrength.name(strength)) ›").font(.system(size: 22, weight: .heavy, design: .rounded))
+                        .padding(.horizontal, 16).frame(height: 44)
+                }
+                .buttonStyle(LobbyChoiceStyle(selected: false))
+                .accessibilityLabel("Stärke \(AiStrength.name(strength)), weiter zu \(AiStrength.name(next))")
+                Button { command("configure:aiSeat=\(slot):aus") } label: {
+                    Text("Entfernen").font(.system(size: 22, weight: .bold, design: .rounded))
+                        .padding(.horizontal, 16).frame(height: 44)
+                }
+                .buttonStyle(LobbyChoiceStyle(selected: false))
+            }
+        } else {
+            chip(AiStrength.name(strength), .white.opacity(0.35))
+        }
+    }
+
+    /// Freier Platz, mit `command` und „+ KI“ (Stärke mittel).
+    @ViewBuilder private var freeContent: some View {
+        Text("Platz \(slot) frei").font(.system(size: 32, weight: .bold, design: .rounded)).foregroundStyle(.white.opacity(0.6))
+        if let command {
+            Button { command("configure:aiSeat=\(slot):\(AiStrength.standard)") } label: {
+                HStack(spacing: 10) {
+                    Text("+").font(.system(size: 26, weight: .heavy, design: .rounded))
+                    AiBadge(text: AiStrength.badge, size: 22)
+                }
+                .padding(.horizontal, 18).frame(height: 48)
+            }
+            .buttonStyle(LobbyChoiceStyle(selected: false))
+            .accessibilityLabel("KI auf Platz \(slot) setzen")
         }
     }
 
@@ -482,3 +536,42 @@ enum LobbySnapshot {
     }
 }
 #endif
+
+/// KI-Stärken in Lobby-Reihenfolge (ADR-020 §4), wie `AI_STRENGTHS` und `AI_STRENGTH_NAMES` im Protokoll
+/// (`packages/protocol/src/aiLabels.ts`).
+enum AiStrength {
+    static let order = ["leicht", "mittel", "schwer", "dynamisch"]
+    static let standard = "mittel"
+    static let badge = "KI"
+    private static let names = ["leicht": "Leicht", "mittel": "Mittel", "schwer": "Schwer", "dynamisch": "Dynamisch"]
+
+    static func name(_ strength: String?) -> String { names[strength ?? standard] ?? "Mittel" }
+
+    /// Nächste Stärke im Wechselknopf: leicht → mittel → schwer → dynamisch → leicht.
+    static func next(after strength: String?) -> String {
+        let index = order.firstIndex(of: strength ?? standard) ?? 1
+        return order[(index + 1) % order.count]
+    }
+}
+
+/// KI-Abzeichen (CHAOS-182, ADR-020 §7): Creme `#f6efe2` auf Tinte `#3b3f58` wie am PC (`docs/art-direction.md`),
+/// immer neben dem Slot-Symbol, nie statt seiner.
+struct AiBadge: View {
+    let text: String
+    var size: CGFloat = 20
+
+    private static let cream = Color(red: 246.0 / 255, green: 239.0 / 255, blue: 226.0 / 255)
+    private static let ink = Color(red: 59.0 / 255, green: 63.0 / 255, blue: 88.0 / 255)
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: size, weight: .black, design: .rounded))
+            .foregroundStyle(Self.cream)
+            .lineLimit(1)
+            .padding(.horizontal, size * 0.45)
+            .padding(.vertical, size * 0.1)
+            .background(Self.ink, in: .rect(cornerRadius: size * 0.4))
+            .overlay { RoundedRectangle(cornerRadius: size * 0.4).strokeBorder(Self.cream, lineWidth: 2) }
+            .fixedSize()
+    }
+}

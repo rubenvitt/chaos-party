@@ -2,7 +2,7 @@ import { useMemo, useState, type CSSProperties } from 'react';
 import { CHARACTER_NAMES } from '@chaos-party/minigame-sdk';
 import { PLAYER_SLOTS, type CharacterId, type PlayerInfo } from '@chaos-party/protocol';
 import { createMoveSender } from '../input/moveSender.ts';
-import { describeLobby } from '../lobby/view.ts';
+import { describeLobby, describeSeats } from '../lobby/view.ts';
 import { describePlay } from '../minigame/view.ts';
 import type { SlotIntent } from '../net/client.ts';
 import { ownCharacter } from '../state/character.ts';
@@ -85,6 +85,7 @@ export function SlotController({
         <CharacterLobby
           slot={player.slot}
           view={lobby}
+          seats={describeSeats(context.lobby, player.slot)}
           contextKey={contextKey(context)}
           send={send}
         />

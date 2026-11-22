@@ -7,7 +7,7 @@
  * (`apps/apple-host/src/minigameView.ts`).
  */
 import { PLAYER_SLOTS, type BoardView, type SlotNumber } from '@chaos-party/protocol';
-import { characterName } from './plan.ts';
+import { aiTaglineOf, characterName } from './plan.ts';
 
 /** Wartet die Anleitung auf „Bereit“ (CHAOS-214)? Dann gibt es keinen Countdown. */
 export function waitsForReady(view: BoardView | null): boolean {
@@ -24,6 +24,8 @@ export interface ReadinessEntry {
   readonly name: string;
   /** Anzeigename der Figur („Wusel“). */
   readonly character: string;
+  /** KI-Abzeichen („KI · Saboteur“, CHAOS-182) oder `null` bei Menschen. */
+  readonly ai: string | null;
   readonly color: string;
   readonly symbol: string;
   /** Hat „Bereit!“ gedrückt. */
@@ -66,6 +68,7 @@ export function introReadiness(view: BoardView): Readiness | null {
         slot: player.slot,
         name: player.name,
         character: characterName(view, player.slot),
+        ai: aiTaglineOf(view, player.slot),
         color: PLAYER_SLOTS[player.slot].color,
         symbol: PLAYER_SLOTS[player.slot].symbol,
         ready: isReady,

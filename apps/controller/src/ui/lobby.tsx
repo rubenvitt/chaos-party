@@ -3,9 +3,9 @@
  * `CharacterFace` und `LobbyHead` teilen sich iPhone (`CharacterLobby`) und iPad-Zone
  * (`ZoneBoard`, dort absolut an den Rechtecken der Zonen-Geometrie).
  */
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { PLAYER_SLOTS, type CharacterId, type SlotNumber } from '@chaos-party/protocol';
-import { LOBBY_TITLE, type CharacterCard, type LobbyView } from '../lobby/view.ts';
+import { LOBBY_TITLE, type CharacterCard, type LobbyView, type SeatsView } from '../lobby/view.ts';
 import type { SlotIntent } from '../net/client.ts';
 import { CharacterPortrait } from './CharacterPortrait.tsx';
 import { cardData, cardTag, ownerStyle } from './lobbyCard.ts';
@@ -63,9 +63,87 @@ export function ReadyBadge({ compact = false }: { compact?: boolean }) {
   );
 }
 
+/**
+ * Reihe „Mitspieler“ (CHAOS-182, ADR-020 §2): wer Mensch ist, wer KI (mit Stärke), welche Plätze
+ * frei sind. Die Spielleitung tippt „+ KI“ auf einem freien Platz, auf eine KI für die nächste
+ * Stärke und „✕“ zum Entfernen; der Server prüft Spielleitung und Phase.
+ */
+export function LobbySeats({
+  slot,
+  seats,
+  send,
+}: {
+  slot: SlotNumber;
+  seats: SeatsView;
+  send: (intent: SlotIntent) => void;
+}) {
+  return (
+    <div className="lobby-seats" data-testid="lobby-seats" data-lead={seats.lead}>
+      <ul className="lobby-seat-list" aria-label="Mitspieler">
+        {seats.chips.map((chip) => {
+          const label = (
+            <>
+              <span className="player-symbol" aria-hidden="true">
+                {PLAYER_SLOTS[chip.slot].symbol}
+              </span>
+              <span className="ui-text">{chip.text}</span>
+            </>
+          );
+          const tap = chip.tap;
+          return (
+            <li
+              key={chip.slot}
+              className="lobby-seat"
+              data-testid={`lobby-seat-${String(chip.slot)}`}
+              data-kind={chip.kind}
+              data-strength={chip.strength ?? ''}
+              style={{ '--seat-color': PLAYER_SLOTS[chip.slot].color } as CSSProperties}
+            >
+              {tap === null ? (
+                <span className="lobby-seat-body">{label}</span>
+              ) : (
+                <button
+                  type="button"
+                  className="lobby-seat-body lobby-seat-button"
+                  data-testid={`lobby-seat-tap-${String(chip.slot)}`}
+                  aria-label={
+                    chip.kind === 'free'
+                      ? `KI auf Platz ${PLAYER_SLOTS[chip.slot].label} setzen`
+                      : `${chip.text}, tippen für nächste Stärke`
+                  }
+                  onClick={() => {
+                    send({ type: 'ai-seat', slot, seat: chip.slot, strength: tap });
+                  }}
+                >
+                  {label}
+                </button>
+              )}
+              {chip.removable && (
+                <button
+                  type="button"
+                  className="lobby-seat-remove"
+                  data-testid={`lobby-seat-remove-${String(chip.slot)}`}
+                  aria-label={`KI auf Platz ${PLAYER_SLOTS[chip.slot].label} entfernen`}
+                  onClick={() => {
+                    send({ type: 'ai-seat', slot, seat: chip.slot, strength: null });
+                  }}
+                >
+                  ✕
+                </button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 interface CharacterLobbyProps {
   slot: SlotNumber;
   view: LobbyView;
+  /** Reihe „Mitspieler“ mit KI-Plätzen (CHAOS-182) oder `null`. */
+  seats?: SeatsView | null;
   /** Kennung des Kontexts: Ein neuer Kontext setzt „Bereit gesendet“ zurück. */
   contextKey: string;
   send: (intent: SlotIntent) => void;
@@ -76,7 +154,13 @@ interface CharacterLobbyProps {
  * Antippen einer freien Figur sendet `pick-character`; die Wahl leuchtet sofort (vorgemerkt)
  * und wird mit dem nächsten Kontext bestätigt oder – bei `character-taken` – zurückgenommen.
  */
-export function CharacterLobby({ slot, view, contextKey, send }: CharacterLobbyProps) {
+export function CharacterLobby({
+  slot,
+  view,
+  seats = null,
+  contextKey,
+  send,
+}: CharacterLobbyProps) {
   const pick = (character: CharacterId) => {
     send({ type: 'pick-character', slot, character });
   };
@@ -88,6 +172,7 @@ export function CharacterLobby({ slot, view, contextKey, send }: CharacterLobbyP
       data-character={view.character ?? ''}
     >
       <LobbyHead view={view} />
+      {seats !== null && <LobbySeats slot={slot} seats={seats} send={send} />}
       <div className="character-grid" role="group" aria-label={LOBBY_TITLE}>
         {view.cards.map((card) => (
           <button

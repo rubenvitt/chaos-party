@@ -54,6 +54,31 @@ describe('startState', () => {
   });
 });
 
+describe('startState mit KI-Plätzen (CHAOS-182)', () => {
+  const ai = (label: string) => ({ label, connected: true, ready: true, kind: 'ai' as const });
+
+  it('1 Mensch + KI ist eine echte Partie und leuchtet, wenn der Mensch bereit ist', () => {
+    expect(startState([p('Blau', true, true), ai('KI Orange')], 'connected')).toMatchObject({
+      readiness: 'ready',
+      enabled: true,
+      highlighted: true,
+    });
+    const waiting = startState([p('Blau', true, false), ai('KI Orange')], 'connected');
+    expect(waiting.readiness).toBe('waiting');
+    expect(waiting.hint).toBe('Blau ist noch nicht bereit – starten geht trotzdem.');
+  });
+
+  it('nur KI ohne verbundenen Menschen startet nicht', () => {
+    const state = startState([p('Blau', false, true), ai('KI Orange'), ai('KI Grün')], 'connected');
+    expect(state).toMatchObject({ readiness: 'blocked', enabled: false });
+    expect(state.hint).toContain('Mensch');
+  });
+
+  it('allein schlägt der Hinweis eine KI vor', () => {
+    expect(startState([p('Blau', true, true)], 'connected').hint).toContain('KI');
+  });
+});
+
 describe('roundOptions', () => {
   it('zeigt die Vorschläge und markiert die Einstellung', () => {
     expect(roundOptions({ rounds: 16, roundPresets: [10, 16, 20] })).toEqual([
@@ -123,6 +148,22 @@ describe('cardCharacter', () => {
     const four = cardCharacter(at(players, 2), players).character;
     expect(one).toBe('cactus');
     expect(four).toBe('sock');
+  });
+
+  it('KI bekommt ihre Figur nach den Menschen (CHAOS-182, wie der Server)', () => {
+    const players = [
+      { slot: 1 as const, character: 'raccoon' as const },
+      { slot: 2 as const, character: null, kind: 'ai' as const },
+      { slot: 3 as const, character: null },
+      { slot: 4 as const, character: 'robot' as const },
+    ];
+    // Slot 3 (Mensch) zuerst: Waschbär vergeben → Kaktus. Danach die KI auf Slot 2 → Socke.
+    expect(cardCharacter(at(players, 2), players).character).toBe('cactus');
+    expect(cardCharacter(at(players, 1), players)).toEqual({
+      character: 'sock',
+      chosen: false,
+      text: 'Figur beim Start',
+    });
   });
 });
 

@@ -11,6 +11,7 @@
  * Testmodus standardmäßig `skip`. Testhaken: `window.__chaosFinale` (nur `?test=1`).
  */
 import {
+  aiTagline,
   CHARACTER_NAMES,
   PLAYER_SLOTS,
   type BoardView,
@@ -302,6 +303,11 @@ function Tally({
   );
 }
 
+/** KI-Abzeichen eines Slots („KI · Saboteur“) oder `null` bei Menschen (CHAOS-182). */
+function aiTaglineOf(view: BoardView, slot: SlotNumber): string | null {
+  return aiTagline(view.players.find((player) => player.slot === slot));
+}
+
 function TallyCard({ view, card }: { readonly view: BoardView; readonly card: FinaleCard }) {
   const character = characterOf(view, card.slot);
   const badge = CRITERION_BADGE[card.decidedBy];
@@ -321,7 +327,17 @@ function TallyCard({ view, card }: { readonly view: BoardView; readonly card: Fi
         </span>
       </span>
       <span className="finale-card-name">{playerName(view, card.slot)}</span>
-      <span className="finale-card-character">{CHARACTER_NAMES[character].name}</span>
+      {aiTaglineOf(view, card.slot) === null ? (
+        <span className="finale-card-character">{CHARACTER_NAMES[character].name}</span>
+      ) : (
+        // Eine KI heißt nach ihrer Figur; statt der Figur steht ihr Abzeichen da (CHAOS-182).
+        <span
+          className="finale-card-character ai-badge"
+          data-testid={`finale-ai-${String(card.slot)}`}
+        >
+          {aiTaglineOf(view, card.slot)}
+        </span>
+      )}
       <span className="finale-card-stat finale-card-stat--trophies">
         <TrophyIcon size={40} />
         <span data-testid={`finale-trophies-${String(card.slot)}`}>
@@ -463,6 +479,14 @@ function WinnerScreen({
                     </span>
                     {playerName(view, entry.slot)}
                   </span>
+                  {aiTaglineOf(view, entry.slot) !== null && (
+                    <span
+                      className="ai-badge finale-rank-ai"
+                      data-testid={`board-rank-ai-${String(entry.slot)}`}
+                    >
+                      {aiTaglineOf(view, entry.slot)}
+                    </span>
+                  )}
                   {badge && <span className="finale-rank-badge">{badge}</span>}
                 </span>
                 <span className="finale-rank-values">

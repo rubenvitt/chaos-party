@@ -2364,3 +2364,122 @@ body,
     display: none;
   }
 }
+
+/*
+ * KI-Plätze (CHAOS-182, ADR-020 §7): Abzeichen „KI“ in Creme auf Tinte (`docs/art-direction.md`),
+ * immer neben dem Slot-Symbol. Lobby-Knöpfe für Hinzufügen, Stärke und Entfernen.
+ */
+.ai-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 7px;
+  border: 2px solid #f6efe2;
+  border-radius: 7px;
+  background: #3b3f58;
+  color: #f6efe2;
+  font-size: 0.72em;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  line-height: 1.35;
+  vertical-align: 0.12em;
+  white-space: nowrap;
+}
+
+.lobby-player[data-kind='ai'] {
+  background: #f1eee6;
+}
+
+.lobby-player[data-kind='ai'] .character-portrait svg {
+  opacity: 0.55;
+  filter: grayscale(0.5);
+}
+
+.lobby-player[data-kind='ai'] .lobby-player-character {
+  font-style: italic;
+  opacity: 0.75;
+}
+
+.lobby-ai-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.lobby-ai-controls .ai-badge {
+  font-size: 15px;
+}
+
+.lobby-ai-strength,
+.lobby-ai-remove,
+.lobby-ai-add {
+  padding: 2px 10px;
+  border: 2px solid #1b1530;
+  border-radius: 999px;
+  background: #fff;
+  color: #1b1530;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.lobby-ai-remove {
+  position: absolute;
+  top: -12px;
+  right: -10px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  font-size: 13px;
+}
+
+
+.lobby-ai-strength:hover,
+.lobby-ai-remove:hover,
+.lobby-ai-add:hover {
+  background: #f3efff;
+}
+
+.lobby-ai-strength:focus-visible,
+.lobby-ai-remove:focus-visible,
+.lobby-ai-add:focus-visible {
+  outline: 4px solid #ffd23f;
+  outline-offset: 2px;
+}
+
+.lobby-ai-add .ai-badge {
+  font-size: 13px;
+}
+
+/* Freier Platz mit Knopf: nicht ganz so blass, damit „+ KI“ lesbar bleibt. */
+.lobby-player--free:has(.lobby-ai-add) {
+  opacity: 0.8;
+}
+
+/* KI-Abzeichen in Brett-HUD, Minispiel-Karten und Endstand (CHAOS-182). */
+.board-player-ai {
+  align-self: flex-start;
+  font-size: 13px;
+}
+
+.minigame-roster-character.ai-badge,
+.minigame-ready-character.ai-badge,
+.minigame-score-character.ai-badge,
+.minigame-rank-character.ai-badge,
+.finale-card-character.ai-badge {
+  justify-self: start;
+  align-self: start;
+  width: fit-content;
+  font-size: 0.85em;
+  font-style: normal;
+  opacity: 1;
+}
+
+.finale-rank-ai {
+  align-self: flex-start;
+  font-size: 12px;
+}

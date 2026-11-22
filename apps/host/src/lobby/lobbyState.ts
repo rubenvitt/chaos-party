@@ -1,6 +1,7 @@
 /**
  * Reine Entscheidungen der PC-Lobby (CHAOS-36): Start-Bedingung mit Hinweistext,
- * Rundenauswahl, Brett-Auswahl (CHAOS-197) und Figur je Spielerkarte. Ohne React, unit-getestet.
+ * Rundenauswahl, Brett-Auswahl (CHAOS-197), Figur je Spielerkarte und KI-Plätze (CHAOS-182).
+ * Ohne React, unit-getestet.
  */
 import {
   CHARACTER_NAMES,
@@ -13,17 +14,17 @@ import {
 import type { ConnectionStatus } from '../net/hostConnection.ts';
 import type { HostPlayer } from '../players.ts';
 
-/** Ab so vielen verbundenen Spielern ist es eine echte Partie (VISION: 2–4 Spieler). */
+/** Ab so vielen Plätzen ist es eine echte Partie (ADR-020 §1: Menschen und KI zusammen). */
 export const MIN_PARTY_PLAYERS = 2;
 
 export type StartReadiness =
-  /** Keine Verbindung oder niemand verbunden: Knopf aus. */
+  /** Keine Verbindung oder kein Mensch verbunden: Knopf aus. */
   | 'blocked'
-  /** Ein Spieler: Start erlaubt, aber nur als Probelauf (Demo, Tests, wie in M1–M3). */
+  /** Nur ein Platz: Start erlaubt, aber nur als Probelauf (Demo, Tests, wie in M1–M3). */
   | 'solo'
-  /** Mindestens zwei verbunden, aber nicht alle bereit: Start erlaubt (wie bisher). */
+  /** Mindestens zwei Plätze, aber nicht alle Menschen bereit: Start erlaubt (wie bisher). */
   | 'waiting'
-  /** Mindestens zwei verbunden und alle verbundenen bereit: der empfohlene Start. */
+  /** Mindestens zwei Plätze und alle verbundenen Menschen bereit: der empfohlene Start. */
   | 'ready';
 
 export interface StartState {
@@ -36,32 +37,40 @@ export interface StartState {
 }
 
 /**
- * Start-Bedingung (ADR-015/CHAOS-36): Empfohlen ist der Start ab **zwei verbundenen,
- * bereiten** Spielern – dann leuchtet der Knopf. Wie bisher (M1–M3, E2E-Tests, Demo) bleibt
- * der Start ab einem verbundenen Spieler möglich; der Hinweis sagt, was fehlt.
+ * Start-Bedingung (ADR-015/CHAOS-36, KI-Plätze ADR-020 §1/CHAOS-182): Empfohlen ist der Start ab
+ * **zwei Plätzen** (Menschen und KI zusammen), wenn alle verbundenen Menschen bereit sind – dann
+ * leuchtet der Knopf. Eine KI ist immer bereit. Wie bisher (M1–M3, E2E-Tests, Demo) bleibt der
+ * Start ab einem verbundenen Menschen möglich (Probelauf); der Hinweis sagt, was fehlt. Ohne
+ * verbundenen Menschen startet nichts, auch nicht mit KI (der Server lehnt das ab).
  */
 export function startState(
-  players: readonly Pick<HostPlayer, 'connected' | 'ready' | 'label'>[],
+  players: readonly (Pick<HostPlayer, 'connected' | 'ready' | 'label'> & {
+    readonly kind?: 'ai' | undefined;
+  })[],
   status: ConnectionStatus,
 ): StartState {
-  const connected = players.filter((p) => p.connected);
-  if (status !== 'connected' || connected.length === 0) {
+  const humans = players.filter((p) => p.kind !== 'ai' && p.connected);
+  const ais = players.filter((p) => p.kind === 'ai');
+  if (status !== 'connected' || humans.length === 0) {
     return {
       readiness: 'blocked',
       enabled: false,
       highlighted: false,
-      hint: 'Start, sobald mindestens ein Controller verbunden ist.',
+      hint:
+        ais.length > 0 && status === 'connected'
+          ? 'Start, sobald mindestens ein Mensch mit Controller dabei ist.'
+          : 'Start, sobald mindestens ein Controller verbunden ist.',
     };
   }
-  if (connected.length < MIN_PARTY_PLAYERS) {
+  if (humans.length + ais.length < MIN_PARTY_PLAYERS) {
     return {
       readiness: 'solo',
       enabled: true,
       highlighted: false,
-      hint: 'Partie ab 2 Spielern – allein nur ein Probelauf.',
+      hint: 'Partie ab 2 Spielern – holt euch eine KI dazu, sonst nur ein Probelauf.',
     };
   }
-  const waiting = connected.filter((p) => !p.ready);
+  const waiting = humans.filter((p) => !p.ready);
   if (waiting.length === 0) {
     return { readiness: 'ready', enabled: true, highlighted: true, hint: 'Alle bereit – los!' };
   }
@@ -190,12 +199,14 @@ export interface CardCharacter {
 
 /**
  * Figur einer Spielerkarte: die echte Wahl aus `lobby.players[].character`; bei `null` als
- * Vorschlag die Figur, die der Server beim Start zuweisen würde: in Slot-Reihenfolge die
- * Standardfigur des Slots, falls frei, sonst die erste freie (`pickFreeCharacter`, ADR-015).
+ * Vorschlag die Figur, die der Server beim Start zuweisen würde: erst die Menschen, dann die
+ * KI-Plätze (ADR-020 §7), je in Slot-Reihenfolge die Standardfigur des Slots, falls frei, sonst
+ * die erste freie (`pickFreeCharacter`, ADR-015). Eine KI „wählt“ nicht, ihr Text ist „Figur beim
+ * Start“.
  */
 export function cardCharacter(
-  player: Pick<HostPlayer, 'slot' | 'character'>,
-  all: readonly Pick<HostPlayer, 'slot' | 'character'>[],
+  player: Pick<HostPlayer, 'slot' | 'character' | 'kind'>,
+  all: readonly Pick<HostPlayer, 'slot' | 'character' | 'kind'>[],
 ): CardCharacter {
   if (player.character !== null) {
     return {
@@ -205,14 +216,21 @@ export function cardCharacter(
     };
   }
   const taken = all.flatMap((p) => (p.character === null ? [] : [p.character]));
+  const order = [...all].sort(
+    (a, b) => Number(a.kind === 'ai') - Number(b.kind === 'ai') || a.slot - b.slot,
+  );
   let suggestion: CharacterId = 'robot';
-  for (const other of [...all].sort((a, b) => a.slot - b.slot)) {
+  for (const other of order) {
     if (other.character !== null) continue;
     const free = pickFreeCharacter(other.slot, taken) ?? 'robot';
     taken.push(free);
     if (other.slot === player.slot) suggestion = free;
   }
-  return { character: suggestion, chosen: false, text: 'wählt noch …' };
+  return {
+    character: suggestion,
+    chosen: false,
+    text: player.kind === 'ai' ? 'Figur beim Start' : 'wählt noch …',
+  };
 }
 
 /** Sperrliste und Favoriten der Minispiel-Rotation (CHAOS-85). */

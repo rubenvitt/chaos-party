@@ -9,9 +9,15 @@
  * (älterer Server), hilft das eigene Gerät: Nachbarzonen eines geteilten iPads; sonst neutral.
  */
 import {
+  AI_BADGE,
+  AI_STRENGTH_NAMES,
   CHARACTER_IDS,
   CHARACTER_NAMES,
+  DEFAULT_AI_STRENGTH,
+  nextAiStrength,
+  type AiStrength,
   type CharacterId,
+  type ControllerLobbyInfo,
   type SlotNumber,
 } from '@chaos-party/protocol';
 import type { SlotContext } from '../state/reducer.ts';
@@ -111,4 +117,84 @@ export function describeLobby(
     boardName: lobby.board?.name ?? null,
     hint: ready ? HINT_READY : mine === null ? HINT_PICK : HINT_PICKED,
   };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Plätze und KI (CHAOS-182, ADR-020 §2)
+// ---------------------------------------------------------------------------------------------
+
+export type SeatChipKind = 'self' | 'human' | 'ai' | 'free';
+
+/** Ein Platz in der Reihe „Mitspieler“ der Lobby. */
+export interface SeatChip {
+  readonly slot: SlotNumber;
+  readonly kind: SeatChipKind;
+  /** Stärke, nur bei KI. */
+  readonly strength: AiStrength | null;
+  /** Text im Chip: „Du“, „Mitspieler“, „KI · Mittel“, „+ KI“ bzw. „frei“. */
+  readonly text: string;
+  /**
+   * Was ein Tippen bewirkt (nur Spielleitung): KI setzen (freier Platz) bzw. nächste Stärke (KI);
+   * `null` = nichts. Die Nachricht ist `ai-seat { seat, strength }`.
+   */
+  readonly tap: AiStrength | null;
+  /** Spielleitung darf diese KI entfernen (`ai-seat { strength: null }`). */
+  readonly removable: boolean;
+}
+
+export interface SeatsView {
+  /** Dieser Platz verwaltet KI-Plätze (Spielleitung). */
+  readonly lead: boolean;
+  readonly chips: readonly SeatChip[];
+}
+
+const SEAT_SLOTS: readonly SlotNumber[] = [1, 2, 3, 4];
+
+/**
+ * Reihe „Mitspieler“ aus `lobby.seats` und `lobby.lead` (v4-Nachtrag CHAOS-179). `null` bei einem
+ * älteren Server ohne `seats`. Nur die Spielleitung bekommt Knöpfe; alle anderen sehen nur, wer KI
+ * ist. Ohne KI und ohne Spielleitung bleibt die Reihe weg (Platz sparen).
+ */
+export function describeSeats(
+  lobby: Pick<ControllerLobbyInfo, 'seats' | 'lead'> | undefined,
+  ownSlot: SlotNumber,
+): SeatsView | null {
+  const seats = lobby?.seats;
+  if (seats === undefined) return null;
+  const lead = lobby?.lead === true;
+  if (!lead && !seats.some((seat) => seat.kind === 'ai')) return null;
+  const chips = SEAT_SLOTS.map((slot): SeatChip => {
+    const seat = seats.find((entry) => entry.slot === slot);
+    if (seat === undefined) {
+      return {
+        slot,
+        kind: 'free',
+        strength: null,
+        text: lead ? `+ ${AI_BADGE}` : 'frei',
+        tap: lead ? DEFAULT_AI_STRENGTH : null,
+        removable: false,
+      };
+    }
+    if (seat.kind === 'ai') {
+      const strength = seat.strength ?? DEFAULT_AI_STRENGTH;
+      return {
+        slot,
+        kind: 'ai',
+        strength,
+        text: `${AI_BADGE} · ${AI_STRENGTH_NAMES[strength]}`,
+        tap: lead ? nextAiStrength(strength) : null,
+        removable: lead,
+      };
+    }
+    const self = slot === ownSlot;
+    return {
+      slot,
+      kind: self ? 'self' : 'human',
+      strength: null,
+      text: self ? 'Du' : 'Mitspieler',
+      tap: null,
+      removable: false,
+    };
+  });
+  return { lead, chips };
 }

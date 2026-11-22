@@ -1102,3 +1102,125 @@
   font-weight: 600;
   color: var(--text-dim);
 }
+
+/* ---------------------------------------------------------------------------
+ * Reihe „Mitspieler“ mit KI-Plätzen (CHAOS-182, ADR-020 §2)
+ * ------------------------------------------------------------------------- */
+
+.character-lobby:has(.lobby-seats) {
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+}
+
+.lobby-seats {
+  min-width: 0;
+}
+
+.lobby-seat-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lobby-seat {
+  position: relative;
+  min-width: 0;
+  display: flex;
+}
+
+.lobby-seat-body {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 4px 4px;
+  border: 1px solid var(--glass-line);
+  border-top: 3px solid var(--seat-color);
+  border-radius: 14px;
+  background: var(--glass);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.lobby-seat-body .player-symbol {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.lobby-seat[data-kind='free'] .lobby-seat-body {
+  border-style: dashed;
+  border-top-style: dashed;
+  color: var(--text-dim);
+}
+
+.lobby-seat[data-kind='self'] .lobby-seat-body {
+  background: var(--glass-strong);
+}
+
+/* KI-Abzeichen: Creme auf Tinte wie am Host (docs/art-direction.md). */
+.lobby-seat[data-kind='ai'] .lobby-seat-body {
+  background: #3b3f58;
+  color: #f6efe2;
+}
+
+.lobby-seat-button {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lobby-seat-button:active {
+  transform: scale(0.96);
+}
+
+.lobby-seat[data-kind='free'] .lobby-seat-button {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+.lobby-seat-remove {
+  position: absolute;
+  top: -8px;
+  right: -6px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--glass-line);
+  border-radius: 999px;
+  background: rgba(20, 20, 30, 0.85);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (orientation: landscape) {
+  .character-lobby:has(.lobby-seats) {
+    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-areas:
+      'grid head'
+      'grid seats'
+      'grid foot';
+  }
+
+  .character-lobby .lobby-seats {
+    grid-area: seats;
+  }
+
+  .lobby-seat-body {
+    min-height: 40px;
+    font-size: 12px;
+  }
+}
