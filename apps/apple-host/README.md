@@ -18,7 +18,7 @@ Swift ist nur Transport, Uhr und Darstellung. Regeln, Server-Prüfungen und Mini
 ```sh
 pnpm --filter @chaos-party/apple-host build        # dist/chaos-host.js (≈ 5 MB) + dist/HavokPhysics.wasm; auch Teil von `pnpm build`
 pnpm --filter @chaos-party/apple-host bots         # Bot-Partie bis zum ersten Minispiel im nackten node:vm-Kontext
-pnpm --filter @chaos-party/apple-host bots --full  # ganze Partie: 10 Runden, alle Minispiele der Rotation, dazu Pause, Wiederverbindung und Finale (≈ 25 s)
+pnpm --filter @chaos-party/apple-host bots --full  # ganze Partie: 10 Runden, Minispiele der Rotation ohne Wiederholung (alle zwölf mit `--matches 3`), dazu Pause, Wiederverbindung und Finale (≈ 25 s)
 pnpm --filter @chaos-party/apple-host bots --full --matches 3  # drei Partien mit Revanche, Speicher je Partie, Grenze +20 MB (CHAOS-141, ≈ 40 s)
 pnpm --filter @chaos-party/apple-host bots --full --teams --spieler 4  # nur die Team-Testspiele (2 gegen 2, Einer gegen alle, Koop) mit 2–4 Bots (CHAOS-230)
 pnpm check:bundle                                  # Budget, kein node:crypto/ws/import.meta im Bündel
@@ -192,7 +192,7 @@ Die App kommt als „Chaos Party“ mit der Bundle-ID `dev.rubeen.chaosparty.tv`
 ```sh
 pnpm --filter @chaos-party/apple-host build
 apps/apple-host/harness/run.sh        # bis zum ersten angenommenen Minispiel
-apps/apple-host/harness/run.sh full   # ganze Partie, alle Minispiele der Rotation
+apps/apple-host/harness/run.sh full   # ganze Partie (16 Runden), alle Minispiele der Rotation
 apps/apple-host/harness/run.sh uebung stimmen=/tmp/stimmen.json vorher=0   # Übungsrunde aus der Galerie (CHAOS-220)
 apps/apple-host/harness/run.sh uebung stimmen=/tmp/stimmen.json vorher=2   # zweiter Lauf: Stimmen des ersten geladen
 ```

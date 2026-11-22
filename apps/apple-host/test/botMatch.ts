@@ -818,7 +818,12 @@ export async function runBotMatch(options: BotMatchOptions): Promise<BotMatchRes
       .filter((id): id is string => id !== undefined);
     const resultsAccepted = logLines.filter((line) => line.includes('angenommen')).length;
     const rotation = [...(minigames ?? internals.rotation)];
-    const allRotation = rotation.every((id) => minigamesBuilt.includes(id));
+    // Ziehen ohne Wiederholung (CHAOS-85): So viele verschiedene Spiele der Rotation, wie Runden
+    // dafür gespielt wurden, höchstens alle. Seit der Pilotwelle (CHAOS-91, zwölf Spiele) passt die
+    // ganze Rotation nicht mehr in eine Partie mit 10 Runden; `--matches 3` deckt sie weiter ab.
+    const builtRotation = minigamesBuilt.filter((id) => rotation.includes(id));
+    const allRotation =
+      new Set(builtRotation).size === Math.min(rotation.length, builtRotation.length);
     const ok =
       exceptions.length === 0 &&
       problems.length === 0 &&

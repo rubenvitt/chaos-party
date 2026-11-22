@@ -1,6 +1,6 @@
 // Bot-Partie gegen das gebaute Bündel in einem nackten `node:vm`-Kontext (CHAOS-139).
 //   pnpm --filter @chaos-party/apple-host bots                       # bis zum ersten angenommenen Minispiel
-//   pnpm --filter @chaos-party/apple-host bots --full                # ganze Partie, alle Minispiele der Rotation
+//   pnpm --filter @chaos-party/apple-host bots --full                # ganze Partie, Rotation ohne Wiederholung (alle zwölf mit --matches 3)
 //   pnpm --filter @chaos-party/apple-host bots --full --matches 3    # drei Partien mit Revanche, Speicher je Partie (CHAOS-141)
 //   pnpm --filter @chaos-party/apple-host bots --full --rueckenwind  # mit Regel Rückenwind (CHAOS-188)
 //   pnpm --filter @chaos-party/apple-host bots --full --schnellfeuer=halbzeit  # Auslöser an|aus|ereignis|halbzeit|finale (CHAOS-232)
