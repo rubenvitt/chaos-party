@@ -23,6 +23,17 @@ const EXPECTED: Record<string, readonly string[]> = {
   'kuckucks-klatsche': ['kuckucksuhr', 'zeiger', 'tuer', 'feder', 'kuckuck', 'klatsche', 'sterne'],
   'kruemel-kehraus': ['kruemel', 'spielerring', 'wimpel'],
   'toaster-timing': ['toaster', 'toast', 'abzeichen', 'sterne'],
+  'nussregen-netz': [
+    'eichhoernchen',
+    'kescher',
+    'stinkwolke',
+    'eichel',
+    'eichel-faul',
+    'nussschatten',
+    'abzeichen',
+    'sterne',
+  ],
+  matschmaler: ['matsch', 'regenstreifen', 'regenwolke', 'abzeichen', 'sterne'],
 };
 
 /** Rollen aller Knoten der Szene nach ein paar Sekunden Spiel (mit laufenden Figuren). */

@@ -17,6 +17,10 @@ import { runMinigameHeadless } from '@chaos-party/minigame-sdk/testing';
 import { KRUEMEL_KEHRAUS_INFO } from '../kruemel-kehraus/info.ts';
 import { TOASTER_BOT_ADAPTER } from '../toaster-timing/bot.ts';
 import { TOASTER_TIMING_INFO } from '../toaster-timing/info.ts';
+import { NUSS_BOT_ADAPTER } from '../nussregen-netz/bot.ts';
+import { NUSSREGEN_NETZ_INFO } from '../nussregen-netz/info.ts';
+import { MATSCH_BOT_ADAPTER } from '../matschmaler/bot.ts';
+import { MATSCHMALER_INFO } from '../matschmaler/info.ts';
 import { KUCKUCKS_KLATSCHE_INFO } from '../kuckucks-klatsche/info.ts';
 import { PUDDING_GERANGEL_INFO } from '../pudding-gerangel/info.ts';
 import { SOCKENREGEN_INFO } from '../sockenregen/info.ts';
@@ -255,5 +259,15 @@ export const FAIRNESS_HARNESSES: Readonly<Record<string, FairnessHarness>> = {
     info: TOASTER_TIMING_INFO,
     adapter: TOASTER_BOT_ADAPTER,
     intruders: [dauerDruecker(['a'], 'Dauerdrücken (Toast sofort raus)')],
+  }),
+  [NUSSREGEN_NETZ_INFO.id]: kitHarness({
+    info: NUSSREGEN_NETZ_INFO,
+    adapter: NUSS_BOT_ADAPTER,
+    intruders: [dauerDruecker(['a'], 'Dauerdrücken (immer weit schwingen)')],
+  }),
+  [MATSCHMALER_INFO.id]: kitHarness({
+    info: MATSCHMALER_INFO,
+    adapter: MATSCH_BOT_ADAPTER,
+    intruders: [dauerDruecker(['a'], 'Dauerdrücken (Bauchplatscher, sobald bereit)')],
   }),
 };

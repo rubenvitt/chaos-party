@@ -17,6 +17,8 @@ import { pumpSolo } from './pump-solo/index.ts';
 import { schnellfeuer } from './schnellfeuer/index.ts';
 import { sockenregen } from './sockenregen/index.ts';
 import { toasterTiming } from './toaster-timing/index.ts';
+import { nussregenNetz } from './nussregen-netz/index.ts';
+import { matschmaler } from './matschmaler/index.ts';
 import { wackelturm } from './wackelturm/index.ts';
 
 export * from './catalog.ts';
@@ -30,6 +32,8 @@ export const MINIGAME_MODULES: readonly MinigameModule[] = [
   kruemelKehraus,
   halloBaukasten,
   toasterTiming,
+  nussregenNetz,
+  matschmaler,
   pumpDuell,
   pumpSolo,
   pumpRiese,

@@ -27,6 +27,8 @@ import { PUMP_SOLO_INFO } from './pump-solo/info.ts';
 import { SCHNELLFEUER_INFO } from './schnellfeuer/info.ts';
 import { SOCKENREGEN_INFO } from './sockenregen/info.ts';
 import { TOASTER_TIMING_INFO } from './toaster-timing/info.ts';
+import { NUSSREGEN_NETZ_INFO } from './nussregen-netz/info.ts';
+import { MATSCHMALER_INFO } from './matschmaler/info.ts';
 import { WACKELTURM_INFO } from './wackelturm/info.ts';
 
 export * from './catalog.ts';
@@ -59,6 +61,8 @@ export const MINIGAME_LOADERS: ReadonlyMap<string, MinigameLoader> = new Map<
   ],
   // Pilotwelle (CHAOS-91).
   [TOASTER_TIMING_INFO.id, () => import('./toaster-timing/index.ts').then((m) => m.toasterTiming)],
+  [NUSSREGEN_NETZ_INFO.id, () => import('./nussregen-netz/index.ts').then((m) => m.nussregenNetz)],
+  [MATSCHMALER_INFO.id, () => import('./matschmaler/index.ts').then((m) => m.matschmaler)],
   // Testspiele der Spielformen (CHAOS-89).
   [PUMP_DUELL_INFO.id, () => import('./pump-duell/index.ts').then((m) => m.pumpDuell)],
   [PUMP_SOLO_INFO.id, () => import('./pump-solo/index.ts').then((m) => m.pumpSolo)],

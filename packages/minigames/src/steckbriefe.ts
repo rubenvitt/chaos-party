@@ -87,6 +87,26 @@ export const STECKBRIEFE: Readonly<Record<string, Steckbrief>> = {
     tempo: 'ruhig',
     ort: 'kueche',
   },
+  'nussregen-netz': {
+    kernverb: 'fangen',
+    ziel: 'meiste',
+    arena: 'frei',
+    kamera: 'seite',
+    bedienung: 'SA',
+    spielform: 'FFA',
+    tempo: 'wechselnd',
+    ort: 'garten',
+  },
+  matschmaler: {
+    kernverb: 'malen',
+    ziel: 'mehrheit',
+    arena: 'frei',
+    kamera: 'schraeg',
+    bedienung: 'SA',
+    spielform: 'FFA',
+    tempo: 'hektisch',
+    ort: 'garten',
+  },
   // Testspiel der Spielform 2v2 (CHAOS-89), nicht in der Rotation: bewusst nah an der Pump-Parade.
   'pump-duell': {
     kernverb: 'pumpen',
