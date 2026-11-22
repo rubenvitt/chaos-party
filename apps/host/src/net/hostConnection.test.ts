@@ -229,6 +229,41 @@ describe('connectHost', () => {
     expect(t.connection.sendMinigameResult(result)).toBe(false);
   });
 
+  it('meldet den Hinweis eines Abschnitts und wiederholt den letzten nach Neuverbinden (CHAOS-231)', () => {
+    const t = setup();
+    const cue = {
+      minigameId: 'schnellfeuer',
+      round: 3,
+      cue: {
+        step: 0,
+        steps: 5,
+        icon: '⏰',
+        word: 'HAUEN!',
+        controls: { joystick: null, a: 'Hauen', b: null },
+        double: false,
+      },
+    };
+    const cues = () => t.last().sent.filter((m) => m.includes('"minigame-cue"'));
+    // Ohne Verbindung gemerkt, mit dem ersten Stand gesendet.
+    expect(t.connection.sendMinigameCue(cue)).toBe(false);
+    t.last().open();
+    t.last().receive(encode(LOBBY));
+    expect(cues()).toHaveLength(1);
+    const sent = parseHostMessage(cues()[0] ?? '');
+    expect(sent).toEqual({ ok: true, message: { v: 4, type: 'minigame-cue', ...cue } });
+    // Weitere Stände: nicht doppelt; neuer Hinweis sofort.
+    t.last().receive(encode(LOBBY));
+    expect(cues()).toHaveLength(1);
+    expect(t.connection.sendMinigameCue({ ...cue, cue: null })).toBe(true);
+    expect(cues()).toHaveLength(2);
+    // Neue Verbindung: der letzte Hinweis (hier `null`) kommt noch einmal.
+    t.last().drop();
+    t.fire(2000);
+    t.last().open();
+    t.last().receive(encode(LOBBY));
+    expect(cues()).toEqual([encode(createMessage('minigame-cue', { ...cue, cue: null }))]);
+  });
+
   it('sendet start mit Modus und Rundenzahl (M2)', () => {
     const t = setup();
     t.last().open();

@@ -135,6 +135,16 @@ export interface SimulationOptions {
    * Ergebnis nach Spielzeit + `minigameResultDelayMs`. Fehlt/leer = M2-Platzhalter.
    */
   readonly minigames?: readonly MinigameSpec[];
+  /** Schnellfeuer-Minispiel (CHAOS-90); kommt nur mit `rules.rapidFire`. */
+  readonly rapidFire?: MinigameSpec;
+}
+
+/** Ein gewertetes Minispiel der Partie (Reihenfolge wie gespielt). */
+export interface SimulationMinigame {
+  readonly round: number;
+  readonly id: string;
+  /** Slots auf Platz 1 (Gleichstand: mehrere). */
+  readonly winners: readonly Slot[];
 }
 
 export interface SimulationPlayerResult {
@@ -181,6 +191,8 @@ export interface SimulationResult {
   readonly midRanking: readonly RankingEntry[] | null;
   /** Gespielte Minispiele (ohne Platzhalter: echte mit Ergebnis). */
   readonly minigamesPlayed: number;
+  /** Gewertete echte Minispiele mit Runde und Siegern (CHAOS-90: Schnellfeuer-Auswertung). */
+  readonly minigameLog: readonly SimulationMinigame[];
   /** Spielerzustand am Ende (Statistik, Minispiel-Siege) für nachgelagerte Wertungsvarianten. */
   readonly finalPlayers: readonly PlayerState[];
   /** Minispiele mit geteiltem 1. Platz. */
@@ -358,6 +370,7 @@ export function simulateGame(options: SimulationOptions): SimulationResult {
     seed: options.seed,
     players: slots.map((slot) => ({ slot, name: SIM_NAMES[slot - 1] ?? `Bot ${String(slot)}` })),
     ...(options.minigames ? { minigames: options.minigames } : {}),
+    ...(options.rapidFire ? { rapidFire: options.rapidFire } : {}),
   });
   // Eigener Zufall für Bot-Entscheidungen, damit der Spiel-RNG nur Regeln bedient.
   const bot = createRng((options.seed ^ 0x5bd1e995) >>> 0);
@@ -367,7 +380,8 @@ export function simulateGame(options: SimulationOptions): SimulationResult {
   const reactions = { shield: 0, brace: 0, timeout: 0 };
   const itemsGained = counter(ITEM_KINDS);
   const itemsUsed = counter(ITEM_KINDS);
-  const boardEvents = counter(BOARD_EVENT_KINDS);
+  // „Schnellfeuer!“ (CHAOS-90) zählt erst, wenn es vorkommt; sonst bleiben die Zähler wie vorher.
+  const boardEvents = counter<BoardEventKind>(BOARD_EVENT_KINDS);
   let turnStart = 0;
   let turnSpaces = 0;
   let round = 0;
@@ -460,6 +474,7 @@ export function simulateGame(options: SimulationOptions): SimulationResult {
       }
       case 'board-event':
         countingMoves = false;
+        if (!(event.event in boardEvents)) boardEvents[event.event] = 0;
         boardEvents[event.event] += 1;
         break;
       case 'turn-ended':
@@ -528,6 +543,7 @@ export function simulateGame(options: SimulationOptions): SimulationResult {
   let midRanking = null as RankingEntry[] | null;
   let minigamesPlayed = 0;
   let minigameSharedWins = 0;
+  const minigameLog: SimulationMinigame[] = [];
 
   const apply = (result: StepResult, at: number): void => {
     if (!result.ok) {
@@ -543,6 +559,13 @@ export function simulateGame(options: SimulationOptions): SimulationResult {
       }
       if (event.type === 'minigame-results' && !event.aborted) {
         minigamesPlayed += 1;
+        if (state.minigame && state.minigame.id !== PLACEHOLDER_MINIGAME) {
+          minigameLog.push({
+            round: state.minigame.round,
+            id: state.minigame.id,
+            winners: event.placements.filter((p) => p.place === 1).map((p) => p.slot),
+          });
+        }
         if (event.placements.filter((p) => p.place === 1).length > 1) minigameSharedWins += 1;
       }
     }
@@ -555,7 +578,10 @@ export function simulateGame(options: SimulationOptions): SimulationResult {
    * Zufallsverbrauch wie vorher.
    */
   const minigameResult = (minigame: NonNullable<GameState['minigame']>, at: number): void => {
-    const spec = options.minigames?.find((m) => m.id === minigame.id);
+    const spec = [
+      ...(options.minigames ?? []),
+      ...(options.rapidFire ? [options.rapidFire] : []),
+    ].find((m) => m.id === minigame.id);
     const spread = Math.max(0, Math.round(policy.minigameScoreSpread));
     const scores = state.players.map((p) => {
       const base = bot.int(0, spread);
@@ -692,6 +718,7 @@ export function simulateGame(options: SimulationOptions): SimulationResult {
     ranking,
     midRanking,
     minigamesPlayed,
+    minigameLog,
     finalPlayers: state.players,
     minigameSharedWins,
     minigameCoins,

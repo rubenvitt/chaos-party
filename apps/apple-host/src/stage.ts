@@ -23,7 +23,12 @@ import { CreateCapsule } from '@babylonjs/core/Meshes/Builders/capsuleBuilder.js
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
 import { Logger } from '@babylonjs/core/Misc/logger.js';
 import { Scene } from '@babylonjs/core/scene.js';
-import type { MinigamePlacement, MinigameTeams, Slot } from '@chaos-party/minigame-sdk';
+import type {
+  MinigameCue,
+  MinigamePlacement,
+  MinigameTeams,
+  Slot,
+} from '@chaos-party/minigame-sdk';
 import {
   createMinigameRunner,
   PrepareAborted,
@@ -75,6 +80,8 @@ export interface HeadlessStageOptions {
   /** Geladenes Havok (Pflicht für `info.physics`). */
   readonly havok: HavokInstance | null;
   readonly onResult: (result: RunnerResult) => void;
+  /** Controller-Hinweis hat gewechselt (CHAOS-231, nur Minispiele mit Abschnitten). */
+  readonly onCue?: (cue: MinigameCue | null) => void;
   readonly log: (line: string) => void;
   /**
    * Verteilt den Aufbau auf mehrere `tick` (CHAOS-141). Fehlt er, baut die Bühne am Stück
@@ -352,6 +359,7 @@ export function createHeadlessStage(options: HeadlessStageOptions): HeadlessStag
       };
     }),
     onResult: options.onResult,
+    ...(options.onCue ? { onCue: options.onCue } : {}),
     ...(options.pacing ? { pacing: options.pacing } : {}),
   });
   /** Lage je Mesh, gültig solange sich die Weltmatrix nicht ändert (`updateFlag`). */

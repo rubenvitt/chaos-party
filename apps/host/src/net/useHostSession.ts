@@ -8,6 +8,7 @@ import {
   type ConnectionStatus,
   type HostCommand,
   type HostConnection,
+  type MinigameCuePayload,
   type MinigameResultPayload,
   type StartOptions,
 } from './hostConnection.ts';
@@ -36,6 +37,8 @@ export interface HostSession {
   readonly start: (options?: StartOptions) => boolean;
   /** Ergebnis des laufenden Minispiels an den Server (über `results`). Stabile Referenz. */
   readonly submitMinigameResult: (result: MinigameResultPayload) => void;
+  /** Hinweis des laufenden Abschnitts an den Server (CHAOS-231); lokal ohne Wirkung. */
+  readonly sendMinigameCue: (cue: MinigameCuePayload) => void;
   /**
    * Steuerbefehl an den Server (v4: `configure`, `pause`, `resume`, `end-game`, `rematch`);
    * `false`, wenn nicht verbunden. Stabile Referenz.
@@ -125,6 +128,10 @@ export function useHostSession(url: string | null): HostSession {
     [results],
   );
 
+  const sendMinigameCue = useCallback((cue: MinigameCuePayload) => {
+    connectionRef.current?.sendMinigameCue(cue);
+  }, []);
+
   const command = useCallback(
     (next: HostCommand) => connectionRef.current?.sendCommand(next) ?? false,
     [],
@@ -144,6 +151,7 @@ export function useHostSession(url: string | null): HostSession {
     results,
     start,
     submitMinigameResult,
+    sendMinigameCue,
     command,
     resultAck,
     setSceneReady,

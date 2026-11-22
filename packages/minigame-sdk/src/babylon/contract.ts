@@ -41,7 +41,14 @@ import type { Material } from '@babylonjs/core/Materials/material.js';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
 import type { Scene } from '@babylonjs/core/scene.js';
 import type { MinigameBotDriver, MinigameBotOptions } from '../bot.ts';
-import type { CharacterId, MinigameInfo, MinigameInput, MinigameResult, Slot } from '../info.ts';
+import type {
+  CharacterId,
+  MinigameCue,
+  MinigameInfo,
+  MinigameInput,
+  MinigameResult,
+  Slot,
+} from '../info.ts';
 import type { MinigameRng } from '../rng.ts';
 import type { MinigameTeams } from '../teams.ts';
 
@@ -223,6 +230,12 @@ export interface Minigame {
   /** `null` solange das Spiel läuft, danach das endgültige Ergebnis. */
   getResult(): MinigameResult | null;
   getHud(): MinigameHud;
+  /**
+   * Optional (CHAOS-231): Hinweis für den Controller im laufenden Abschnitt (Bildwort und
+   * Bedienung), `null` = keiner. Die Laufzeit fragt nach jedem Schritt und meldet nur Wechsel
+   * (`RunnerOptions.onCue`); günstig halten. Minispiele ohne Abschnitte lassen es weg.
+   */
+  getCue?(): MinigameCue | null;
   /** Alles entfernen, was das Minispiel angelegt hat (idempotent). */
   dispose(): void;
   /**

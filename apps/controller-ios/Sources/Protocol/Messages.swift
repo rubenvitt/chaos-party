@@ -99,11 +99,13 @@ struct ErrorCode: OpenStringEnum {
     static let staleSeq: Self = "stale-seq", rateLimited: Self = "rate-limited"
     static let invalidChoice: Self = "invalid-choice", invalidResult: Self = "invalid-result"
     static let characterTaken: Self = "character-taken", paused: Self = "paused"
+    /// `ai-seat` not sent by the lead (CHAOS-179); only senders of `ai-seat` get it.
+    static let notLead: Self = "not-lead"
     static let `internal`: Self = "internal"
     static let known: [Self] = [
         .badMessage, .tooLarge, .versionMismatch, .notJoined, .badJoinCode, .sessionFull,
         .badToken, .hostTaken, .notYourSlot, .outOfPhase, .staleSeq, .rateLimited,
-        .invalidChoice, .invalidResult, .characterTaken, .paused, .internal,
+        .invalidChoice, .invalidResult, .characterTaken, .paused, .notLead, .internal,
     ]
 }
 
@@ -290,6 +292,18 @@ struct MinigameControls: Codable, Equatable, Sendable {
     var b: String?
 }
 
+/// `MinigameCueSchema` (v4 addendum CHAOS-231): cue of the running section of a minigame
+/// (Schnellfeuer: micro game `step` of `steps`) with its picture word and only its controls.
+struct MinigameCue: Codable, Equatable, Sendable {
+    var step: Int
+    var steps: Int
+    var icon: String
+    var word: String
+    var controls: MinigameControls
+    /// The section counts double (Schnellfeuer finale, „×2“).
+    var double: Bool
+}
+
 /// `ControllerMinigameTeamSchema` (v4 addendum CHAOS-89, Swift: CHAOS-229): own role in a
 /// team or koop minigame, from the intro on; `result`/`tier` only in `results`.
 struct ControllerMinigameTeam: Codable, Equatable, Sendable {
@@ -337,6 +351,9 @@ struct ControllerMinigameInfo: Codable, Equatable, Sendable {
     /// v4 addendum (CHAOS-87, optional), only in `results`: own thumbs vote for this run.
     /// Missing = not voted yet. Voting is possible while `actions` contains `rate`.
     var vote: Vote?
+    /// v4 addendum (CHAOS-231, optional), only in `play`: picture word and controls of the running
+    /// section. Missing = no sections or an older host; then `controls` apply.
+    var cue: MinigameCue?
     /// v4 addendum (CHAOS-89, optional): own role in a team or koop minigame. Missing = every
     /// player for themselves (and older servers): no role card, no team outcome.
     var team: ControllerMinigameTeam?
@@ -348,6 +365,15 @@ struct TakenCharacter: Codable, Equatable, Sendable {
     var slot: Int
 }
 
+/// Element of `ControllerLobbyInfoSchema.seats` (`LobbySeatSchema`, v4 addendum CHAOS-179).
+struct LobbySeat: Codable, Equatable, Sendable {
+    var slot: Int
+    /// `SEAT_KINDS`: `human` or `ai`; unknown values decode as-is.
+    var kind: String
+    /// `AI_STRENGTHS` (`leicht`/`mittel`/`schwer`/`dynamisch`), only for `ai`.
+    var strength: String?
+}
+
 /// `ControllerLobbyInfoSchema` (v4).
 struct ControllerLobbyInfo: Codable, Equatable, Sendable {
     /// Own character, `nil` (wire `null`) = not chosen yet.
@@ -356,6 +382,10 @@ struct ControllerLobbyInfo: Codable, Equatable, Sendable {
     /// Optional (older servers omit it).
     var takenBy: [TakenCharacter]?
     var rounds: Int
+    /// v4 addendum (CHAOS-179): this slot is the lead and may send `ai-seat`. Optional.
+    var lead: Bool?
+    /// v4 addendum (CHAOS-179): occupied seats with kind (AI with strength). Optional.
+    var seats: [LobbySeat]?
 }
 
 /// `ContextMessageSchema`: replaces the previous context of `slot` completely.
@@ -499,12 +529,16 @@ enum SlotIntent: Equatable, Sendable {
     /// Thumbs after a minigame (CHAOS-87, CHAOS-219): `minigameId` and `round` name the run
     /// (`minigame.id`, `board.round`); sending again changes the vote.
     case rate(slot: Int, minigameId: String, round: Int, vote: Vote)
+    /// Lobby, lead only (CHAOS-179): set/change an AI seat (`strength` from `AI_STRENGTHS`) or
+    /// remove it (`nil`, wire `null`). No UI yet (CHAOS-182).
+    case aiSeat(slot: Int, seat: Int, strength: String?)
 
     var slot: Int {
         switch self {
         case .ready(let slot), .move(let slot, _, _), .press(let slot, _),
             .release(let slot, _), .gesture(let slot, _), .reaction(let slot, _),
-            .choose(let slot, _, _), .pickCharacter(let slot, _), .rate(let slot, _, _, _):
+            .choose(let slot, _, _), .pickCharacter(let slot, _), .rate(let slot, _, _, _),
+            .aiSeat(let slot, _, _):
             slot
         }
     }
@@ -520,6 +554,7 @@ enum SlotIntent: Equatable, Sendable {
         case .choose: "choose"
         case .pickCharacter: "pick-character"
         case .rate: "rate"
+        case .aiSeat: "ai-seat"
         }
     }
 }
@@ -560,7 +595,7 @@ extension ControllerMessage: Codable {
     private enum Key: String, CodingKey {
         case v, type, joinCode, seats, names, sessionToken, t, slot, seq
         case x, y, button, kind, windowId, promptId, option, character
-        case minigameId, round, vote
+        case minigameId, round, vote, seat, strength
     }
 
     func encode(to encoder: Encoder) throws {
@@ -599,6 +634,14 @@ extension ControllerMessage: Codable {
                 try c.encode(minigameId, forKey: .minigameId)
                 try c.encode(round, forKey: .round)
                 try c.encode(vote, forKey: .vote)
+            case .aiSeat(_, let seat, let strength):
+                try c.encode(seat, forKey: .seat)
+                // `null` removes the AI seat: the key must be present (zod `nullable`, not optional).
+                if let strength {
+                    try c.encode(strength, forKey: .strength)
+                } else {
+                    try c.encodeNil(forKey: .strength)
+                }
             }
         }
     }
@@ -652,6 +695,10 @@ extension ControllerMessage: Codable {
                 slot: slot, minigameId: try c.decode(String.self, forKey: .minigameId),
                 round: try c.decode(Int.self, forKey: .round),
                 vote: try c.decode(Vote.self, forKey: .vote))
+        case "ai-seat":
+            intent = .aiSeat(
+                slot: slot, seat: try c.decode(Int.self, forKey: .seat),
+                strength: try c.decodeIfPresent(String.self, forKey: .strength))
         default:
             throw DecodingError.dataCorruptedError(
                 forKey: .type, in: c, debugDescription: "Unbekannter Controller-Typ \(type)")

@@ -83,6 +83,7 @@ describe('describePlay', () => {
         { button: 'b', label: null },
       ],
       title: null,
+      cue: null,
     });
   });
 
@@ -93,6 +94,52 @@ describe('describePlay', () => {
       stickHint: 'Ziehen: Laufen',
       buttons: [{ button: 'a', label: 'Springen' }],
       title: 'Kartoffel-Hüpfen',
+      cue: null,
+    });
+  });
+
+  it('Abschnitt mit Hinweis (CHAOS-231): Bildwort im Kopf, nur dessen Bedienung', () => {
+    const schnellfeuer = info({
+      id: 'schnellfeuer',
+      title: 'Schnellfeuer!',
+      controls: { joystick: 'Zielen', a: 'Los!', b: null },
+    });
+    const actions: Action[] = ['move', 'button-a'];
+    const hauen = {
+      step: 0,
+      steps: 5,
+      icon: '⏰',
+      word: 'HAUEN!',
+      controls: { joystick: null, a: 'Hauen', b: null },
+      double: false,
+    };
+    const view = describePlay(play(actions, { ...schnellfeuer, cue: hauen }));
+    expect(view).toMatchObject({
+      stick: false,
+      buttons: [{ button: 'a', label: 'Hauen' }],
+      title: 'Schnellfeuer!',
+      cue: { step: 0, icon: '⏰', word: 'HAUEN!', progress: '1/5', double: false },
+    });
+    expect(offeredActions(play(actions, { ...schnellfeuer, cue: hauen }))).toEqual(['button-a']);
+    const finale = {
+      ...hauen,
+      step: 4,
+      icon: '🍰',
+      word: 'HALBIEREN!',
+      controls: { joystick: 'Messer', a: 'Schneiden', b: null },
+      double: true,
+    };
+    expect(describePlay(play(actions, { ...schnellfeuer, cue: finale }))).toMatchObject({
+      stick: true,
+      stickHint: 'Ziehen: Messer',
+      buttons: [{ button: 'a', label: 'Schneiden' }],
+      cue: { progress: '5/5', double: true },
+    });
+    // Ohne Hinweis (älterer Host): Vereinigung aus dem Steckbrief wie bisher.
+    expect(describePlay(play(actions, schnellfeuer))).toMatchObject({
+      stick: true,
+      buttons: [{ button: 'a', label: 'Los!' }],
+      cue: null,
     });
   });
 

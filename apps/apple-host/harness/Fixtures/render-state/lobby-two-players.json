@@ -72,7 +72,9 @@
         "color": "#0072B2",
         "connected": true,
         "ready": true,
-        "character": "raccoon"
+        "character": "raccoon",
+        "kind": "human",
+        "strength": null
       },
       {
         "slot": 2,
@@ -80,7 +82,9 @@
         "color": "#E69F00",
         "connected": true,
         "ready": false,
-        "character": null
+        "character": null,
+        "kind": "human",
+        "strength": null
       }
     ]
   },

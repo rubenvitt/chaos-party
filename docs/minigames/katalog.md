@@ -337,7 +337,7 @@ Alle spielen gemeinsam gegen das Spiel, gewertet wird trotzdem einzeln (Anteil a
 
 ## 20. Mikro-Spiele (`Mikro`, 5–8 s, Schnellfeuer-Kette)
 
-Eigene Mechanik (README §7): Fünf Mikro-Spiele am Stück ersetzen das Minispiel einer Runde. Eigener Vorrat, zählt nicht zu den ~200 vollen Minispielen. Braucht den Schnellfeuer-Ablauf (`CHAOS-90`).
+Eigene Mechanik (README §7): Fünf Mikro-Spiele am Stück ersetzen das Minispiel einer Runde. Eigener Vorrat, zählt nicht zu den ~200 vollen Minispielen. Schnellfeuer-Ablauf seit `CHAOS-90` (ADR-024). Umgesetzt: MG-192, MG-193, MG-194, MG-196, MG-197 (`packages/minigames/src/schnellfeuer/micros.ts`); offen für `CHAOS-113`: MG-191, MG-195, MG-198 … MG-200.
 
 | Nr | Name | Kat | Bed. | Idee | Kniff |
 |---|---|---|---|---|---|

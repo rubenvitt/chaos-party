@@ -107,6 +107,8 @@ Umgesetzt in `CHAOS-84`; Regeln, Tische, Schwellen mit Begründung und Ausnahmen
 
 **Umgesetzt (CHAOS-87, 2026-11-20):** Die Galerie steht in der PC-Lobby („Minispiel-Galerie“): alle Spiele mit Status (`rotation`/`spielbar`, abgeleitet aus `ROTATION` im Katalog), Kategorie, Familie (sobald CHAOS-85 sie in den Steckbrief bringt), Spielzeit, Bedienung und Daumen. „Üben“ startet eine Übungsrunde (`start.practice`): nur dieses Spiel, keine Münzen, Siege oder Items, danach zurück in die Lobby. Daumen gibt es am iPhone in der Ergebnisanzeige jedes Minispiels (Partie und Übung, Controller-Nachricht `rate`); nichts wartet darauf. Der Server speichert die Stimmen in `~/.chaos-party/minispiel-stimmen.json` (`STIMMEN_DATEI`), der Export liegt unter `/ratings.json`. Rauswurf-Vorschlag ab **6 Stimmen mit ≥ 60 % Daumen runter** (`packages/minigames/src/gallery.ts`); er gilt nur für Spiele der Rotation, entscheiden tut Ruben. Offen: Daumen in iPad-Zonen und in der nativen Controller-App, Galerie am Apple-Host.
 
+**Zusammengeführt (CHAOS-228, 2026-11-21):** Galerie und Rotations-Dialog (CHAOS-85) sind am PC eine Ansicht hinter einem Lobby-Knopf „Minispiele ›“: je Spiel Status, Familie, Bedienung, Daumen, „Üben“ und – für Spiele der Rotation des Servers – „★ Favorit“ und „⦸ Sperren“. Der Rauswurf-Vorschlag trägt einen Sperren-Knopf; gesperrt wird nur auf Rubens Klick, ein schon gesperrtes Spiel zeigt keinen Vorschlag mehr.
+
 ### 5.5 Gegen Gleichförmigkeit
 
 Rubens Sorge beim Konzept-Gate (2026-11-16): Mit einem Baukasten könnten die Spiele „einem Muster folgen“. Die Fabrik ist nur dann freigegeben, wenn das nicht passiert. Darum gelten diese Regeln:
@@ -142,7 +144,7 @@ Stärke-Kennzahl (EXP-040, je zwei KI schwer gegen zwei leicht, Siegquote schwer
 
 ## 6. Folgen für den Rest des Spiels
 
-- **Rotation:** Bei 200 Spielen kommt in einer Partie (10–20 Runden) fast nie ein Spiel doppelt. Die Auswahl braucht: Ziehen ohne Wiederholung (auch über Partien hinweg), Mischen über die Achsen, Filter nach Spielerzahl und iPad-Zonen, Sperrliste/Favoriten. Umgesetzt in `CHAOS-85` (ADR-012 Nachtrag 6): Felder `family`, `minPlayers`/`maxPlayers`, `ipadZone`, `secretChoice` in `MinigameInfo`, Kernverb/Spielform/Bedienung aus dem Vielfalts-Steckbrief (ADR-021); Auswahl in `packages/game-core/src/rules/rotation.ts`; Sperrliste und Favoriten im Lobby-Dialog „Minispiele“ am PC.
+- **Rotation:** Bei 200 Spielen kommt in einer Partie (10–20 Runden) fast nie ein Spiel doppelt. Die Auswahl braucht: Ziehen ohne Wiederholung (auch über Partien hinweg), Mischen über die Achsen, Filter nach Spielerzahl und iPad-Zonen, Sperrliste/Favoriten. Umgesetzt in `CHAOS-85` (ADR-012 Nachtrag 6): Felder `family`, `minPlayers`/`maxPlayers`, `ipadZone`, `secretChoice` in `MinigameInfo`, Kernverb/Spielform/Bedienung aus dem Vielfalts-Steckbrief (ADR-021); Auswahl in `packages/game-core/src/rules/rotation.ts`; Sperrliste und Favoriten im Lobby-Dialog „Minispiele“ am PC (seit CHAOS-228 zusammen mit der Galerie).
 - **Anleitungen:** Bei vielen neuen Spielen ist fast jedes Spiel neu für die Runde. Kurze, klare Anleitung und eine **Probephase** (5 s üben vor dem Start) werden wichtiger als die verkürzte Anleitung bei Wiederholung (CHAOS-66).
 - **Assets:** Viele Spiele brauchen Requisiten (Toaster, Melone, Gießkanne). Weiter mit dem eigenen Blender-Skript-Generator (ADR-013) und CC0-Quellen; je Familie ein **Requisiten-Set**, keine Einzelanfertigung je Spiel. Umgesetzt in CHAOS-88: Art-Kit `packages/assets/blender/requisitkit.py`, Sets und Budget je Spiel in `packages/assets/src/props.ts`, Regeln in `docs/art-direction.md` („Requisiten der Minispiele“).
 - **Ladezeit und Bundle:** 200 Spiele dürfen den Host nicht aufblähen. Minispiel-Module werden **erst bei Bedarf geladen** (dynamischer Import je Spiel). Umgesetzt mit CHAOS-86: neues Spiel zusätzlich in `packages/minigames/src/lazy.ts` eintragen (ADR-004 Nachtrag 2).
@@ -158,6 +160,8 @@ Stärke-Kennzahl (EXP-040, je zwei KI schwer gegen zwei leicht, Siegquote schwer
 | 5 | Reihenfolge Pilot → Zwischenabnahme → Familien | „ja“ | Wie §8 |
 
 **Schnellfeuer als eigene Mechanik:** Fünf Mikro-Spiele am Stück ersetzen das normale Minispiel einer Runde. Gewertet wird über alle fünf, die Münzen folgen der normalen Platzierung. Der Auslöser wird per Experiment gewählt (`CHAOS-90`). Varianten: (a) ein neues Brett-Ereignis „Schnellfeuer!“, (b) feste Runde zur Halbzeit, (c) Finale in der letzten Runde. Vorschlag: (a), weil Brett-Ereignisse zum Kern des Spiels gehören und die Überraschung erhalten. Die Mikro-Spiele bilden einen eigenen Vorrat und zählen nicht als volle Minispiele. Das Ziel „~200“ meint volle Minispiele, die Mikro-Spiele kommen obendrauf.
+
+**Umgesetzt (CHAOS-90, 2026-11-21):** Schnellfeuer ist nach außen ein normales Minispiel-Modul (`packages/minigames/src/schnellfeuer`), nicht in der Rotation. Auslöser nach EXP-041: Brett-Ereignis „Schnellfeuer!“ (5 Lose, höchstens einmal je Partie), sonst im Finale. Mikro-Vertrag: 5–8 s, Bildwort in Großbuchstaben statt Anleitung (ADR-024). Erster Vorrat: MG-192, -193, -194, -196, -197; die übrigen fünf kommen mit `CHAOS-113`.
 
 ## 8. Wellenplan (Vorschlag)
 

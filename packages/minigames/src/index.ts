@@ -14,6 +14,7 @@ import { pumpDuell } from './pump-duell/index.ts';
 import { pumpParade } from './pump-parade/index.ts';
 import { pumpRiese } from './pump-riese/index.ts';
 import { pumpSolo } from './pump-solo/index.ts';
+import { schnellfeuer } from './schnellfeuer/index.ts';
 import { sockenregen } from './sockenregen/index.ts';
 import { wackelturm } from './wackelturm/index.ts';
 
@@ -30,6 +31,7 @@ export const MINIGAME_MODULES: readonly MinigameModule[] = [
   pumpDuell,
   pumpSolo,
   pumpRiese,
+  schnellfeuer,
 ];
 
 export function getMinigameModule(id: string): MinigameModule | undefined {

@@ -531,7 +531,7 @@ const Zone = memo(function Zone({
           // Minispiel läuft (CHAOS-33): Plakette und Titel nebeneinander im Kopfstreifen.
           <div className="zone-head">
             {badge}
-            <MinigameHeader title={play.title} className="zone-minigame-header" />
+            <MinigameHeader title={play.title} cue={play.cue} className="zone-minigame-header" />
           </div>
         ) : (
           badge

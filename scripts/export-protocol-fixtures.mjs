@@ -116,6 +116,23 @@ const serverToController = {
     actions: ['pick-character'],
     lobby: { character: 'cactus', takenCharacters: ['robot', 'sock'], rounds: 8 },
   }),
+  // CHAOS-179: Spielleitung mit belegten Plätzen (Mensch und KI mit Stärke).
+  'context-lobby-lead-ai': context({
+    phase: 'lobby',
+    layout: 'lobby',
+    actions: ['ready', 'pick-character'],
+    lobby: {
+      character: null,
+      takenCharacters: [],
+      takenBy: [],
+      rounds: 5,
+      lead: true,
+      seats: [
+        { slot: 1, kind: 'human' },
+        { slot: 3, kind: 'ai', strength: 'schwer' },
+      ],
+    },
+  }),
   'context-lobby-basic': context({ phase: 'lobby', layout: 'lobby', actions: ['ready'] }),
   'context-wait': context({ phase: 'lobby', layout: 'wait', actions: [] }),
   'context-arena-play': context({
@@ -257,6 +274,27 @@ const serverToController = {
     minigame: minigame({
       stage: 'play',
       controls: { joystick: null, a: 'Pumpen', b: 'Bremsen' },
+    }),
+  }),
+  // v4-Nachtrag CHAOS-231: Hinweis des laufenden Abschnitts (Schnellfeuer-Mikro-Spiel).
+  'context-minigame-play-cue': context({
+    phase: 'board',
+    layout: 'joystick-buttons',
+    actions: ['move', 'button-a'],
+    board: board({ gamePhase: 'minigame-play', activeSlot: null }),
+    minigame: minigame({
+      id: 'schnellfeuer',
+      title: 'Schnellfeuer!',
+      stage: 'play',
+      controls: { joystick: 'Zielen', a: 'Los!', b: null },
+      cue: {
+        step: 1,
+        steps: 5,
+        icon: '🍝',
+        word: 'SCHLÜRFEN!',
+        controls: { joystick: null, a: 'Schlürfen', b: null },
+        double: false,
+      },
     }),
   }),
   'context-minigame-results': context({
@@ -416,6 +454,9 @@ const controllerToServer = {
   release: createMessage('release', { slot: 1, seq: 7, button: 'b' }),
   gesture: createMessage('gesture', { slot: 1, seq: 8, kind: 'swipe-left' }),
   reaction: createMessage('reaction', { slot: 1, seq: 9, windowId: 3 }),
+  // CHAOS-179: KI-Platz setzen bzw. entfernen (nur Spielleitung; Oberfläche folgt mit CHAOS-182).
+  'ai-seat': createMessage('ai-seat', { slot: 1, seq: 11, seat: 3, strength: 'mittel' }),
+  'ai-seat-remove': createMessage('ai-seat', { slot: 1, seq: 12, seat: 3, strength: null }),
   // CHAOS-87: Daumen nach dem Minispiel (native App: CHAOS-219).
   rate: createMessage('rate', {
     slot: 1,

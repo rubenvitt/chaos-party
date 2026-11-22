@@ -763,7 +763,7 @@ Automatisch geprüft (Linux-CI): Regeln, Server und Bots (Unit- und Integrations
 
 **Stand:** 2026-11-21 · **Aufgabe:** CHAOS-85, Apple-Host CHAOS-216
 
-Automatisch geprüft: Auswahl ohne Wiederholung, Familien und Kernverben nie direkt hintereinander, Filter für Spielerzahl und iPad-Zonen, Gewichte, letzte Partie (`packages/game-core/src/rules/rotation.test.ts`, 200 Dummy-Steckbriefe); Sperrliste/Favoriten über die Session und die Revanche (`apps/server/src/minigameRotation.integration.test.ts`); Dialog „Minispiele“ am PC per Maus und Escape, lokale Speicherung und erneutes Senden an eine frische Session (`tests/e2e/host-minispiel-rotation.spec.ts`). **Nicht** automatisch prüfbar: ob die Mischung sich am Abend abwechslungsreich anfühlt (bei fünf Spielen kaum sichtbar, erst mit der Pilotwelle CHAOS-91) und die Erkennung eines echten geteilten iPads.
+Automatisch geprüft: Auswahl ohne Wiederholung, Familien und Kernverben nie direkt hintereinander, Filter für Spielerzahl und iPad-Zonen, Gewichte, letzte Partie (`packages/game-core/src/rules/rotation.test.ts`, 200 Dummy-Steckbriefe); Sperrliste/Favoriten über die Session und die Revanche (`apps/server/src/minigameRotation.integration.test.ts`); Dialog „Minispiele“ am PC per Maus und Escape, lokale Speicherung und erneutes Senden an eine frische Session (`tests/e2e/host-minispiel-rotation.spec.ts`; seit CHAOS-228 in derselben Ansicht wie die Galerie, §42). **Nicht** automatisch prüfbar: ob die Mischung sich am Abend abwechslungsreich anfühlt (bei fünf Spielen kaum sichtbar, erst mit der Pilotwelle CHAOS-91) und die Erkennung eines echten geteilten iPads.
 
 | ID  | Schritt | Erwartung | Ergebnis | Nachweis |
 | --- | ------- | --------- | -------- | -------- |
@@ -803,7 +803,9 @@ Automatisch geprüft (Mac): Regeln und Validierung (Unit- und Integrationstests,
 
 **Stand:** 2026-11-20 · **Aufgabe:** CHAOS-87 · **Protokoll:** v4-Nachtrag CHAOS-87 (`start.practice`, `rate`, `ratings`)
 
-Automatisch geprüft (Linux): Übungsrunde in game-core (ohne Münzen, Siege, Items; Ende nach dem Ergebnis), Session (Übungsstart, Daumen nur in der Ergebnisanzeige, Umentscheiden ersetzt, Rückweg zum Brett bzw. in die Lobby genauso schnell mit und ohne Stimmen), Stimmen-Datei und Export `/ratings.json`, E2E: Galerie öffnen → Pump-Parade üben → Ergebnis → Daumen am iPhone (Chromium-Emulation) → Galerie zeigt die Stimme. **Nicht** automatisch geprüft: Tippen auf echtem iOS, Lesbarkeit am Fernseher, Datei nach Server-Neustart auf Rubens PC. **Noch nicht umgesetzt:** Galerie am Apple-Host (CHAOS-220); dort fehlt sie, alles andere läuft wie bisher.
+**Seit CHAOS-228 (2026-11-21):** Galerie und Rotations-Dialog (§40) sind eine Ansicht hinter dem Lobby-Knopf „Minispiele ›“; je Spiel der Rotation stehen „★ Favorit“ und „⦸ Sperren“ neben den Daumen, der Rauswurf-Vorschlag hat einen eigenen Sperren-Knopf.
+
+Automatisch geprüft (Linux): Übungsrunde in game-core (ohne Münzen, Siege, Items; Ende nach dem Ergebnis), Session (Übungsstart, Daumen nur in der Ergebnisanzeige, Umentscheiden ersetzt, Rückweg zum Brett bzw. in die Lobby genauso schnell mit und ohne Stimmen), Stimmen-Datei und Export `/ratings.json`, E2E: „Minispiele“ öffnen → Sockenregen üben → Ergebnis → Daumen am iPhone (Chromium-Emulation) → dieselbe Ansicht zeigt die Stimme → dort sperren → nächste Partie führt es als gesperrt; Rauswurf-Vorschlag sperrt erst auf Klick (`tests/e2e/minispiel-galerie.spec.ts`, `tests/e2e/host-minispiel-rotation.spec.ts`). **Nicht** automatisch geprüft: Tippen auf echtem iOS, Lesbarkeit am Fernseher, Datei nach Server-Neustart auf Rubens PC. **Noch nicht umgesetzt:** Galerie am Apple-Host (CHAOS-220); dort fehlt sie, alles andere läuft wie bisher.
 
 **Nachtrag 2026-11-21 (CHAOS-219):** Die native Controller-App zeigt die Daumen jetzt auch (Schritte GA10–GA14). Automatisch geprüft nur in der macOS-CI („Native Apps“): Kodierung von `rate` gegen die Fixtures aus dem TS-Parser, Sitzung (nur gesendet, solange `rate` angeboten wird; Lauf aus `minigame.id` und `board.round`), Ergebnis-Logik (Übungsrunde ohne Münzzeile, Hinweis auf die Lobby) und Screenshots `minigameVote`/`minigamePractice`. **Nicht** geprüft: Tippen am echten iPhone, Haptik, Lesbarkeit.
 
@@ -811,11 +813,12 @@ Automatisch geprüft (Linux): Übungsrunde in game-core (ohne Münzen, Siege, It
 
 | ID  | Schritt | Erwartung | Ergebnis | Nachweis |
 | --- | ------- | --------- | -------- | -------- |
-| GA1 | PC: `pnpm play`, Lobby, „Minispiel-Galerie“ | Alle Minispiele mit Status (Rotation/Spielbar), Kategorie, Spielzeit, Bedienung und Daumen; Liste scrollt, Escape schließt | | Foto |
+| GA1 | PC: `pnpm play`, Lobby, „Minispiele ›“ | Alle Minispiele mit Status (Rotation/Spielbar), Kategorie, Spielzeit, Bedienung und Daumen, Spiele der Rotation mit „Favorit“ und „Sperren“; Karte passt auf den Bildschirm, Liste scrollt, Escape schließt | | Foto |
 | GA2 | Ein iPhone verbinden (nicht bereit), in der Galerie „Üben“ bei einem Spiel, am Handy „Bereit!“ | Gleich die Anleitung dieses Spiels, kein Brettzug; auch gesperrte Spiele lassen sich üben; Handy zeigt Anleitung, dann Joystick/Knöpfe | | |
 | GA3 | Spiel zu Ende spielen | PC: Ergebnis ohne Münzspalte, Hinweis „Übungsrunde – keine Münzen“; iPhone: Platz, kein „Keine Münzen“, Frage „Hat’s Spaß gemacht?“ mit 👍/👎 | | Foto |
 | GA4 | 👍 tippen, dann 👎 | Gewählter Daumen leuchtet in Spielerfarbe sofort; Umentscheiden geht; nach ~6 s ohne Warten zurück in der Lobby | | |
-| GA5 | Galerie erneut öffnen | Spiel zeigt 👍 0 · 👎 1 („1 Stimme“) | | |
+| GA5 | „Minispiele ›“ erneut öffnen | Spiel zeigt 👍 0 · 👎 1 („1 Stimme“) | | |
+| GA5a | Im selben Dialog „Sperren“ beim geübten Spiel (falls Rotation), „Fertig“ | Zeile durchgestrichen mit „Gesperrt“; Lobby-Knopf zeigt „… · 1 ⦸“; die nächste Partie zieht das Spiel nicht | | |
 | GA6 | Echte Partie, nach einem Minispiel 👍 am Handy | Stimme zählt in der Galerie dazu; das Brett geht nach dem Ergebnis genauso schnell weiter wie ohne Stimme | | |
 | GA7 | „Stimmen exportieren“ | Browser lädt `minispiel-stimmen-<Datum>.json` mit allen Spielen und Einzelstimmen | | Datei |
 | GA8 | Server beenden und neu starten (`pnpm play`), Galerie öffnen | Stimmen sind noch da (Datei `~/.chaos-party/minispiel-stimmen.json`, Pfad steht beim Start im Terminal) | | |
@@ -903,4 +906,24 @@ Automatisch geprüft (Linux, ohne Mac): 42 Requisiten entstehen mit `pnpm build:
 | --- | ------- | --------- | -------- | -------- |
 | RQ1 | Mac: `pnpm build:apple-assets` | „USDZ ok“, danach RealityKit-Prüfung „OK“ mit einer Zeile je Requisit (`requisiten/<id>.usdz: Höhe …, Teile […]`), keine Meldung „glas ist undurchsichtig“ | | Log als Kommentar an CHAOS-221 |
 | RQ2 | Mac: `build/apple-assets/requisiten/` im Finder, Requisiten mit Quick Look (Leertaste) drehen | Farben wie im Kontaktbogen `docs/screenshots/chaos88-requisiten.jpg`; Metall silbern (Toaster, Milchkanne, Gießkanne), keine fremden Farbflecken; Limoglas, Eiswürfel, Honigglas und Bienenflügel durchscheinend; `akzent`/`zustand` weiß | | Screenshots |
+
+## 48. Schnellfeuer: fünf Mikro-Spiele als eigene Rundenart (für CHAOS-90)
+
+**Stand:** 2026-11-21 · **Aufgabe:** CHAOS-90, CHAOS-231 (Bildwort am Controller) · **Entscheidung:** ADR-024 (mit Nachtrag 1) · **Experiment:** EXP-041
+
+Automatisch geprüft (Mac): Mikro-Vertrag, Kette, Bots und Fairness-Vorlage (Unit-Tests), Auslöser im Regelkern samt Bot-Simulation, E2E mit 2, 3 und 4 Personen am PC-Host (SwiftShader, Testmodus) bis zum angenommenen Ergebnis, Apple-Host-Bot-Partie im Node-Kern mit Schnellfeuer in Runde 6; Schalter `HostEnv.rapidFire` im Node-Kern mit `bots --full --schnellfeuer=aus|halbzeit|finale|ereignis` (CHAOS-232), Swift-Teil (`--schnellfeuer`) nur im macOS-CI gebaut. CHAOS-231: E2E mit echtem Server prüft, dass das iPhone je Mikro-Spiel dasselbe Bildwort wie der Host-Banner und nur dessen Bedienung zeigt; iPad-Zonen mit nachgebautem Server (Chromium-Emulation); native App nur Logik- und Fixture-Tests in der macOS-CI. **Nicht** geprüft: echtes Spieltempo mit Menschen, Lesbarkeit des Bildworts am Fernseher, Apple-Host-App am Mac und auf der Apple TV, Spielspaß.
+
+| ID  | Schritt | Erwartung | Ergebnis | Nachweis |
+| --- | ------- | --------- | -------- | -------- |
+| SF1 | Partie am PC mit 3–4 Personen, 10 Runden (Standard `SCHNELLFEUER=an`) | Spätestens in der letzten Runde kommt Schnellfeuer; mit Ereignisfeld vorher Popup „Schnellfeuer!“ und Tickerzeile „… löst Schnellfeuer aus“ | | Foto |
+| SF2 | Anleitung von Schnellfeuer | Titel „Schnellfeuer!“, drei Zeilen, Stick „Zielen“ und A „Los!“ am iPhone | | Foto |
+| SF3 | Bildwort vor jedem Mikro-Spiel (1,3 s) | „1/5 ⏰ HAUEN!“ o. Ä. ist vom Sofa aus lesbar, bevor das Spiel startet; Knöpfe im Bildwort wirken nicht | | Video |
+| SF4 | Mikro-Spiele durchspielen | Wecker: zu früh drücken = „zu früh!“; Spaghetti: Hämmern spritzt Soße; Kerze: nur bei kleiner Flamme pusten; Fliege: Hand führen und zuschnappen; Kuchen: ein Schnitt, Prozent im Status | | Video |
+| SF5 | Auswertung nach jedem Mikro-Spiel | Banner „… holt’s!“, Gewinner jubeln, Punkte springen; letztes Mikro-Spiel mit „×2“ | | Video |
+| SF6 | Ergebnis | Münzen nach Platz über alle fünf wie nach jedem Minispiel | | Foto |
+| SF7 | Apple TV: dieselbe Partie | Gegenstände sichtbar, Bildwort im Banner, kein Ruckeln beim Wechsel der Mikro-Spiele | | Log |
+| SF7b | Nativer Host (Mac-App oder Apple TV) mit `--schnellfeuer=halbzeit`, dann `--schnellfeuer=aus` (Mac: `open -a "Chaos Party" --args --schnellfeuer=halbzeit`, CHAOS-232) | Log zeigt „Startparameter: Schnellfeuer halbzeit“ und „JS Schnellfeuer halbzeit“; Schnellfeuer kommt genau in Runde 5 von 10. Mit `aus` kommt es nie | | Log |
+| SF8 | Spieltest-Frage (CHAOS-92) | Ist das Tempo lustig oder zu hektisch? Versteht man das Bildwort ohne Anleitung? Gewinnt immer dieselbe Person? Lieber Ereignis, Halbzeit oder Finale (`SCHNELLFEUER=ereignis|halbzeit|finale`)? | | Notiz |
+| SF9 | Bildwort am Controller (CHAOS-231): iPhone, iPad-Zone und native App während der Kette | Im Kopf steht dasselbe Bildwort wie am Fernseher („⏰ HAUEN!“, „1/5“), synchron zum Bildwort am Host; nur die Knöpfe des Mikro-Spiels (Wecker/Spaghetti/Kerze: nur A, Fliege/Kuchen: Stick + A); Finale mit „×2“ | | Video |
+| SF10 | Knöpfe wechseln während des Bildworts (CHAOS-231) | Der Stick erscheint bzw. verschwindet im Bildwort, nicht mitten im Spiel; kein Druck geht dabei verloren; nach WLAN-Wackler zeigt der Controller wieder das laufende Bildwort | | Video |
 

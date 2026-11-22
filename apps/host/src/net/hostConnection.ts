@@ -23,19 +23,24 @@ import {
   createMessage,
   encode,
   parseServerToHostMessage,
+  type AiStrength,
   type BoardMessage,
   type ErrorMessage,
   type GameMode,
   type InputIntent,
   type LobbyMessage,
   type MinigameResultAckMessage,
+  type MinigameCueMessage,
   type MinigameResultMessage,
   type RatingsMessage,
+  type SlotNumber,
   type StartMessage,
 } from '@chaos-party/protocol';
 
 /** Inhalt einer `minigame-result`-Nachricht (ohne Umschlag). */
 export type MinigameResultPayload = Omit<MinigameResultMessage, 'v' | 'type'>;
+/** Hinweis des laufenden Abschnitts (CHAOS-231) ohne Umschlag. */
+export type MinigameCuePayload = Omit<MinigameCueMessage, 'v' | 'type'>;
 
 /**
  * Steuerbefehle des Hosts (Protokoll v4, ADR-015): Rundenzahl, „Mehr Zeit zum Reagieren“
@@ -52,6 +57,9 @@ export type HostCommand =
       /** Sperrliste und Favoriten der Minispiel-Rotation (CHAOS-85), je ganze Liste. */
       readonly minigameBlocklist?: readonly string[] | undefined;
       readonly minigameFavorites?: readonly string[] | undefined;
+      /** KI-Platz setzen, ändern oder entfernen (`strength: null`, CHAOS-179). */
+      readonly aiSeat?:
+        { readonly seat: SlotNumber; readonly strength: AiStrength | null } | undefined;
     }
   | { readonly type: 'pause' }
   | { readonly type: 'resume' }
@@ -72,6 +80,7 @@ export function createHostCommandMessage(command: HostCommand) {
         ...(command.minigameBlocklist === undefined
           ? {}
           : { minigameBlocklist: [...command.minigameBlocklist] }),
+        ...(command.aiSeat === undefined ? {} : { aiSeat: { ...command.aiSeat } }),
         ...(command.minigameFavorites === undefined
           ? {}
           : { minigameFavorites: [...command.minigameFavorites] }),
@@ -193,6 +202,12 @@ export interface HostConnection {
    * besteht. Wiederholung und Einmaligkeit regelt `createResultSender`.
    */
   sendMinigameResult(result: MinigameResultPayload): boolean;
+  /**
+   * Meldet den Hinweis des laufenden Abschnitts (CHAOS-231). Der letzte Hinweis wird gemerkt
+   * und nach einer neuen Verbindung erneut gesendet (der Server verwirft ihn, wenn sein Lauf
+   * vorbei ist). `false`, wenn gerade keine Verbindung besteht.
+   */
+  sendMinigameCue(cue: MinigameCuePayload): boolean;
   /** Sendet einen Steuerbefehl (v4); `false`, wenn gerade keine Verbindung besteht. */
   sendCommand(command: HostCommand): boolean;
   /**
@@ -248,6 +263,19 @@ export function connectHost(
     if (readySentOn === current) return;
     readySentOn = current;
     current.send(encode(createMessage('host-ready', {})));
+  };
+
+  /** Letzter Hinweis (CHAOS-231) und die Verbindung, die ihn schon hat. */
+  let lastCue: MinigameCuePayload | null = null;
+  let cueSentOn: SocketLike | undefined;
+  /** `true`, wenn die aktuelle Verbindung den letzten Hinweis hat (gerade oder schon vorher). */
+  const sendCueIfDue = (): boolean => {
+    const current = socket;
+    if (!lastCue || status !== 'connected' || current?.readyState !== OPEN) return false;
+    if (cueSentOn === current) return true;
+    cueSentOn = current;
+    current.send(encode(createMessage('minigame-cue', lastCue)));
+    return true;
   };
 
   const stopLiveness = () => {
@@ -357,12 +385,14 @@ export function connectHost(
           setStatus('connected');
           handlers.onLobby?.(message);
           sendReadyIfDue();
+          sendCueIfDue();
           break;
         case 'board':
           // Kommt nur nach angenommenem `host-hello`; zählt wie `lobby` als verbunden.
           setStatus('connected');
           handlers.onBoard?.(message);
           sendReadyIfDue();
+          sendCueIfDue();
           break;
         case 'input':
           handlers.onInput?.(message.intent, message.at);
@@ -422,6 +452,11 @@ export function connectHost(
       if (socket?.readyState !== OPEN || status !== 'connected') return false;
       socket.send(encode(createMessage('minigame-result', result)));
       return true;
+    },
+    sendMinigameCue(cue) {
+      lastCue = cue;
+      cueSentOn = undefined;
+      return sendCueIfDue();
     },
     sendCommand(command) {
       if (socket?.readyState !== OPEN || status !== 'connected') return false;

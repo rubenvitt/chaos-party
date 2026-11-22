@@ -24,6 +24,7 @@ import { PUMP_DUELL_INFO } from './pump-duell/info.ts';
 import { PUMP_PARADE_INFO } from './pump-parade/info.ts';
 import { PUMP_RIESE_INFO } from './pump-riese/info.ts';
 import { PUMP_SOLO_INFO } from './pump-solo/info.ts';
+import { SCHNELLFEUER_INFO } from './schnellfeuer/info.ts';
 import { SOCKENREGEN_INFO } from './sockenregen/info.ts';
 import { WACKELTURM_INFO } from './wackelturm/info.ts';
 
@@ -59,6 +60,8 @@ export const MINIGAME_LOADERS: ReadonlyMap<string, MinigameLoader> = new Map<
   [PUMP_DUELL_INFO.id, () => import('./pump-duell/index.ts').then((m) => m.pumpDuell)],
   [PUMP_SOLO_INFO.id, () => import('./pump-solo/index.ts').then((m) => m.pumpSolo)],
   [PUMP_RIESE_INFO.id, () => import('./pump-riese/index.ts').then((m) => m.pumpRiese)],
+  // Rundenart Schnellfeuer (CHAOS-90), nicht in der Rotation.
+  [SCHNELLFEUER_INFO.id, () => import('./schnellfeuer/index.ts').then((m) => m.schnellfeuer)],
 ]);
 
 export interface MinigameModuleCache {

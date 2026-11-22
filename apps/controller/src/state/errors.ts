@@ -75,6 +75,8 @@ const PRESENTATION: Readonly<Record<UiErrorCode, ErrorPresentation>> = {
   },
   // v4: Eingabe kam während der Pause an (kurzer Wettlauf), der Kontext zeigt die Pause.
   paused: { severity: 'silent', text: 'Das Spiel ist pausiert.' },
+  // CHAOS-179: `ai-seat` nicht von der Spielleitung (Wettlauf beim Wechsel der Spielleitung).
+  'not-lead': { severity: 'toast', text: 'KI-Plätze verwaltet die Spielleitung.' },
   internal: {
     severity: 'toast',
     text: 'Der Spiel-PC hat ein Problem. Versuch es gleich noch mal.',
