@@ -107,6 +107,20 @@ if let file = fixtureFiles.first(where: { $0.lastPathComponent == "minigame-coun
     fail("minigame-countdown.json: Klänge falsch: \(sounds)")
   }
 } else { fail("minigame-countdown.json: Klänge fehlen") }
+// CHAOS-230: Team-Ansage (2 gegen 2) und Team-Ergebnis (1 gegen 2) kommen in der App an.
+if let file = fixtureFiles.first(where: { $0.lastPathComponent == "minigame-teams.json" }),
+   let teams = try RenderState.decode(String(contentsOf: file, encoding: .utf8)).minigame?.teams {
+  if teams.headline != "2 gegen 2" || teams.groups?.map({ $0.symbol ?? "" }) != ["☀", "☾"]
+    || teams.groups?.map({ ($0.members ?? []).map(\.slot) }) != [[1, 3], [2, 4]] {
+    fail("minigame-teams.json: Aufstellung falsch: \(teams)")
+  }
+} else { fail("minigame-teams.json: Aufstellung fehlt") }
+if let file = fixtureFiles.first(where: { $0.lastPathComponent == "minigame-teams-results.json" }),
+   let m = try RenderState.decode(String(contentsOf: file, encoding: .utf8)).minigame {
+  if m.teams?.note?.contains("Vorteil") != true || m.results?.headline != "Anna und Cleo gewinnen gemeinsam!" {
+    fail("minigame-teams-results.json: Team-Ergebnis falsch")
+  }
+} else { fail("minigame-teams-results.json fehlt") }
 out("Fixtures dekodiert: \(fixtureFiles.count) Dateien mit RenderState.swift")
 
 let ctx = JSContext()!

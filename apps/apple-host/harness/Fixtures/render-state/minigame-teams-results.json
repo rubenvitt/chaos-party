@@ -1,0 +1,561 @@
+{
+  "phase": "minigame",
+  "lobby": {
+    "joinUrl": "http://192.168.0.2:8787/?code=AB12",
+    "joinCode": "AB12",
+    "settings": {
+      "rounds": 10,
+      "roundPresets": [
+        10,
+        16,
+        20
+      ],
+      "moreReactionTime": false,
+      "board": "wackelwald",
+      "boards": [
+        {
+          "id": "wackelwald",
+          "name": "Wackelwald",
+          "detail": "74 Felder",
+          "selected": true,
+          "random": false
+        },
+        {
+          "id": "zufall",
+          "name": "Zufall",
+          "detail": "Überraschung!",
+          "selected": false,
+          "random": true
+        }
+      ],
+      "minigames": [
+        {
+          "id": "sockenregen",
+          "title": "Sockenregen",
+          "blocked": false,
+          "favorite": false
+        },
+        {
+          "id": "pudding-gerangel",
+          "title": "Pudding-Gerangel",
+          "blocked": false,
+          "favorite": false
+        },
+        {
+          "id": "wackelturm",
+          "title": "Wackelturm",
+          "blocked": false,
+          "favorite": false
+        },
+        {
+          "id": "kuckucks-klatsche",
+          "title": "Kuckucks-Klatsche",
+          "blocked": false,
+          "favorite": false
+        },
+        {
+          "id": "kruemel-kehraus",
+          "title": "Krümel-Kehraus",
+          "blocked": false,
+          "favorite": false
+        }
+      ],
+      "minigameSummary": {
+        "short": "5 im Topf",
+        "long": "5 im Topf"
+      }
+    },
+    "galleryRevision": 0,
+    "players": [
+      {
+        "slot": 1,
+        "name": "Anna",
+        "color": "#0072B2",
+        "connected": true,
+        "ready": true,
+        "character": "raccoon"
+      },
+      {
+        "slot": 2,
+        "name": "Ben",
+        "color": "#E69F00",
+        "connected": true,
+        "ready": true,
+        "character": "sock"
+      },
+      {
+        "slot": 3,
+        "name": "Cleo",
+        "color": "#009E73",
+        "connected": true,
+        "ready": true,
+        "character": "robot"
+      }
+    ]
+  },
+  "board": {
+    "boardId": "wackelwald",
+    "round": 3,
+    "rounds": 10,
+    "activeSlot": null,
+    "spaces": [
+      {
+        "id": "s00",
+        "x": 0,
+        "z": 0,
+        "kind": "start"
+      },
+      {
+        "id": "s01",
+        "x": 2.4,
+        "z": 0.5,
+        "kind": "coins-plus"
+      },
+      {
+        "id": "s02",
+        "x": 4.6,
+        "z": 1.6,
+        "kind": "coins-minus"
+      },
+      {
+        "id": "s03",
+        "x": 6.2,
+        "z": 3.4,
+        "kind": "event"
+      },
+      {
+        "id": "s04",
+        "x": 6.8,
+        "z": 5.8,
+        "kind": "item"
+      },
+      {
+        "id": "s05",
+        "x": 5.9,
+        "z": 8.1,
+        "kind": "trophy"
+      }
+    ],
+    "pawns": [
+      {
+        "slot": 1,
+        "spaceId": "s03",
+        "x": 5.75,
+        "z": 3.4,
+        "character": "raccoon",
+        "y": 0,
+        "hop": null,
+        "heading": null,
+        "connected": true
+      },
+      {
+        "slot": 2,
+        "spaceId": "s03",
+        "x": 6.65,
+        "z": 3.4,
+        "character": "sock",
+        "y": 0,
+        "hop": null,
+        "heading": null,
+        "connected": true
+      }
+    ],
+    "messages": [
+      "Anna würfelt eine 4.",
+      "Anna bekommt 3 Münzen.",
+      "Ben ist am Zug."
+    ],
+    "notice": null,
+    "popups": [],
+    "ticker": [
+      {
+        "id": 4,
+        "text": "Anna würfelt 4!",
+        "slot": 1,
+        "tone": "neutral"
+      },
+      {
+        "id": 7,
+        "text": "Anna bekommt 3 Münzen",
+        "slot": 1,
+        "tone": "good"
+      }
+    ],
+    "hud": {
+      "boardName": "Wackelwald",
+      "roundText": "Runde 3/10",
+      "banner": null,
+      "bannerSlot": null,
+      "status": {
+        "slot": 2,
+        "kind": "roll",
+        "text": "Ben darf würfeln …",
+        "detail": null,
+        "countdown": null
+      },
+      "players": [
+        {
+          "slot": 1,
+          "name": "Anna",
+          "color": "#0072B2",
+          "coins": 12,
+          "trophies": 1,
+          "items": [
+            {
+              "id": "shield",
+              "name": "Schild"
+            }
+          ],
+          "connected": true,
+          "active": false
+        },
+        {
+          "slot": 2,
+          "name": "Ben",
+          "color": "#E69F00",
+          "coins": 7,
+          "trophies": 0,
+          "items": [],
+          "connected": true,
+          "active": true
+        }
+      ],
+      "tailwind": null
+    },
+    "camera": {
+      "pos": [
+        3.9,
+        26.7,
+        -14.3
+      ],
+      "target": [
+        3.9,
+        0,
+        2.4
+      ]
+    },
+    "trophySpaces": [
+      "s05"
+    ],
+    "traps": [
+      {
+        "spaceId": "s02",
+        "owner": 1
+      }
+    ],
+    "sounds": [],
+    "light": {
+      "mood": "mittag",
+      "keyIntensity": 3.4,
+      "keyTint": "#fffaf0",
+      "keyElevation": 0.7,
+      "skyIntensity": 1,
+      "fillIntensity": 0.35,
+      "fillSky": "#d4e6f4",
+      "fillGround": "#7d8a52",
+      "environment": {
+        "mood": "mittag",
+        "sky": "#d4e6f4",
+        "ground": "#7d8a52",
+        "skyIntensity": 1,
+        "fillIntensity": 0.35
+      },
+      "haze": "#d4e6f4",
+      "exposure": 1.3,
+      "lampsOn": 0,
+      "lanternColor": "#ff9c4a",
+      "lanternIntensity": 0,
+      "lanternRange": 0,
+      "grassTip": "#acd462"
+    },
+    "rides": []
+  },
+  "minigame": {
+    "id": "pump-solo",
+    "stage": "results",
+    "elapsedMs": 30000,
+    "ready": true,
+    "info": {
+      "title": "Pudding-Gerangel",
+      "tagline": "Wer bleibt auf dem wackelnden Pudding?",
+      "instructions": [
+        "Schubst die anderen vom Pudding.",
+        "Kirschen geben Extra-Punkte."
+      ],
+      "controls": {
+        "joystick": "Laufen",
+        "a": "Schubsen",
+        "b": null
+      },
+      "scoreUnit": "Punkte"
+    },
+    "round": 3,
+    "repeat": false,
+    "countdown": null,
+    "camera": {
+      "pos": [
+        0,
+        11.5,
+        -13.5
+      ],
+      "target": [
+        0,
+        -1.3,
+        0.8
+      ],
+      "fov": 0.8,
+      "fovAxis": "vertical"
+    },
+    "backdrop": {
+      "halfX": 7.2,
+      "halfZ": 7.2,
+      "groundY": -3.3,
+      "surface": "decke"
+    },
+    "figures": [
+      {
+        "slot": 1,
+        "character": "raccoon",
+        "pos": [
+          -2.1,
+          0,
+          1.3
+        ],
+        "rot": [
+          0,
+          0.383,
+          0,
+          0.924
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ],
+        "visible": true,
+        "anim": "cheer",
+        "animSeq": 5
+      },
+      {
+        "slot": 2,
+        "character": "sock",
+        "pos": [
+          1.7,
+          0,
+          -0.4
+        ],
+        "rot": [
+          0,
+          -0.259,
+          0,
+          0.966
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ],
+        "visible": true,
+        "anim": "sad",
+        "animSeq": 3
+      }
+    ],
+    "scoreboard": null,
+    "results": {
+      "aborted": false,
+      "headline": "Anna und Cleo gewinnen gemeinsam!",
+      "highlights": [],
+      "rows": [
+        {
+          "slot": 1,
+          "name": "Anna",
+          "character": "Wusel",
+          "color": "#0072B2",
+          "symbol": "●",
+          "place": 1,
+          "tied": true,
+          "scoreText": "14 Pumpstöße",
+          "coins": 7,
+          "prizes": []
+        },
+        {
+          "slot": 3,
+          "name": "Cleo",
+          "character": "Schraubi",
+          "color": "#009E73",
+          "symbol": "■",
+          "place": 1,
+          "tied": true,
+          "scoreText": "11 Pumpstöße",
+          "coins": 7,
+          "prizes": []
+        },
+        {
+          "slot": 2,
+          "name": "Ben",
+          "character": "Socke Sigi",
+          "color": "#E69F00",
+          "symbol": "▲",
+          "place": 3,
+          "tied": false,
+          "scoreText": "18 Pumpstöße",
+          "coins": 2,
+          "prizes": []
+        }
+      ],
+      "practice": false,
+      "practiceNote": null
+    },
+    "effects": [],
+    "geometry": [],
+    "geometryTotal": 1,
+    "sounds": [],
+    "light": {
+      "mood": "mittag",
+      "keyIntensity": 3.4,
+      "keyTint": "#fffaf0",
+      "keyElevation": 0.7,
+      "skyIntensity": 1,
+      "fillIntensity": 0.35,
+      "fillSky": "#d4e6f4",
+      "fillGround": "#7d8a52",
+      "environment": {
+        "mood": "mittag",
+        "sky": "#d4e6f4",
+        "ground": "#7d8a52",
+        "skyIntensity": 1,
+        "fillIntensity": 0.35
+      },
+      "haze": "#d4e6f4",
+      "exposure": 1.3,
+      "lampsOn": 0,
+      "lanternColor": "#ff9c4a",
+      "lanternIntensity": 0,
+      "lanternRange": 0,
+      "grassTip": "#acd462"
+    },
+    "bodies": [
+      {
+        "id": "buehne#12",
+        "shape": "cylinder",
+        "pos": [
+          0,
+          -0.25,
+          0
+        ],
+        "rot": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "size": [
+          12,
+          0.5,
+          12
+        ],
+        "color": "#F4D35E",
+        "mesh": "g1",
+        "finish": "matt"
+      },
+      {
+        "id": "kirsche#57",
+        "shape": "sphere",
+        "pos": [
+          0.2,
+          0.3,
+          2.9
+        ],
+        "rot": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "size": [
+          0.6,
+          0.6,
+          0.6
+        ],
+        "color": "#D7263D",
+        "role": "kirsche",
+        "key": "2",
+        "glow": "#3A0B11"
+      },
+      {
+        "id": "kiste#61",
+        "shape": "box",
+        "pos": [
+          3.5,
+          0.5,
+          3.5
+        ],
+        "rot": [
+          0.05,
+          0.2,
+          -0.03,
+          0.978
+        ],
+        "size": [
+          1,
+          1,
+          1
+        ],
+        "color": "#8D6E63",
+        "role": "kirschfleck-vorwarnung",
+        "alpha": 0.4,
+        "twoSided": true
+      }
+    ],
+    "hud": "",
+    "teams": {
+      "layout": "1v2",
+      "headline": "Einer gegen zwei",
+      "note": "Ben spielt allein und hat einen Vorteil.",
+      "groups": [
+        {
+          "label": "Allein",
+          "symbol": "☀",
+          "color": "#f2a33a",
+          "members": [
+            {
+              "slot": 2,
+              "name": "Ben",
+              "character": "Socke Sigi",
+              "color": "#E69F00",
+              "symbol": "▲"
+            }
+          ]
+        },
+        {
+          "label": "Die anderen",
+          "symbol": "☾",
+          "color": "#5b7bd5",
+          "members": [
+            {
+              "slot": 1,
+              "name": "Anna",
+              "character": "Wusel",
+              "color": "#0072B2",
+              "symbol": "●"
+            },
+            {
+              "slot": 3,
+              "name": "Cleo",
+              "character": "Schraubi",
+              "color": "#009E73",
+              "symbol": "■"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "final": null,
+  "pause": {
+    "paused": false,
+    "canPause": true,
+    "roundText": "Runde 3/10",
+    "sounds": []
+  }
+}

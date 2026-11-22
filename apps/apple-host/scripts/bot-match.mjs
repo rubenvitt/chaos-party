@@ -3,6 +3,8 @@
 //   pnpm --filter @chaos-party/apple-host bots --full                # ganze Partie, alle Minispiele der Rotation
 //   pnpm --filter @chaos-party/apple-host bots --full --matches 3    # drei Partien mit Revanche, Speicher je Partie (CHAOS-141)
 //   pnpm --filter @chaos-party/apple-host bots --full --rueckenwind  # mit Regel Rückenwind (CHAOS-188)
+//   pnpm --filter @chaos-party/apple-host bots --full --teams        # nur die Team-Testspiele (CHAOS-230)
+//   pnpm --filter @chaos-party/apple-host bots --full --spieler 4    # 2–4 Bot-Controller (Standard 2)
 // Mit `--full` prüft die erste Partie außerdem Pause (Brett, Minispiel), Wiederverbindung (sauber
 // und nach Funkstille) und das Finale bis zum Siegerbildschirm, jede weitere „Überspringen“
 // (CHAOS-145, `exercise`); `--ohne-extras` lässt das weg.
@@ -25,6 +27,11 @@ const verbose = args.includes('--verbose');
 const tailwind = args.includes('--rueckenwind');
 const matchesArg = args.indexOf('--matches');
 const matches = matchesArg >= 0 ? Number(args[matchesArg + 1]) : 1;
+const teamGames = args.includes('--teams');
+const playersArg = args.indexOf('--spieler');
+const players = playersArg >= 0 ? Number(args[playersArg + 1]) : 2;
+if (![2, 3, 4].includes(players))
+  throw new Error(`--spieler 2, 3 oder 4, nicht ${String(players)}`);
 const exercise = full && !args.includes('--ohne-extras');
 
 setFlagsFromString('--expose-gc');
@@ -41,6 +48,8 @@ const result = await runBotMatch({
   full,
   matches,
   tailwind,
+  teamGames,
+  players: /** @type {2 | 3 | 4} */ (players),
   exercise,
   validateEvery: 30,
   log: verbose ? (line) => console.log(line) : undefined,

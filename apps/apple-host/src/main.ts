@@ -24,6 +24,7 @@ import {
   type BoardView,
   type LobbyMessage,
 } from '@chaos-party/protocol';
+import { catalogMinigame } from '../../server/src/game.ts';
 import {
   DEFAULT_TICK_MS,
   Session,
@@ -91,6 +92,7 @@ import {
   readinessView,
   resultsView,
   scoreboardView,
+  teamsView,
 } from './minigameView.ts';
 import { createMinigameSounds } from './minigameSounds.ts';
 import { createNoticeTracker } from './notice.ts';
@@ -231,6 +233,15 @@ function create(env: HostEnv): ChaosHostInstance {
 
   // `joinUrl` bewusst nicht an die Session: zods URL-Prüfung braucht `URL`, das JSC fehlt. Der
   // QR-Code kommt ohnehin von Swift (`renderState().lobby.joinUrl`).
+  // Nur Tests (CHAOS-230): eigene Rotation, etwa mit den Team-Testspielen.
+  const debugMinigames = env.debugMinigames?.flatMap((id) => {
+    const spec = catalogMinigame(id);
+    if (!spec) log(`Unbekanntes Minispiel in debugMinigames ignoriert: ${id}`);
+    return spec ? [spec] : [];
+  });
+  if (debugMinigames) {
+    log(`Test-Rotation: ${debugMinigames.map((spec) => spec.id).join(', ')}`);
+  }
   const session = new Session({
     joinCode: env.joinCode,
     now,
@@ -238,7 +249,10 @@ function create(env: HostEnv): ChaosHostInstance {
     randomSeed: () => randomInt(0, 2 ** 31),
     ratings,
     // Rückenwind wie `RUECKENWIND=1` am PC (CHAOS-188); sonst Standardregeln.
-    ...(env.tailwind === true ? { game: { rules: withTailwind() } } : {}),
+    game: {
+      ...(env.tailwind === true ? { rules: withTailwind() } : {}),
+      ...(debugMinigames && debugMinigames.length > 0 ? { minigames: debugMinigames } : {}),
+    },
     logError: (error) => {
       log(`Session-Fehler: ${describe(error)}`);
     },
@@ -397,6 +411,7 @@ function create(env: HostEnv): ChaosHostInstance {
           module,
           players: playersFromView(view),
           seed: view.minigame.seed,
+          teams: view.minigame.teams ?? null,
           timeLimitMs: plan.kind === 'play' ? plan.timeLimitMs : module.info.durationMs,
           havok,
           log,
@@ -622,6 +637,7 @@ function create(env: HostEnv): ChaosHostInstance {
       repeat: minigame.repeat === true,
       countdown: introCountdown(current, receivedAt, now()),
       readiness: readinessView(current),
+      teams: teamsView(current),
       camera: headless?.ready ? headless.camera() : null,
       backdrop: headless?.backdrop ?? null,
       figures: headless?.figures() ?? [],

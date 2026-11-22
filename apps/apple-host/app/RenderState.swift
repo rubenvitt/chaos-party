@@ -315,6 +315,9 @@ struct RenderState: Decodable, Equatable {
         /// CHAOS-214: the intro waits until every connected player pressed „Bereit“ on the phone; chips instead of
         /// the countdown. nil = fixed intro time.
         var readiness: Readiness?
+        /// CHAOS-230: lineup for teams or koop (`teamLineup`); nil = everyone for themselves. The team headline of
+        /// the results is in `results.headline`.
+        var teams: Teams?
         var camera: Camera?
         var backdrop: Backdrop?
         var figures: [Figure]?
@@ -430,6 +433,35 @@ struct RenderState: Decodable, Equatable {
         var state: String?
         /// „Bereit“, „Drückt Bereit …“, „getrennt“
         var text: String?
+    }
+
+    /// CHAOS-230: `teamLineup` (`apps/host/src/minigame/teams.ts`). Groups always carry name and symbol, never
+    /// colour alone.
+    struct Teams: Decodable, Equatable {
+        /// 2v2, 1v3, 1v2, 1v1, koop
+        var layout: String?
+        /// „2 gegen 2“, „Einer gegen alle“, „Alle zusammen“ …
+        var headline: String?
+        /// e.g. the advantage of the solo player with three people; nil = none.
+        var note: String?
+        var groups: [TeamGroup]?
+    }
+
+    struct TeamGroup: Decodable, Equatable {
+        /// „Team Sonne“, „Allein“, „Die anderen“, „Alle zusammen“ or the player's name in 1 gegen 1.
+        var label: String?
+        /// ☀, ☾ or ♥
+        var symbol: String?
+        var color: String?
+        var members: [TeamMember]?
+    }
+
+    struct TeamMember: Decodable, Equatable {
+        var slot: Int
+        var name: String?
+        var character: String?
+        var color: String?
+        var symbol: String?
     }
 
     struct Results: Decodable, Equatable {
