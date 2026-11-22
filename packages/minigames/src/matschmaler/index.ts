@@ -1,9 +1,12 @@
 /**
  * Matschmaler (MG-121) – Ansicht: Wiese als Raster schräg von vorn. Jedes Feld ist ein
  * Matschfleck in Slot-Farbe **und** Slot-Muster (voll, Raute, Tupfen, Streifen), damit die
- * Wiese auch ohne Farbsehen lesbar bleibt. Regen: Wolke und blauer Streifen. Logik in `logic.ts`.
+ * Wiese auch ohne Farbsehen lesbar bleibt. Regen: Wolke (Requisit `regenwolke`) und blauer
+ * Streifen. Neben der Wiese steht je Slot ein Matscheimer (Requisit, Matsch in Slot-Farbe) an
+ * der Startecke. Logik in `logic.ts`.
  */
 import { CreateBox } from '@babylonjs/core/Meshes/Builders/boxBuilder.js';
+import { CreateCylinder } from '@babylonjs/core/Meshes/Builders/cylinderBuilder.js';
 import { CreateSphere } from '@babylonjs/core/Meshes/Builders/sphereBuilder.js';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh.js';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
@@ -31,6 +34,10 @@ import {
 } from './logic.ts';
 
 const MUD = '#5a3d24';
+/** Requisiten in Spielgröße: Wolke ≈ 3,6 m breit (Modell 1,8 m), Eimer ≈ 0,9 m (Modell 0,62 m). */
+const SCALE = { wolke: 2, eimer: 1.4 } as const;
+/** Unterkante der schwebenden Wolke (Welt). */
+const CLOUD_Y = 1.7;
 /** Muster je Slot 1–4: Breite, Tiefe, Drehung des Flecks im Feld. */
 const PATTERNS = [
   [0.94, 0.94, 0],
@@ -73,6 +80,10 @@ class Matschmaler implements Sdk.Minigame {
     this.shown = this.tiles.map(() => 0);
     for (const player of ctx.players) {
       this.figures.set(player.slot, await SlotFigure.create(stage, player, { badgeHeight: 2.4 }));
+    }
+    for (const mudder of this.logic.mudders) {
+      const color = this.figures.get(mudder.slot)?.player.color;
+      if (color) this.buildBucket(stage, mudder.slot, color, mudder.x, mudder.z);
     }
     this.rain = this.buildRain(stage);
     this.sync(0);
@@ -193,7 +204,7 @@ class Matschmaler implements Sdk.Minigame {
     // (neben der Wiese, damit sie nichts verdeckt).
     const away = 1.8 + (active ? 0 : Math.max(0, rain.activeAt - now) / R.rainWarnS) * 2;
     const across = halfX > halfZ;
-    cloud.position.set(across ? -(R.cols / 2 + away) : x, 2.4, across ? z : R.rows / 2 + away);
+    cloud.position.set(across ? -(R.cols / 2 + away) : x, CLOUD_Y, across ? z : R.rows / 2 + away);
     cloud.rotation.y = across ? Math.PI / 2 : 0;
   }
 
@@ -201,16 +212,52 @@ class Matschmaler implements Sdk.Minigame {
     const stripe = stage.node('regen', 'regenstreifen');
     const box = CreateBox(stage.name('streifen'), { width: 1, height: 0.1, depth: 1 }, stage.scene);
     const drops = stage.add(box, '#3d8fd6', { parent: stripe, alpha: 0.3 });
-    const cloud = stage.node('wolke', 'regenwolke');
-    for (let index = 0; index < 4; index++) {
-      const puff = CreateSphere(stage.name('wolke', index), { segments: 10 }, stage.scene);
-      const mesh = stage.add(puff, '#8f9aa8', { parent: cloud, finish: 'matt' });
-      mesh.position.set((index - 1.5) * 0.8, (index % 2) * 0.4, 0);
-      mesh.scaling.set(1.3, 1, 1.1);
-    }
+    // Grundkörper in Modell-Maßen (1,8 × 0,9 × 1,32 m, Ursprung unter der Wolke).
+    const cloud = stage.prop('regenwolke', {
+      role: 'regenwolke',
+      fallback: (root) => {
+        for (let index = 0; index < 4; index++) {
+          const puff = CreateSphere(stage.name('wolke', index), { segments: 10 }, stage.scene);
+          const mesh = stage.add(puff, '#8f9aa8', { parent: root, finish: 'matt' });
+          mesh.position.set((index - 1.5) * 0.4, 0.35 + (index % 2) * 0.2, 0);
+          mesh.scaling.set(0.65, 0.5, 1.1);
+        }
+      },
+    }).root;
+    cloud.scaling.setAll(SCALE.wolke);
     stripe.setEnabled(false);
     cloud.setEnabled(false);
     return { stripe, cloud, drops };
+  }
+
+  /** Matscheimer in Slot-Farbe neben der Wiese, auf Höhe der Startecke (Kulisse ohne Logik). */
+  private buildBucket(stage: MinigameStage, slot: Slot, color: string, x: number, z: number) {
+    const bucket = stage.prop('matscheimer', {
+      role: 'matscheimer',
+      key: slot,
+      akzent: color,
+      // Grundkörper in Modell-Maßen (0,62 × 0,66 × 0,6 m), Matsch oben in Slot-Farbe.
+      fallback: (root) => {
+        const pail = CreateCylinder(
+          stage.name('eimer', slot),
+          { diameterTop: 0.62, diameterBottom: 0.5, height: 0.6 },
+          stage.scene,
+        );
+        stage.add(pail, '#9aa3ad', { parent: root, finish: 'metall' }).position.y = 0.3;
+        const mud = CreateCylinder(
+          stage.name('eimermatsch', slot),
+          { diameter: 0.56, height: 0.04 },
+          stage.scene,
+        );
+        const fill = stage.add(mud, color, { parent: root, finish: 'matt' });
+        fill.position.y = 0.43;
+        return { akzent: [fill] };
+      },
+    });
+    const side = Math.sign(x) || 1;
+    bucket.root.position.set(side * (R.cols / 2 + 0.9), 0, z);
+    bucket.root.rotation.y = Math.PI;
+    bucket.root.scaling.setAll(SCALE.eimer);
   }
 }
 
