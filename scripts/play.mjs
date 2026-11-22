@@ -9,7 +9,7 @@
  * 5. öffnet das Spiel im Standardbrowser (abschaltbar: `OPEN=0` oder `--no-open`).
  *
  * Alle Umgebungsvariablen des Servers (`PORT`, `HOST`, `JOIN_CODE`, `PUBLIC_HOST`, `PUBLIC_PORT`,
- * `TERMINAL_QR`, `ROUNDS`, `SEED`, `RUECKENWIND`, `BRETT`, `STIMMEN_DATEI`) werden unverändert durchgereicht. Strg+C beendet den Server
+ * `TERMINAL_QR`, `ROUNDS`, `SEED`, `RUECKENWIND`, `SCHNELLFEUER`, `BRETT`, `STIMMEN_DATEI`) werden unverändert durchgereicht. Strg+C beendet den Server
  * sauber. Keine globalen Installationen; Netz braucht nur der erste `pnpm install`.
  *
  * Bewusst plattformübergreifend in reinem Node (Windows, macOS, Linux) und ohne
@@ -370,7 +370,7 @@ Optionen:
   --rebuild    immer neu bauen (auch REBUILD=1)
 
 Umgebungsvariablen des Servers (werden durchgereicht):
-  PORT (8787), HOST (0.0.0.0), JOIN_CODE, PUBLIC_HOST, PUBLIC_PORT, TERMINAL_QR=0, ROUNDS, SEED, RUECKENWIND=1, BRETT (wackelwald|zufall), STIMMEN_DATEI
+  PORT (8787), HOST (0.0.0.0), JOIN_CODE, PUBLIC_HOST, PUBLIC_PORT, TERMINAL_QR=0, ROUNDS, SEED, RUECKENWIND=1, SCHNELLFEUER (an|aus|ereignis|halbzeit|finale), BRETT (wackelwald|zufall), STIMMEN_DATEI
 
 Beispiele:
   pnpm play

@@ -141,6 +141,10 @@ final class HostRuntime: ObservableObject {
         let tailwind = launchTailwind(CommandLine.arguments, environment: ProcessInfo.processInfo.environment)
         env.setValue(tailwind, forProperty: "tailwind")
         if tailwind { hostLog("Startparameter: Regel Rückenwind an") }
+        if let rapidFire = launchRapidFire(CommandLine.arguments, environment: ProcessInfo.processInfo.environment) {
+            env.setValue(rapidFire, forProperty: "rapidFire")
+            hostLog("Startparameter: Schnellfeuer \(rapidFire)")
+        }
         if let minigames = launchMinigames(CommandLine.arguments) {
             env.setValue(minigames, forProperty: "debugMinigames")
             hostLog("Startparameter: nur Minispiele \(minigames.joined(separator: ", "))")

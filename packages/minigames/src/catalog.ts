@@ -18,6 +18,7 @@ import { PUMP_DUELL_INFO } from './pump-duell/info.ts';
 import { PUMP_PARADE_INFO } from './pump-parade/info.ts';
 import { PUMP_RIESE_INFO } from './pump-riese/info.ts';
 import { PUMP_SOLO_INFO } from './pump-solo/info.ts';
+import { SCHNELLFEUER_INFO } from './schnellfeuer/info.ts';
 import { SOCKENREGEN_INFO } from './sockenregen/info.ts';
 import { WACKELTURM_INFO } from './wackelturm/info.ts';
 
@@ -36,6 +37,7 @@ export const MINIGAME_INFOS: readonly MinigameInfo[] = [
   PUMP_DUELL_INFO,
   PUMP_SOLO_INFO,
   PUMP_RIESE_INFO,
+  SCHNELLFEUER_INFO,
 ];
 
 /**
@@ -49,6 +51,13 @@ export const ROTATION: readonly string[] = [
   KUCKUCKS_KLATSCHE_INFO.id,
   KRUEMEL_KEHRAUS_INFO.id,
 ];
+
+/**
+ * Schnellfeuer (CHAOS-90): eigene Rundenart, **nicht** in `ROTATION`. game-core setzt es statt
+ * des gezogenen Minispiels ein, wenn der Auslöser `rules.rapidFire` greift.
+ */
+export const RAPID_FIRE_ID = SCHNELLFEUER_INFO.id;
+export { SCHNELLFEUER_INFO };
 
 export function getMinigameInfo(id: string): MinigameInfo | undefined {
   return MINIGAME_INFOS.find((info) => info.id === id);

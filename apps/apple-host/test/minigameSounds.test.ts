@@ -209,4 +209,15 @@ describe('Minispiel-Klänge der Bühne je Minispiel (CHAOS-190)', () => {
     const freqs = cues.slice(1).map((cue) => cue.voices[0]?.freq ?? 0);
     expect(freqs).toEqual([740, 740, 740 * 1.25]);
   });
+
+  it('wartende Anleitung: zwei „Bereit“ im selben Tick ticken zweimal', () => {
+    const { sounds } = setup();
+    const key = 'kruemel-kehraus:4:2';
+    sounds.observe(key, 'intro', null, { done: 0, total: 2 });
+    sounds.observe(key, 'intro', null, { done: 2, total: 2 });
+    const cues = sounds.cues(key);
+    expect(cues.map((cue) => cue.name)).toEqual(['minigame-start', 'tick', 'tick']);
+    const freqs = cues.slice(1).map((cue) => cue.voices[0]?.freq ?? 0);
+    expect(freqs).toEqual([740, 740 * 1.25]);
+  });
 });

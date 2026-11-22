@@ -21,6 +21,7 @@ interface HostEnv {
   joinCode: string;
   deferSceneReady?: boolean;                         // true: host-ready erst nach sceneReady() (CHAOS-142)
   tailwind?: boolean;                                // true: Regel Rückenwind an (CHAOS-188, wie RUECKENWIND=1 am PC)
+  rapidFire?: string;                                // Schnellfeuer: an|aus|ereignis|halbzeit|finale (CHAOS-232, wie SCHNELLFEUER am PC)
   storage?: { getItem(key: string): string | null;   // überdauert Neustarts (CHAOS-216); Swift: UserDefaults,
               setItem(key: string, value: string): void }; // Schlüssel mit Präfix „js.“
 }

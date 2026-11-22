@@ -25,7 +25,7 @@ Beim ersten Start fragt die Firewall eventuell, ob Node.js Verbindungen annehmen
 | feste Adresse im QR-Code | `PUBLIC_HOST=192.168.178.42 pnpm play` | `$env:PUBLIC_HOST="192.168.178.42"; pnpm play` |
 | Neubau erzwingen | `pnpm play --rebuild` | `pnpm play --rebuild` |
 
-Alle Server-Variablen (`PORT`, `HOST`, `JOIN_CODE`, `PUBLIC_HOST`, `PUBLIC_PORT`, `TERMINAL_QR`, `ROUNDS`, `SEED`, `RUECKENWIND`, `BRETT`, `STIMMEN_DATEI`) werden durchgereicht; `pnpm play --help` listet sie.
+Alle Server-Variablen (`PORT`, `HOST`, `JOIN_CODE`, `PUBLIC_HOST`, `PUBLIC_PORT`, `TERMINAL_QR`, `ROUNDS`, `SEED`, `RUECKENWIND`, `SCHNELLFEUER`, `BRETT`, `STIMMEN_DATEI`) werden durchgereicht; `pnpm play --help` listet sie.
 
 **Weiter lesen:**
 

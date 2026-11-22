@@ -5,8 +5,8 @@ import { PhysicsShapeType } from '@babylonjs/core/Physics/v2/IPhysicsEnginePlugi
 import { CreateBox } from '@babylonjs/core/Meshes/Builders/boxBuilder.js';
 import { CreateSphere } from '@babylonjs/core/Meshes/Builders/sphereBuilder.js';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh.js';
-import { describe, expect, it } from 'vitest';
-import type { MinigameInfo, MinigameInput, MinigameResult, Slot } from '../info.ts';
+import { describe, expect, it, vi } from 'vitest';
+import type { MinigameCue, MinigameInfo, MinigameInput, MinigameResult, Slot } from '../info.ts';
 import { rankByScore } from '../result.ts';
 import {
   createHeadlessScene,
@@ -121,7 +121,9 @@ function probe(options: {
 async function setup(
   module: MinigameModule,
   players = 2,
-  extra: Partial<Pick<RunnerOptions, 'maxStepsPerAdvance' | 'look' | 'pacing' | 'onResult'>> = {},
+  extra: Partial<
+    Pick<RunnerOptions, 'maxStepsPerAdvance' | 'look' | 'pacing' | 'onResult' | 'onCue'>
+  > = {},
 ) {
   const headless = createHeadlessScene();
   const runner = createMinigameRunner(module, {
@@ -222,6 +224,61 @@ describe('Minispiel-Laufzeit', () => {
     expect(runner.result?.result.placements.map((p) => p.slot)).toEqual([1, 2, 3]);
     runner.finishNow();
     expect(results).toHaveLength(1);
+    runner.dispose();
+    headless.dispose();
+  });
+
+  it('meldet Hinweis-Wechsel nur laufend, geprüft und einmal je Änderung (CHAOS-231)', async () => {
+    const { module: base } = probe({});
+    let elapsed = 0;
+    const cueAt = (ms: number): MinigameCue | null => {
+      if (ms >= 3_000) return null;
+      const step = ms >= 1_000 ? 1 : 0;
+      return {
+        step,
+        steps: 2,
+        icon: '⏰',
+        word: step === 0 ? 'HAUEN!' : 'ZIELEN!',
+        // Abschnitt 1 nennt eine Bedienung, die der Steckbrief nicht hat (b): ungültig.
+        controls: { joystick: null, a: 'Hauen', b: ms >= 2_000 ? 'Bremsen' : null },
+        double: step === 1,
+      };
+    };
+    const module: MinigameModule = {
+      info: base.info,
+      create() {
+        const game = base.create();
+        return {
+          ...game,
+          update(dt) {
+            elapsed += dt * 1000;
+            game.update(dt);
+          },
+          // Jedes Mal ein neues Objekt: verglichen wird der Inhalt.
+          getCue: () => cueAt(elapsed),
+        };
+      },
+    };
+    const cues: (MinigameCue | null)[] = [];
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { runner, headless } = await setup(module, 2, { onCue: (cue) => cues.push(cue) });
+    await runner.prepare();
+    expect(cues).toEqual([]);
+    runner.start();
+    expect(cues.map((cue) => cue?.word)).toEqual(['HAUEN!']);
+    runner.step(30);
+    expect(cues).toHaveLength(1);
+    runner.step(60);
+    expect(cues.map((cue) => cue?.step)).toEqual([0, 1]);
+    expect(runner.cue?.word).toBe('ZIELEN!');
+    runner.step(60);
+    // Ab 2 s ungültig (b fehlt im Steckbrief): nicht gemeldet, der alte Hinweis bleibt.
+    expect(cues).toHaveLength(2);
+    expect(errors).toHaveBeenCalled();
+    runner.step(60);
+    expect(cues.at(-1)).toBeNull();
+    expect(runner.cue).toBeNull();
+    errors.mockRestore();
     runner.dispose();
     headless.dispose();
   });

@@ -35,6 +35,7 @@ const BOARD_EVENT_NAMES: Readonly<Record<BoardEventKindName, string>> = {
   swap: 'Platztausch',
   'trophy-shuffle': 'Trophäen-Wirbel',
   'lucky-find': 'Glücksfund',
+  'rapid-fire': 'Schnellfeuer',
 };
 
 /** Name eines Spielers: aus dem Spielstand, sonst Farbname des Slots. */
@@ -161,6 +162,13 @@ export function eventText(
         tone: 'good',
       };
     case 'board-event':
+      if (event.event === 'rapid-fire') {
+        return {
+          text: `${name(event.slot)} löst Schnellfeuer aus: fünf Mikro-Spiele nach dieser Runde!`,
+          slot: event.slot,
+          tone: 'neutral',
+        };
+      }
       return {
         text: `Ereignis für ${name(event.slot)}: ${BOARD_EVENT_NAMES[event.event]}!`,
         slot: event.slot,

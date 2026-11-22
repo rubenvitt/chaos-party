@@ -243,7 +243,9 @@ function PlayPanel({ context, slot, send }: PanelProps) {
       data-stick={view.stick ? 'true' : 'false'}
       data-buttons={view.buttons.length}
     >
-      {view.title !== null && <MinigameHeader title={view.title} className="play-header" />}
+      {view.title !== null && (
+        <MinigameHeader title={view.title} cue={view.cue} className="play-header" />
+      )}
       {(view.stick || !labelled) && (
         <div className="stick-area">
           {view.stick && (

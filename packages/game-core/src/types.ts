@@ -279,6 +279,37 @@ export interface RuleSet {
   readonly pacing: Pacing;
   /** Aufholhilfen mit Münzen (CHAOS-65); fehlt = keine. */
   readonly catchUp?: CatchUpRules;
+  /**
+   * Schnellfeuer als eigene Rundenart (CHAOS-90): wann das Minispiel der Runde durch
+   * `GameConfig.rapidFire` ersetzt wird. Fehlt = nie (und kein Brett-Ereignis „Schnellfeuer!“).
+   */
+  readonly rapidFire?: RapidFireRules;
+}
+
+/**
+ * Auslöser für Schnellfeuer (CHAOS-90, EXP-041): `event` = Brett-Ereignis „Schnellfeuer!“ (gilt
+ * für das Minispiel derselben Runde), `halftime` = feste Runde zur Halbzeit, `finale` = letzte
+ * Runde.
+ */
+export type RapidFireTrigger = 'event' | 'halftime' | 'finale';
+
+export interface RapidFireRules {
+  readonly trigger: RapidFireTrigger;
+  /**
+   * Nur `event`: höchstens so viele Schnellfeuer-Runden je Partie (fehlt = beliebig viele).
+   * Ist die Grenze erreicht, kommt das Ereignis nicht mehr.
+   */
+  readonly maxPerGame?: number;
+  /**
+   * Nur `event`: Lose von „Schnellfeuer!“ im Ereignis-Topf (die festen Ereignisse haben je eines;
+   * fehlt = 1). Höher = öfter.
+   */
+  readonly eventWeight?: number;
+  /**
+   * Nur `event`: Kam bis zur letzten Runde kein „Schnellfeuer!“, wird das letzte Minispiel
+   * Schnellfeuer (so sieht jede Partie eins). Fehlt = nein.
+   */
+  readonly finaleFallback?: boolean;
 }
 
 export interface GamePlayerConfig {
@@ -361,6 +392,11 @@ export interface GameConfig {
   readonly practice?: boolean;
   /** Filter, Gewichte und Gedächtnis der Minispiel-Auswahl (CHAOS-85). */
   readonly minigameRotation?: MinigameRotationOptions;
+  /**
+   * Schnellfeuer (CHAOS-90): eigene Rundenart, nicht in `minigames` (kommt nie über die
+   * Rotation). Ersetzt das Minispiel einer Runde, wenn `rules.rapidFire` auslöst.
+   */
+  readonly rapidFire?: MinigameSpec;
 }
 
 /** Platz im Minispiel (gleich `MinigamePlacement` aus dem minigame-sdk). */
@@ -594,6 +630,8 @@ export interface GameState {
     readonly practice?: boolean;
     /** Filter, Gewichte und Gedächtnis der Minispiel-Auswahl (CHAOS-85); fehlt = keine. */
     readonly minigameRotation?: MinigameRotationOptions;
+    /** Schnellfeuer-Minispiel (CHAOS-90, siehe `GameConfig.rapidFire`); fehlt = keines. */
+    readonly rapidFire?: MinigameSpec;
   };
   /** Interner Zustand der Regeln (Bewegung, RNG, Zähler). Form bestimmt game-core. */
   readonly internal: Readonly<Record<string, unknown>>;
@@ -683,7 +721,14 @@ export type StepResult =
 export type CoinReason = 'space' | 'event' | 'trophy' | 'steal' | 'trap' | 'minigame' | 'tailwind';
 
 /** Zufällige Ereignisse auf `event`-Feldern (Auswahl per RNG; Liste bestimmt game-core). */
-export type BoardEventKind = 'coin-rain' | 'gust' | 'swap' | 'trophy-shuffle' | 'lucky-find';
+export type BoardEventKind =
+  | 'coin-rain'
+  | 'gust'
+  | 'swap'
+  | 'trophy-shuffle'
+  | 'lucky-find'
+  /** CHAOS-90: Das Minispiel dieser Runde wird Schnellfeuer (nur mit `rules.rapidFire`). */
+  | 'rapid-fire';
 
 /** Sabotage-Stärke einer Runde (CHAOS-67/120): Münzen je Klau bzw. Falle. */
 export interface SabotageLevel {

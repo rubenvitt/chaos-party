@@ -25,8 +25,13 @@ import {
   type RuleSet,
   type Slot,
 } from '@chaos-party/game-core';
-import type { MinigameInfo } from '@chaos-party/minigame-sdk';
-import { getMinigameInfo, getSteckbrief, rotationInfos } from '@chaos-party/minigames/catalog';
+import { checkCue, type MinigameInfo } from '@chaos-party/minigame-sdk';
+import {
+  getMinigameInfo,
+  getSteckbrief,
+  rotationInfos,
+  SCHNELLFEUER_INFO,
+} from '@chaos-party/minigames/catalog';
 import {
   MAX_BOARD_EVENTS,
   type AiPersonality,
@@ -39,6 +44,7 @@ import {
   type ControllerMinigameInfo,
   type ControllerMinigameTeam,
   type MinigameControlsInfo,
+  type MinigameCueInfo,
   type PromptInfo,
 } from '@chaos-party/protocol';
 
@@ -64,6 +70,11 @@ export interface BoardGameSettings {
    * Partie aus Lobby-Einstellungen, Aufstellung und letzter Partie; fehlt = keine.
    */
   readonly minigameRotation?: MinigameRotationOptions | undefined;
+  /**
+   * Schnellfeuer (CHAOS-90): eigene Rundenart, nie in der Rotation. Wann es kommt, steht in
+   * `rules.rapidFire`; fehlt eines von beiden, gibt es kein Schnellfeuer.
+   */
+  readonly rapidFire?: MinigameSpec | undefined;
   /**
    * Vorschläge für die Rundenzahl in der Lobby (`lobby.settings.roundPresets`, aufsteigend).
    * `configure` erlaubt jede Zahl 1–`MAX_ROUNDS`.
@@ -154,6 +165,11 @@ export function catalogMinigames(): MinigameSpec[] {
   return rotationInfos().map(minigameSpecOf);
 }
 
+/** Schnellfeuer-Minispiel (CHAOS-90) für game-core. */
+export function catalogRapidFire(): MinigameSpec {
+  return minigameSpecOf(SCHNELLFEUER_INFO);
+}
+
 /** Spezifikation eines Minispiels aus dem Katalog (Übungsrunde, CHAOS-87) oder `undefined`. */
 export function catalogMinigame(id: string): MinigameSpec | undefined {
   const info = getMinigameInfo(id);
@@ -165,6 +181,7 @@ export const DEFAULT_GAME_SETTINGS: BoardGameSettings = {
   rules: DEFAULT_RULES,
   boardId: DEFAULT_BOARD.id,
   minigames: catalogMinigames(),
+  rapidFire: catalogRapidFire(),
   roundPresets: DEFAULT_ROUND_PRESETS,
 };
 
@@ -206,6 +223,12 @@ export class BoardGame {
   private eventCount = 0;
   /** Sichtbarer Stand der letzten `board`-Nachricht (ohne Restzeiten). */
   private lastViewKey = '';
+  /** Hinweis des laufenden Abschnitts vom Host (CHAOS-231), an seinen Lauf gebunden. */
+  private cueValue: {
+    readonly minigameId: string;
+    readonly round: number;
+    readonly cue: MinigameCueInfo;
+  } | null = null;
 
   readonly seed: number;
   /** Figur je Slot (kosmetisch, nicht Teil der Regeln). */
@@ -232,6 +255,9 @@ export class BoardGame {
       ...(settings.minigameRotation === undefined
         ? {}
         : { minigameRotation: settings.minigameRotation }),
+      ...(settings.rapidFire === undefined || settings.practice === true
+        ? {}
+        : { rapidFire: settings.rapidFire }),
     });
   }
 
@@ -430,6 +456,7 @@ export class BoardGame {
     const ownReward = minigame.rewards?.find((entry) => entry.slot === slot);
     const reward = ownReward?.coins;
     const prizes = ownReward?.items;
+    const cue = stage === 'play' ? this.currentCue() : undefined;
     return {
       id: info.id,
       title: info.title,
@@ -448,6 +475,8 @@ export class BoardGame {
       ...(this.practice ? { practice: true } : {}),
       // CHAOS-214: Anleitung wartet auf „Bereit“ – eigener Stand.
       ...(stage === 'intro' && minigame.ready ? { ready: minigame.ready.includes(slot) } : {}),
+      // CHAOS-231: Bildwort und Bedienung des laufenden Abschnitts (Schnellfeuer).
+      ...(cue === undefined ? {} : { cue }),
       // CHAOS-89: eigene Rolle bei Teams bzw. Koop (im Ergebnis mit Ausgang).
       ...(minigame.teams ? { team: controllerTeamOf(minigame, slot, stage) } : {}),
     };
@@ -480,6 +509,41 @@ export class BoardGame {
     if (info.controls.a !== null) actions.push('button-a');
     if (info.controls.b !== null) actions.push('button-b');
     return actions;
+  }
+
+  /**
+   * Hinweis des laufenden Abschnitts vom Host übernehmen (CHAOS-231). Nur in `minigame-play`
+   * des genannten Laufs (Minispiel und Runde) und nur mit Bedienung, die der Steckbrief
+   * anbietet (`checkCue`); sonst verworfen. `true` = übernommen.
+   */
+  setCue(minigameId: string, round: number, cue: MinigameCueInfo | null): boolean {
+    const state = this.stateValue;
+    const minigame = state.minigame;
+    if (
+      state.phase !== 'minigame-play' ||
+      minigame?.id !== minigameId ||
+      minigame.round !== round
+    ) {
+      return false;
+    }
+    if (cue === null) {
+      this.cueValue = null;
+      return true;
+    }
+    const info = getMinigameInfo(minigameId);
+    if (!info || !checkCue(cue, info).ok) return false;
+    this.cueValue = { minigameId, round, cue };
+    return true;
+  }
+
+  /** Hinweis für den Controller, solange sein Lauf spielt (CHAOS-231), sonst `undefined`. */
+  private currentCue(): MinigameCueInfo | undefined {
+    const state = this.stateValue;
+    const cue = this.cueValue;
+    if (state.phase !== 'minigame-play' || !cue) return undefined;
+    return state.minigame?.id === cue.minigameId && state.minigame.round === cue.round
+      ? cue.cue
+      : undefined;
   }
 
   /** Prompt dieses Slots (oder `undefined`) für den Controller-Kontext. */

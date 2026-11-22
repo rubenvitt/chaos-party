@@ -52,6 +52,16 @@
  * fehlt = Mensch), Controller-Nachricht `ai-seat` (nur Lobby, nur Spielleitung, sonst Fehler
  * `not-lead`), `configure.aiSeat` am Host, Lobby-Kontext `lead`/`seats` (alle optional). Alte
  * Controller zeigen KI-Plätze als normale Mitspieler und senden kein `ai-seat`.
+ * v4-Nachtrag (CHAOS-90, additiv, ohne Versionssprung): Brett-Ereignis `rapid-fire`
+ * („Schnellfeuer!“): Das Minispiel der Runde wird Schnellfeuer (`minigame.id` `schnellfeuer`).
+ * Kommt nur, wenn der Server Schnellfeuer per Ereignis auslöst.
+ * v4-Nachtrag (CHAOS-231, additiv, ohne Versionssprung): Controller-Hinweis eines Minispiels aus
+ * Abschnitten (Schnellfeuer-Mikro-Spiele) – Host-Nachricht `minigame-cue` (nur bei einem Wechsel,
+ * `cue: null` = keiner mehr) und `ControllerMinigameInfo.cue` (optional, nur in `play`: Bildwort,
+ * Piktogramm, Abschnitt, nur dessen Bedienung). Der Server verwirft Hinweise zu einem fremden
+ * Lauf oder mit Bedienung außerhalb des Steckbriefs still. Controller ohne den Nachtrag zeigen
+ * weiter `controls`; ein Server ohne ihn lehnt `minigame-cue` mit `bad-message` ab, das Spiel
+ * läuft trotzdem.
  */
 export const PROTOCOL_VERSION = 4;
 

@@ -174,3 +174,68 @@ describe('Protokoll v3: Minispiele', () => {
     expect(parseServerToHostMessage(board({ repeat: 1 })).ok).toBe(false);
   });
 });
+
+describe('v4-Nachtrag CHAOS-231: Hinweis des laufenden Abschnitts', () => {
+  const cue = {
+    step: 1,
+    steps: 5,
+    icon: '🍝',
+    word: 'SCHLÜRFEN!',
+    controls: { joystick: null, a: 'Schlürfen', b: null },
+    double: false,
+  };
+
+  it('nimmt minigame-cue vom Host an, auch `null` (kein Hinweis mehr)', () => {
+    const message = createMessage('minigame-cue', { minigameId: 'schnellfeuer', round: 3, cue });
+    expect(parseHostMessage(message)).toEqual({ ok: true, message });
+    const none = createMessage('minigame-cue', { minigameId: 'schnellfeuer', round: 3, cue: null });
+    expect(parseHostMessage(none).ok).toBe(true);
+  });
+
+  it.each([
+    ['Abschnitt hinter dem Ende', { step: 5 }],
+    ['keine Abschnitte', { steps: 0 }],
+    ['ohne Bedienung', { controls: { joystick: null, a: null, b: null } }],
+    ['Bildwort zu lang', { word: 'SCHLÜRFENSCHLÜRFEN!' }],
+    ['Leerraum am Rand', { word: ' HAUEN!' }],
+    ['leeres Piktogramm', { icon: '' }],
+    ['ohne double', { double: undefined }],
+    ['unbekanntes Feld', { hint: 'x' }],
+  ])('lehnt einen kaputten Hinweis ab: %s', (_name, patch) => {
+    const raw = {
+      v: PROTOCOL_VERSION,
+      type: 'minigame-cue',
+      minigameId: 'schnellfeuer',
+      round: 1,
+      cue: { ...cue, ...patch },
+    };
+    expect(parseHostMessage(raw).ok).toBe(false);
+  });
+
+  it('trägt den Hinweis optional im Minispiel-Kontext des Controllers', () => {
+    const minigame = {
+      id: 'schnellfeuer',
+      title: 'Schnellfeuer!',
+      tagline: 'Fünf Mikro-Spiele am Stück.',
+      instructions: ['Das Bildwort sagt, was zu tun ist.'],
+      controls: { joystick: 'Zielen', a: 'Los!', b: null },
+      stage: 'play' as const,
+      scoreUnit: 'Punkte',
+      tied: false,
+      aborted: false,
+    };
+    const context = (extra: object) =>
+      createMessage('context', {
+        slot: 1,
+        phase: 'board',
+        layout: 'joystick-buttons',
+        actions: ['move', 'button-a'],
+        minigame: { ...minigame, ...extra },
+      });
+    expect(parseServerToControllerMessage(context({ cue })).ok).toBe(true);
+    expect(parseServerToControllerMessage(context({})).ok).toBe(true);
+    expect(parseServerToControllerMessage(context({ cue: { ...cue, double: 'ja' } })).ok).toBe(
+      false,
+    );
+  });
+});

@@ -74,6 +74,13 @@ export interface Internal {
    * „Bereit“ das Minispiel sofort. Fehlt in Zuständen von vor CHAOS-214 (= `false`).
    */
   minigameReadyOpen?: boolean;
+  /**
+   * CHAOS-90: Runde, deren Minispiel per Brett-Ereignis „Schnellfeuer!“ Schnellfeuer wird.
+   * Fehlt in älteren Zuständen (= keine).
+   */
+  rapidFireRound?: number;
+  /** CHAOS-90: So viele Schnellfeuer-Runden liefen in dieser Partie (fehlt = 0). */
+  rapidFireCount?: number;
 }
 
 export type MutablePlayer = {
