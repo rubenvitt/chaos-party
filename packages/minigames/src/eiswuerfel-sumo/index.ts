@@ -1,11 +1,11 @@
 /**
- * Eiswürfel-Sumo (MG-023) – Physik und Ansicht: ein schmelzender Eiswürfel im Glas Limo, feste
- * Kamera schräg von oben. Figuren sind Havok-Figuren aus dem Baukasten (`havokPawn`), der Würfel
- * ein statischer Körper, dessen Box je Schmelzstufe getauscht wird. Regeln in `logic.ts`.
+ * Eiswürfel-Sumo (MG-023) – Physik und Ansicht: ein schmelzender Eiswürfel (Requisit `eiswuerfel`)
+ * im Glas Limo (Requisiten `limoglas`, `strohhalm`, `zitronenscheibe`), feste Kamera schräg von
+ * oben. Figuren sind Havok-Figuren aus dem Baukasten (`havokPawn`), der Würfel ein statischer
+ * Körper, dessen Box je Schmelzstufe getauscht wird. Regeln in `logic.ts`.
  */
 import { CreateBox } from '@babylonjs/core/Meshes/Builders/boxBuilder.js';
 import { CreateCylinder } from '@babylonjs/core/Meshes/Builders/cylinderBuilder.js';
-import { CreateTorus } from '@babylonjs/core/Meshes/Builders/torusBuilder.js';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
 import { HavokBlock, MinigameStage, bonkFx, bonkPawns } from '@chaos-party/minigame-kit/babylon';
 import { celebrateFigures, createCamera, havokPawn } from '@chaos-party/minigame-kit/babylon';
@@ -19,6 +19,11 @@ import { cubeHalf, meltLevel, meltWarning, offIce, respawnPoint } from './logic.
 
 const DEPTH = 2.4;
 const GLASS_R = 5.6;
+/** Modellhöhe des Eiswürfels (Requisit `eiswuerfel`, 1 × 0,5 × 1 m). */
+const ICE_MODEL_H = 0.5;
+/** Limoglas in Spielgröße (Modell 3,6 m breit) und Höhe seines Limo-Spiegels im Modell. */
+const GLASS_SCALE = 2.93;
+const GLASS_SPIEGEL = 0.82;
 
 export class EiswuerfelSumo implements Sdk.Minigame {
   private ctx: Sdk.MinigameContext | null = null;
@@ -177,7 +182,7 @@ export class EiswuerfelSumo implements Sdk.Minigame {
     const level = meltLevel(now);
     const warn = this.running && meltWarning(now);
     const core = cubeHalf(level + +warn) * 2;
-    ice.scaling.set(core, DEPTH, core);
+    ice.scaling.set(core, DEPTH / ICE_MODEL_H, core);
     rim.setEnabled(warn);
     rim.scaling.set(cubeHalf(level) * 2, DEPTH - 0.06, cubeHalf(level) * 2);
     for (const pawn of this.pawns) {
@@ -193,23 +198,64 @@ export class EiswuerfelSumo implements Sdk.Minigame {
       const mesh = CreateCylinder(stage.name(name), { diameter: d, height: h }, stage.scene);
       return stage.add(mesh, hex, o);
     };
-    const [d, scene] = [GLASS_R * 2 + 0.3, stage.scene];
-    part('limo', '#ffd23a', d - 0.3, 2.4, { alpha: 0.72, emissive: 0.2 }).position.y = -1.8;
-    const glass = CreateCylinder(stage.name('glas'), { diameter: d, height: 3.9, cap: 0 }, scene);
-    stage.add(glass, '#e8f6ff', { alpha: 0.18, finish: 'glanz' }).position.y = -1.05;
-    const rim = CreateTorus(stage.name('glasrand'), { diameter: d, thickness: 0.14 }, scene);
-    stage.add(rim, '#ffffff', { alpha: 0.8, finish: 'glanz' }).position.y = 0.9;
-    const straw = part('strohhalm', '#e8574d', 0.35, 8, { finish: 'lack' });
-    straw.position.set(-3.6, 1.4, 3);
+    // Requisiten-Grundkörper in Modell-Maßen (Rückfall ohne Modell), Spielgröße über `root`.
+    // Das Glas-Modell (3,6 × 1,12 m) trägt seinen Limo-Spiegel auf 0,82 m: so skaliert, dass er
+    // auf `LIMO.y` liegt (Glas ≈ 10,5 m breit, Rand knapp über dem Eis).
+    const glass = stage.prop('limoglas', {
+      fallback: (root) => {
+        const wall = CreateCylinder(
+          stage.name('glas'),
+          { diameter: 3.6, height: 1.12, cap: 0 },
+          stage.scene,
+        );
+        stage.add(wall, '#e8f6ff', { alpha: 0.18, finish: 'glanz', parent: root }).position.y =
+          0.56;
+      },
+    }).root;
+    glass.position.y = LIMO.y - GLASS_SPIEGEL * GLASS_SCALE;
+    glass.scaling.setAll(GLASS_SCALE);
+    // Limo knapp über dem Spiegel des Modells, innen am Glas (Wand ≈ 0,1 m im Modell).
+    const limo = part('limo', '#ffd23a', 3.38 * GLASS_SCALE, 2.4, { alpha: 0.72, emissive: 0.2 });
+    limo.position.y = LIMO.y + 0.03 - 1.2;
+    const straw = stage.prop('strohhalm', {
+      fallback: (root) => {
+        part('halm', '#e8574d', 0.1, 1.99, { finish: 'lack', parent: root }).position.y = 0.995;
+      },
+    }).root;
+    // ≈ 8 m lang, steckt schräg links hinten in der Limo; der Knick zeigt nach außen.
+    straw.scaling.setAll(4);
+    straw.position.set(-2, -2.1, 1.9);
     straw.rotation.set(0.3, 0, 0.42);
     await stage.pace();
-    const lemon = part('zitrone', '#f2b600', 2.2, 0.14);
-    lemon.position.set(3.9, LIMO.y + 0.02, 2.4);
-    part('fruchtfleisch', '#ffe066', 1.8, 0.16, { emissive: 0.2, parent: lemon });
-    this.ice = stage.node('eis', 'eiswuerfel');
-    this.ice.position.y = -DEPTH / 2;
-    const cube = CreateBox(stage.name('wuerfel'), { size: 1 }, stage.scene);
-    stage.add(cube, '#bdeaff', { parent: this.ice, alpha: 0.8, emissive: 0.35, finish: 'glanz' });
+    const lemon = stage.prop('zitronenscheibe', {
+      fallback: (root) => {
+        part('zitrone', '#f2b600', 0.64, 0.04, { parent: root }).position.y = 0.02;
+        part('fruchtfleisch', '#ffe066', 0.52, 0.05, { emissive: 0.2, parent: root }).position.y =
+          0.025;
+      },
+    }).root;
+    // ≈ 1,6 m breit, schwimmt rechts neben dem Eis auf der Limo (innen am Glas).
+    lemon.scaling.setAll(2.5);
+    lemon.position.set(4, LIMO.y - 0.06, 1.2);
+    const ice = stage.prop('eiswuerfel', {
+      role: 'eiswuerfel',
+      fallback: (root) => {
+        const cube = CreateBox(
+          stage.name('wuerfel'),
+          { width: 1, height: ICE_MODEL_H, depth: 1 },
+          stage.scene,
+        );
+        stage.add(cube, '#bdeaff', {
+          parent: root,
+          alpha: 0.8,
+          emissive: 0.35,
+          finish: 'glanz',
+        }).position.y = ICE_MODEL_H / 2;
+      },
+    });
+    // Boden des Würfels unten, Oberseite bündig bei y = 0 (Höhe über `scaling.y`).
+    this.ice = ice.root;
+    this.ice.position.y = -DEPTH;
     this.rim = stage.node('rand', 'schmelzrand');
     this.rim.position.y = -DEPTH / 2 - 0.03;
     const wet = CreateBox(stage.name('nass'), { size: 1 }, stage.scene);
