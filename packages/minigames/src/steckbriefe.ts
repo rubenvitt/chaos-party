@@ -107,6 +107,26 @@ export const STECKBRIEFE: Readonly<Record<string, Steckbrief>> = {
     tempo: 'hektisch',
     ort: 'garten',
   },
+  'rasensprenger-rodeo': {
+    kernverb: 'ausweichen',
+    ziel: 'ueberleben',
+    arena: 'rund',
+    kamera: 'draufsicht',
+    bedienung: 'S',
+    spielform: 'FFA',
+    tempo: 'wechselnd',
+    ort: 'garten',
+  },
+  'schnapp-den-kaese': {
+    kernverb: 'reagieren',
+    ziel: 'meiste',
+    arena: 'eigenbereiche',
+    kamera: 'schraeg',
+    bedienung: 'A',
+    spielform: 'FFA',
+    tempo: 'hektisch',
+    ort: 'kueche',
+  },
   // Testspiel der Spielform 2v2 (CHAOS-89), nicht in der Rotation: bewusst nah an der Pump-Parade.
   'pump-duell': {
     kernverb: 'pumpen',

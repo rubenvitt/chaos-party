@@ -29,6 +29,8 @@ import { SOCKENREGEN_INFO } from './sockenregen/info.ts';
 import { TOASTER_TIMING_INFO } from './toaster-timing/info.ts';
 import { NUSSREGEN_NETZ_INFO } from './nussregen-netz/info.ts';
 import { MATSCHMALER_INFO } from './matschmaler/info.ts';
+import { RASENSPRENGER_RODEO_INFO } from './rasensprenger-rodeo/info.ts';
+import { SCHNAPP_DEN_KAESE_INFO } from './schnapp-den-kaese/info.ts';
 import { WACKELTURM_INFO } from './wackelturm/info.ts';
 
 export * from './catalog.ts';
@@ -63,6 +65,14 @@ export const MINIGAME_LOADERS: ReadonlyMap<string, MinigameLoader> = new Map<
   [TOASTER_TIMING_INFO.id, () => import('./toaster-timing/index.ts').then((m) => m.toasterTiming)],
   [NUSSREGEN_NETZ_INFO.id, () => import('./nussregen-netz/index.ts').then((m) => m.nussregenNetz)],
   [MATSCHMALER_INFO.id, () => import('./matschmaler/index.ts').then((m) => m.matschmaler)],
+  [
+    RASENSPRENGER_RODEO_INFO.id,
+    () => import('./rasensprenger-rodeo/index.ts').then((m) => m.rasensprengerRodeo),
+  ],
+  [
+    SCHNAPP_DEN_KAESE_INFO.id,
+    () => import('./schnapp-den-kaese/index.ts').then((m) => m.schnappDenKaese),
+  ],
   // Testspiele der Spielformen (CHAOS-89).
   [PUMP_DUELL_INFO.id, () => import('./pump-duell/index.ts').then((m) => m.pumpDuell)],
   [PUMP_SOLO_INFO.id, () => import('./pump-solo/index.ts').then((m) => m.pumpSolo)],

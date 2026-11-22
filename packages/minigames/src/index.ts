@@ -19,6 +19,8 @@ import { sockenregen } from './sockenregen/index.ts';
 import { toasterTiming } from './toaster-timing/index.ts';
 import { nussregenNetz } from './nussregen-netz/index.ts';
 import { matschmaler } from './matschmaler/index.ts';
+import { rasensprengerRodeo } from './rasensprenger-rodeo/index.ts';
+import { schnappDenKaese } from './schnapp-den-kaese/index.ts';
 import { wackelturm } from './wackelturm/index.ts';
 
 export * from './catalog.ts';
@@ -34,6 +36,8 @@ export const MINIGAME_MODULES: readonly MinigameModule[] = [
   toasterTiming,
   nussregenNetz,
   matschmaler,
+  rasensprengerRodeo,
+  schnappDenKaese,
   pumpDuell,
   pumpSolo,
   pumpRiese,

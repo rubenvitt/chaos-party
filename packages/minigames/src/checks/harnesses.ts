@@ -21,6 +21,10 @@ import { NUSS_BOT_ADAPTER } from '../nussregen-netz/bot.ts';
 import { NUSSREGEN_NETZ_INFO } from '../nussregen-netz/info.ts';
 import { MATSCH_BOT_ADAPTER } from '../matschmaler/bot.ts';
 import { MATSCHMALER_INFO } from '../matschmaler/info.ts';
+import { RODEO_BOT_ADAPTER, RODEO_INTRUDERS } from '../rasensprenger-rodeo/bot.ts';
+import { RASENSPRENGER_RODEO_INFO } from '../rasensprenger-rodeo/info.ts';
+import { KAESE_BOT_ADAPTER, KAESE_INTRUDERS } from '../schnapp-den-kaese/bot.ts';
+import { SCHNAPP_DEN_KAESE_INFO } from '../schnapp-den-kaese/info.ts';
 import { KUCKUCKS_KLATSCHE_INFO } from '../kuckucks-klatsche/info.ts';
 import { PUDDING_GERANGEL_INFO } from '../pudding-gerangel/info.ts';
 import { SOCKENREGEN_INFO } from '../sockenregen/info.ts';
@@ -269,5 +273,15 @@ export const FAIRNESS_HARNESSES: Readonly<Record<string, FairnessHarness>> = {
     info: MATSCHMALER_INFO,
     adapter: MATSCH_BOT_ADAPTER,
     intruders: [dauerDruecker(['a'], 'Dauerdrücken (Bauchplatscher, sobald bereit)')],
+  }),
+  [RASENSPRENGER_RODEO_INFO.id]: kitHarness({
+    info: RASENSPRENGER_RODEO_INFO,
+    adapter: RODEO_BOT_ADAPTER,
+    intruders: [dauerDruecker(['a'], 'Dauerdrücken (A ist ohne Wirkung)'), ...RODEO_INTRUDERS],
+  }),
+  [SCHNAPP_DEN_KAESE_INFO.id]: kitHarness({
+    info: SCHNAPP_DEN_KAESE_INFO,
+    adapter: KAESE_BOT_ADAPTER,
+    intruders: [dauerDruecker(['a'], 'Dauerdrücken (greift sofort)'), ...KAESE_INTRUDERS],
   }),
 };

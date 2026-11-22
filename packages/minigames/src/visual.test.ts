@@ -34,6 +34,16 @@ const EXPECTED: Record<string, readonly string[]> = {
     'sterne',
   ],
   matschmaler: ['matsch', 'regenstreifen', 'regenwolke', 'abzeichen', 'sterne'],
+  'rasensprenger-rodeo': [
+    'rasensprenger',
+    'duese',
+    'wasserstrahl',
+    'reichweite',
+    'pfuetze',
+    'spielerring',
+    'abzeichen',
+  ],
+  'schnapp-den-kaese': ['mausefalle', 'buegel', 'kaese', 'pfote', 'abzeichen', 'sterne'],
 };
 
 /** Rollen aller Knoten der Szene nach ein paar Sekunden Spiel (mit laufenden Figuren). */
