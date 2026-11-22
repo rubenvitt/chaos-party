@@ -47,6 +47,11 @@
  * `minigame-result.outcome` (alle optional). Ein Sprung auf v5 hätte alle installierten
  * iOS-Controller und den Apple-Host ausgesperrt; Gegenstellen ohne den Nachtrag zeigen Teams
  * nicht an, und Team-Minispiele kommen nur aus dem Katalog des Web-Hosts.
+ * v4-Nachtrag (CHAOS-179, additiv, ohne Versionssprung): KI-Plätze (ADR-020) –
+ * `LobbyPlayer.kind`/`strength` und `BoardPlayer.kind`/`strength`/`personality` (nur bei KI,
+ * fehlt = Mensch), Controller-Nachricht `ai-seat` (nur Lobby, nur Spielleitung, sonst Fehler
+ * `not-lead`), `configure.aiSeat` am Host, Lobby-Kontext `lead`/`seats` (alle optional). Alte
+ * Controller zeigen KI-Plätze als normale Mitspieler und senden kein `ai-seat`.
  */
 export const PROTOCOL_VERSION = 4;
 

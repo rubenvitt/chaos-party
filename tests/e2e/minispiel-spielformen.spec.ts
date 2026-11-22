@@ -77,7 +77,7 @@ test.describe('Spielformen mit Teams (CHAOS-89)', () => {
     }
     const phoneProblems = phones.map((phone) => collectProblems(phone));
 
-    await host.getByTestId('gallery-button').click();
+    await host.getByTestId('minigames-open').click();
     await host.getByTestId(`gallery-practice-${ID}`).click();
     await expect(host.getByTestId('minigame-screen')).toHaveAttribute('data-stage', 'intro');
 

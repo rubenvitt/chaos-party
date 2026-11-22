@@ -11,6 +11,7 @@
  * RealityKit (rechtshändig) spiegelt z und die x/y-Anteile der Quaternion.
  */
 import {
+  AI_STRENGTHS,
   BoardChoiceSchema,
   CHARACTER_IDS,
   LobbyMinigameSchema,
@@ -19,6 +20,7 @@ import {
   MAX_ROUND_PRESETS,
   MINIGAME_STAGES,
   RoundsSchema,
+  SEAT_KINDS,
 } from '@chaos-party/protocol';
 import { z } from 'zod';
 import { LIGHT_MOOD_IDS } from '../../host/src/lighting/moods.ts';
@@ -104,7 +106,8 @@ export type MinigameToggleKind = (typeof MINIGAME_TOGGLE_KINDS)[number];
  * `configure:rounds=12`, `configure:moreReactionTime=1` (`0`/`1`/`true`/`false`),
  * `configure:board=wackelwald` (Brett-ID oder `zufall`, CHAOS-197),
  * `configure:minigameBlocklist=a+b,minigameFavorites=c` (ganze Listen der Minispiel-Rotation mit
- * `+` getrennt, leer = keine, CHAOS-216) oder mehreres mit Komma:
+ * `+` getrennt, leer = keine, CHAOS-216), `configure:aiSeat=3:mittel` bzw.
+ * `configure:aiSeat=3:aus` (KI-Platz, CHAOS-179) oder mehreres mit Komma:
  * `configure:rounds=12,moreReactionTime=1`. Runden 1–`MAX_ROUNDS`. Nur in der Lobby;
  * sonst und bei ungültigem Text loggt der Kern und sendet nichts. Ergebnis in
  * `renderState().lobby.settings`. Parser: `./hostCommand.ts`.
@@ -174,6 +177,14 @@ export const LobbyPlayerSchema = z.strictObject({
   connected: z.boolean(),
   ready: z.boolean(),
   character: character.nullable(),
+  /**
+   * Mensch oder KI (CHAOS-179, ADR-020). Ein KI-Platz ist immer `connected` und `ready`, heißt in
+   * der Lobby „KI <Farbe>“ und hat noch keine Figur. Setzen/Ändern/Entfernen über
+   * `hostCommand('configure:aiSeat=<platz>:<stärke|aus>')`.
+   */
+  kind: z.enum(SEAT_KINDS),
+  /** Stärke des KI-Platzes (`leicht`/`mittel`/`schwer`/`dynamisch`), bei Menschen `null`. */
+  strength: z.enum(AI_STRENGTHS).nullable(),
 });
 
 /**

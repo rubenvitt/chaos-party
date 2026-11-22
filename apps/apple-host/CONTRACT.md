@@ -40,7 +40,7 @@ interface ChaosHostInstance {
 }
 ```
 
-`configure` (CHAOS-166): `configure:rounds=12`, `configure:moreReactionTime=1` (`0`/`1`/`true`/`false`), `configure:board=wackelwald` (Brett-ID oder `zufall`, CHAOS-197), `configure:minigameBlocklist=wackelturm+sockenregen,minigameFavorites=` (ganze Listen der Minispiel-Rotation, `+` trennt, leer = keine, CHAOS-216) oder mehreres mit Komma, `configure:rounds=12,moreReactionTime=1`. Runden 1–20; ein unbekanntes Brett lehnt der Server ab (Log „Server-Fehler an Host: bad-message …“). Wirkt nur in der Lobby; außerhalb loggt der Kern „ignoriert: nur in der Lobby“, Ungültiges „Ungültiger Host-Befehl“, gesendet wird dann nichts. Der neue Stand steht im nächsten `renderState().lobby.settings`.
+`configure` (CHAOS-166): `configure:rounds=12`, `configure:moreReactionTime=1` (`0`/`1`/`true`/`false`), `configure:board=wackelwald` (Brett-ID oder `zufall`, CHAOS-197), `configure:minigameBlocklist=wackelturm+sockenregen,minigameFavorites=` (ganze Listen der Minispiel-Rotation, `+` trennt, leer = keine, CHAOS-216), `configure:aiSeat=3:mittel` bzw. `configure:aiSeat=3:aus` (KI-Platz setzen, Stärke ändern oder entfernen, CHAOS-179; einen Platz mit Mensch lehnt der Server mit `bad-message` ab) oder mehreres mit Komma, `configure:rounds=12,moreReactionTime=1`. Runden 1–20; ein unbekanntes Brett lehnt der Server ab (Log „Server-Fehler an Host: bad-message …“). Wirkt nur in der Lobby; außerhalb loggt der Kern „ignoriert: nur in der Lobby“, Ungültiges „Ungültiger Host-Befehl“, gesendet wird dann nichts. Der neue Stand steht im nächsten `renderState().lobby.settings`.
 
 Minispiel-Rotation (CHAOS-216, wie der Dialog „Minispiele“ am PC, CHAOS-85): `minigame:favorite=<id>` bzw. `minigame:blocked=<id>` schaltet ein Spiel der Rotation um. Der Kern rechnet den neuen Stand aus dem Server-Stand (`toggleMinigame`: Favorit und Sperre schließen sich aus), speichert ihn in `env.storage` (Schlüssel `chaos-party:minigame-rotation`, JSON `{ blocklist, favorites }`, wie `localStorage` am PC) und schickt ihn als `configure`. Auch ganze Listen per `configure:minigame…` werden gespeichert. Beim ersten Lobby-Stand mit Rotation schickt der Kern den gespeicherten Stand an die frische Session (Log „Minispiel-Rotation aus dem Speicher: …“). Nur in der Lobby; ein Spiel außerhalb der Rotation loggt „ignoriert: Minispiel nicht in der Rotation“. Ohne `env.storage` oder bei kaputtem Inhalt gilt der Stand nur bis zum Beenden.
 
@@ -56,7 +56,8 @@ Minispiel-Rotation (CHAOS-216, wie der Dialog „Minispiele“ am PC, CHAOS-85):
 {
   "phase": "lobby" | "board" | "minigame" | "final" | "paused",
   "lobby": { "joinUrl": "…", "joinCode": "AB12",
-             "players": [{ "slot": 1, "name": "Anna", "color": "#0072B2", "connected": true, "ready": false, "character": "raccoon" | null }],
+             "players": [{ "slot": 1, "name": "Anna", "color": "#0072B2", "connected": true, "ready": false, "character": "raccoon" | null,
+                           "kind": "human" | "ai", "strength": null | "leicht" | "mittel" | "schwer" | "dynamisch" }],  // CHAOS-179
              "settings": null | { "rounds": 10, "roundPresets": [10, 16, 20], "moreReactionTime": false,  // CHAOS-166
                                   "board": "wackelwald",  // Brett-ID oder "zufall" (CHAOS-197)
                                   "boards": [ { "id": "wackelwald", "name": "Wackelwald", "detail": "43 Felder",

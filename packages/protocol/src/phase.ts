@@ -16,6 +16,8 @@ const ALLOWED: Readonly<Record<Phase, ReadonlySet<ClientMessageType>>> = {
     // v4 (CHAOS-36): Figurenwahl (Controller) und Rundenzahl (Host).
     'pick-character',
     'configure',
+    // v4-Nachtrag (CHAOS-179): KI-Plätze verwalten (nur Spielleitung, prüft die Session).
+    'ai-seat',
   ]),
   play: new Set<ClientMessageType>([
     'reconnect',

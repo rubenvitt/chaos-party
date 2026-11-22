@@ -24,6 +24,8 @@ const MATRIX: Record<ClientMessageType, [lobby: boolean, play: boolean, board: b
   // v4 (ADR-015)
   'pick-character': [true, false, false],
   configure: [true, false, false],
+  // v4-Nachtrag (CHAOS-179): KI-Plätze verwalten.
+  'ai-seat': [true, false, false],
   pause: [false, false, true],
   resume: [false, false, true],
   'end-game': [false, false, true],
