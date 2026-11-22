@@ -266,6 +266,19 @@ import Testing
         #expect(SeatsModel(lobby: ControllerLobbyInfo(takenCharacters: [], rounds: 5), ownSlot: 1) == nil)
     }
 
+    @Test func otherTurnNamesAiSeat() {
+        var board = ControllerBoardInfo(
+            gamePhase: .turnStart, round: 2, rounds: 5, coins: 0, trophies: 0, items: [], activeSlot: 3,
+            paused: false, character: .robot, minigameWins: 0)
+        let players = [PlayerInfo(slot: 1, color: "#0072B2", label: "Anna")]
+        // Older server without `activeSeat`: colour name, no AI mark.
+        #expect(WaitingText.otherTurn(slot: 3, board: board, players: players) == "Grün ist dran")
+        board.activeSeat = ActiveSeat(name: "Schraubi", kind: "ai")
+        #expect(WaitingText.otherTurn(slot: 3, board: board, players: players) == "Schraubi (KI) ist dran")
+        board.activeSeat = ActiveSeat(name: "Ben", kind: "human")
+        #expect(WaitingText.otherTurn(slot: 3, board: board, players: players) == "Ben ist dran")
+    }
+
     @Test func readyLobbyShowsReadyHint() throws {
         let context = try #require(ControllerState.lobbyReadySample.contexts[1])
         let model = try #require(LobbyModel(context: context, pending: nil))
