@@ -3,7 +3,7 @@
  */
 import type { CharacterId, SlotNumber } from '@chaos-party/protocol';
 import { describePrompt, isLocked, ownPrompt } from '../board/prompt.ts';
-import { describeLobby, type SiblingCharacter } from '../lobby/view.ts';
+import { describeLobby, describeSeats, type SiblingCharacter } from '../lobby/view.ts';
 import { describeVote, introReadyState, offeredActions } from '../minigame/view.ts';
 import type { PendingChoice, SlotContext } from '../state/reducer.ts';
 import type { ZoneChoicesInput, ZoneControlsInput, ZoneLobbyInput } from './geometry.ts';
@@ -37,12 +37,22 @@ export function zoneLobbyInput(
   readySent: boolean,
   pick?: CharacterId,
   siblings: readonly SiblingCharacter[] = [],
+  slot?: SlotNumber,
 ): ZoneLobbyInput | undefined {
   const view = describeLobby(context, pick, siblings);
   if (!view) return undefined;
+  // Reihe „Mitspieler“ (CHAOS-238): braucht den eigenen Platz („Du“), sonst keine Reihe.
+  const seats = slot === undefined ? null : describeSeats(context?.lobby, slot);
   return {
     characters: view.cards.map((card) => ({ id: card.id, selectable: card.selectable })),
     showReady: view.canReady && !view.ready && !readySent,
+    ...(seats !== null && {
+      seats: seats.chips.map((chip) => ({
+        slot: chip.slot,
+        tap: chip.tap !== null,
+        removable: chip.removable,
+      })),
+    }),
   };
 }
 
@@ -70,7 +80,7 @@ export function zoneControlsInput(
   if (!context) return { layout: 'wait', actions: [] };
   const choices = slot === undefined ? undefined : zoneChoicesInput(slot, context, pending);
   const readySent = readySentFor !== undefined && readySentFor === contextKey(context);
-  const lobby = zoneLobbyInput(context, readySent, extras.pick, extras.siblings);
+  const lobby = zoneLobbyInput(context, readySent, extras.pick, extras.siblings, slot);
   const introReady =
     context.layout === 'board'
       ? introReadyState(context, { sent: readySent, armed: extras.introArmed === true })

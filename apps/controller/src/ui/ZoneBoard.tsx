@@ -10,6 +10,7 @@ import {
   type CSSProperties,
 } from 'react';
 import {
+  AI_STRENGTHS,
   isCharacterId,
   PLAYER_SLOTS,
   type Button,
@@ -22,7 +23,13 @@ import { alertPromptId } from '../board/alertTone.ts';
 import { chooseIntent, choiceById, describePrompt, isLocked, ownPrompt } from '../board/prompt.ts';
 import { describeWaiting } from '../board/status.ts';
 import { createMoveSender, type MoveSender } from '../input/moveSender.ts';
-import { describeLobby, HINT_READY, type SiblingCharacter } from '../lobby/view.ts';
+import {
+  describeLobby,
+  describeSeats,
+  HINT_READY,
+  type SeatsView,
+  type SiblingCharacter,
+} from '../lobby/view.ts';
 import {
   describePlay,
   describeVote,
@@ -48,6 +55,10 @@ import {
   parsePickControl,
   parseVoteControl,
   rectCenter,
+  seatControl,
+  seatParts,
+  seatRects,
+  seatsCompact,
   ZONE_PADDING,
   type ControlGeometry,
   type Rect,
@@ -200,6 +211,10 @@ function syncView(board: HTMLElement | null, tracker: ZoneTracker) {
       const held = view.votesHeld.some((kind) => kind === voteEl.dataset.control);
       voteEl.dataset.pressed = held ? 'true' : 'false';
     }
+    for (const seatEl of zoneEl.querySelectorAll<HTMLElement>('[data-role="seat"]')) {
+      const held = view.seatsHeld.some((kind) => kind === seatEl.dataset.control);
+      seatEl.dataset.pressed = held ? 'true' : 'false';
+    }
   }
 }
 
@@ -298,9 +313,9 @@ export function ZoneBoard({
   }, [seated, send]);
 
   // Neueste Werte für Ereignis-Handler (vor dem setZones-Effekt aktualisiert).
-  const latest = useRef({ contexts, choices, movers, send });
+  const latest = useRef({ contexts, choices, movers, send, zones });
   useLayoutEffect(() => {
-    latest.current = { contexts, choices, movers, send };
+    latest.current = { contexts, choices, movers, send, zones };
   });
 
   const apply = useCallback(
@@ -310,6 +325,7 @@ export function ZoneBoard({
         choices: pending,
         movers: senders,
         send: sendIntent,
+        zones: shown,
       } = latest.current;
       for (const effect of effects) {
         switch (effect.type) {
@@ -331,6 +347,34 @@ export function ZoneBoard({
             // Nur in der Lobby mit Charakterwahl; vergebene Karten sind ohnehin `inert`.
             if (!ctxs[effect.slot]?.actions.includes('pick-character')) break;
             sendIntent({ type: 'pick-character', slot: effect.slot, character: effect.character });
+            break;
+          }
+          case 'seat': {
+            // Reihe „Mitspieler“ (CHAOS-238): Wirkung aus dem aktuellen Kontext, wie am iPhone.
+            // Der Server prüft Spielleitung und Phase (`not-lead`).
+            const chip = describeSeats(ctxs[effect.slot]?.lobby, effect.slot)?.chips.find(
+              (c) => c.slot === effect.seat,
+            );
+            if (!chip || ctxs[effect.slot]?.phase !== 'lobby') break;
+            // Kompakte Reihe ohne „✕“: Tippen nach der letzten Stärke gibt den Platz frei.
+            const compactLast =
+              chip.removable &&
+              chip.strength === AI_STRENGTHS[AI_STRENGTHS.length - 1] &&
+              !shown
+                .find((z) => z.slot === effect.slot)
+                ?.controls.some((c) => c.kind === seatControl(chip.slot, true));
+            if (effect.remove || compactLast) {
+              if (chip.removable) {
+                sendIntent({ type: 'ai-seat', slot: effect.slot, seat: chip.slot, strength: null });
+              }
+            } else if (chip.tap !== null) {
+              sendIntent({
+                type: 'ai-seat',
+                slot: effect.slot,
+                seat: chip.slot,
+                strength: chip.tap,
+              });
+            }
             break;
           }
           case 'vote': {
@@ -496,6 +540,7 @@ const Zone = memo(function Zone({
           siblings.filter((s) => s.slot !== player.slot),
         )
       : null;
+  const seats = lobby ? describeSeats(context?.lobby, player.slot) : null;
   const badge = (
     <header className="player-badge zone-badge" data-testid="player-badge">
       <span className="badge-avatar">
@@ -541,7 +586,7 @@ const Zone = memo(function Zone({
           <MinigameSecretStrip secret={play.secret} className="zone-minigame-secret" />
         )}
 
-        {lobby && <ZoneLobby zone={zone} view={lobby} />}
+        {lobby && <ZoneLobby zone={zone} view={lobby} seats={seats} />}
 
         {screen === 'lobby-basic' &&
           (ready ? (
@@ -679,11 +724,14 @@ function belowBadge(zone: ZoneGeometry) {
 function ZoneLobby({
   zone,
   view,
+  seats,
 }: {
   zone: ZoneGeometry;
   view: NonNullable<ReturnType<typeof describeLobby>>;
+  /** Reihe „Mitspieler“ (CHAOS-238) oder `null`. */
+  seats: SeatsView | null;
 }) {
-  const frames = lobbyZoneFrames(zone.local);
+  const frames = lobbyZoneFrames(zone.local, seats !== null);
   const ready = zone.controls.find((c) => c.kind === 'ready');
   const cards = zone.controls.flatMap((control) => {
     const id = parsePickControl(control.kind);
@@ -700,6 +748,7 @@ function ZoneLobby({
       <div className="zone-lobby-head" style={rectStyle(frames.head)}>
         <LobbyHead view={view} />
       </div>
+      {seats !== null && frames.seats && <ZoneSeats zone={zone} row={frames.seats} seats={seats} />}
       {cards.map(({ control, card }) => (
         <div
           key={control.kind}
@@ -741,6 +790,77 @@ function ZoneLobby({
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Reihe „Mitspieler“ in einer Zone (CHAOS-238, ADR-020 §2): gleiche Chips wie am iPhone
+ * (`LobbySeats`), aber an den Rechtecken, die der Zonen-Tracker prüft. Nur die Zone der
+ * Spielleitung hat Knöpfe (`seat:<n>`, `seat-remove:<n>`); andere Zonen sehen nur, wer KI ist.
+ */
+function ZoneSeats({ zone, row, seats }: { zone: ZoneGeometry; row: Rect; seats: SeatsView }) {
+  const rects = seatRects(row);
+  const has = (kind: ControlGeometry['kind']) => zone.controls.some((c) => c.kind === kind);
+  return (
+    <ul
+      className="zone-seats"
+      data-testid="lobby-seats"
+      data-lead={seats.lead}
+      data-compact={seatsCompact(row)}
+      aria-label="Mitspieler"
+      style={rectStyle(row)}
+    >
+      {seats.chips.map((chip, i) => {
+        const rect = rects[i];
+        if (!rect) return null;
+        const parts = seatParts(rect, chip.removable && has(seatControl(chip.slot, true)));
+        const tap = chip.tap !== null && has(seatControl(chip.slot));
+        const id = String(chip.slot);
+        return (
+          <li
+            key={chip.slot}
+            className="lobby-seat zone-seat"
+            data-testid={`lobby-seat-${id}`}
+            data-kind={chip.kind}
+            data-strength={chip.strength ?? ''}
+            style={
+              {
+                ...rectStyle({ ...rect, x: rect.x - row.x, y: rect.y - row.y }),
+                '--seat-color': PLAYER_SLOTS[chip.slot].color,
+              } as CSSProperties
+            }
+          >
+            <span
+              className={`lobby-seat-body${tap ? ' lobby-seat-button' : ''}`}
+              {...(tap && {
+                'data-testid': `lobby-seat-tap-${id}`,
+                'data-role': 'seat',
+                'data-control': seatControl(chip.slot),
+                'data-pressed': 'false',
+              })}
+            >
+              <span className="player-symbol" aria-hidden="true">
+                {PLAYER_SLOTS[chip.slot].symbol}
+              </span>
+              <span className="ui-text">{chip.text}</span>
+            </span>
+            {parts.remove && (
+              <span
+                className="zone-seat-remove"
+                data-testid={`lobby-seat-remove-${id}`}
+                data-role="seat"
+                data-control={seatControl(chip.slot, true)}
+                data-pressed="false"
+                aria-label={`KI auf Platz ${PLAYER_SLOTS[chip.slot].label} entfernen`}
+                style={{ width: parts.remove.width }}
+              >
+                ✕
+              </span>
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
