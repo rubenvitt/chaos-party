@@ -30,7 +30,7 @@ import {
   type RuleSet,
   type Slot,
 } from '@chaos-party/game-core';
-import { checkCue, type MinigameInfo } from '@chaos-party/minigame-sdk';
+import { checkCue, checkSecret, type MinigameInfo } from '@chaos-party/minigame-sdk';
 import {
   getMinigameInfo,
   getSteckbrief,
@@ -50,6 +50,7 @@ import {
   type ControllerMinigameTeam,
   type MinigameControlsInfo,
   type MinigameCueInfo,
+  type MinigameSecretInfo,
   type PromptInfo,
 } from '@chaos-party/protocol';
 
@@ -234,6 +235,12 @@ export class BoardGame {
     readonly round: number;
     readonly cue: MinigameCueInfo;
   } | null = null;
+  /**
+   * Private Rückmeldungen vom Host je Slot (CHAOS-242), an ihren Lauf gebunden. Gehen nur in den
+   * Kontext genau dieses Slots, nie an den Host oder andere Controller.
+   */
+  private secretRun: { readonly minigameId: string; readonly round: number } | null = null;
+  private readonly secretValues = new Map<Slot, MinigameSecretInfo>();
 
   readonly seed: number;
   /** Brett der Partie (für die Brett-KI, CHAOS-181: sichtbare Felder, Wege, Fallen). */
@@ -503,6 +510,7 @@ export class BoardGame {
     const reward = ownReward?.coins;
     const prizes = ownReward?.items;
     const cue = stage === 'play' ? this.currentCue() : undefined;
+    const secret = stage === 'play' ? this.currentSecret(slot) : undefined;
     return {
       id: info.id,
       title: info.title,
@@ -523,6 +531,8 @@ export class BoardGame {
       ...(stage === 'intro' && minigame.ready ? { ready: minigame.ready.includes(slot) } : {}),
       // CHAOS-231: Bildwort und Bedienung des laufenden Abschnitts (Schnellfeuer).
       ...(cue === undefined ? {} : { cue }),
+      // CHAOS-242: private Rückmeldung (geheime Wahl) – nur für diesen Slot.
+      ...(secret === undefined ? {} : { secret }),
       // CHAOS-89: eigene Rolle bei Teams bzw. Koop (im Ergebnis mit Ausgang).
       ...(minigame.teams ? { team: controllerTeamOf(minigame, slot, stage) } : {}),
     };
@@ -580,6 +590,49 @@ export class BoardGame {
     if (!info || !checkCue(cue, info).ok) return false;
     this.cueValue = { minigameId, round, cue };
     return true;
+  }
+
+  /**
+   * Private Rückmeldung des Hosts an einen Slot übernehmen (CHAOS-242). Nur in `minigame-play`
+   * des genannten Laufs, nur für einen Slot der Partie und nur gültig (`checkSecret`); sonst
+   * verworfen. `true` = übernommen.
+   */
+  setSecret(
+    minigameId: string,
+    round: number,
+    slot: Slot,
+    secret: MinigameSecretInfo | null,
+  ): boolean {
+    const state = this.stateValue;
+    const minigame = state.minigame;
+    if (
+      state.phase !== 'minigame-play' ||
+      minigame?.id !== minigameId ||
+      minigame.round !== round ||
+      !this.hasSlot(slot)
+    ) {
+      return false;
+    }
+    if (secret !== null && !checkSecret(secret).ok) return false;
+    const run = this.secretRun;
+    if (run?.minigameId !== minigameId || run.round !== round) {
+      this.secretRun = { minigameId, round };
+      this.secretValues.clear();
+    }
+    if (secret === null) this.secretValues.delete(slot);
+    else this.secretValues.set(slot, secret);
+    return true;
+  }
+
+  /** Private Rückmeldung dieses Slots, solange ihr Lauf spielt (CHAOS-242), sonst `undefined`. */
+  private currentSecret(slot: Slot): MinigameSecretInfo | undefined {
+    const state = this.stateValue;
+    const run = this.secretRun;
+    if (state.phase !== 'minigame-play' || !run) return undefined;
+    if (state.minigame?.id !== run.minigameId || state.minigame.round !== run.round) {
+      return undefined;
+    }
+    return this.secretValues.get(slot);
   }
 
   /** Hinweis für den Controller, solange sein Lauf spielt (CHAOS-231), sonst `undefined`. */

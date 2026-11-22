@@ -6,7 +6,14 @@ import { CreateBox } from '@babylonjs/core/Meshes/Builders/boxBuilder.js';
 import { CreateSphere } from '@babylonjs/core/Meshes/Builders/sphereBuilder.js';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh.js';
 import { describe, expect, it, vi } from 'vitest';
-import type { MinigameCue, MinigameInfo, MinigameInput, MinigameResult, Slot } from '../info.ts';
+import type {
+  MinigameCue,
+  MinigameInfo,
+  MinigameInput,
+  MinigameResult,
+  MinigameSecret,
+  Slot,
+} from '../info.ts';
 import { rankByScore } from '../result.ts';
 import {
   createHeadlessScene,
@@ -122,7 +129,10 @@ async function setup(
   module: MinigameModule,
   players = 2,
   extra: Partial<
-    Pick<RunnerOptions, 'maxStepsPerAdvance' | 'look' | 'pacing' | 'onResult' | 'onCue'>
+    Pick<
+      RunnerOptions,
+      'maxStepsPerAdvance' | 'look' | 'pacing' | 'onResult' | 'onCue' | 'onSecret'
+    >
   > = {},
 ) {
   const headless = createHeadlessScene();
@@ -278,6 +288,65 @@ describe('Minispiel-Laufzeit', () => {
     runner.step(60);
     expect(cues.at(-1)).toBeNull();
     expect(runner.cue).toBeNull();
+    errors.mockRestore();
+    runner.dispose();
+    headless.dispose();
+  });
+
+  it('meldet private Rückmeldungen je Slot, geprüft und nur bei Änderung (CHAOS-242)', async () => {
+    const { module: base } = probe({});
+    let elapsed = 0;
+    const options = [
+      { id: 'links', icon: '←', label: '5 Münzen' },
+      { id: 'rechts', icon: '→', label: '3 Münzen' },
+    ];
+    const secretAt = (slot: Slot, ms: number): MinigameSecret | null => {
+      if (ms >= 3_000) return null;
+      // Slot 2 wählt ab 1 s; ab 2 s meldet Slot 1 eine unbekannte Wahl (ungültig).
+      const pick =
+        slot === 2 && ms >= 1_000 ? 'rechts' : slot === 1 && ms >= 2_000 ? 'mitte' : null;
+      return { prompt: 'Deine Tür', options, aim: null, pick, locked: false };
+    };
+    const module: MinigameModule = {
+      info: base.info,
+      create() {
+        const game = base.create();
+        return {
+          ...game,
+          update(dt) {
+            elapsed += dt * 1000;
+            game.update(dt);
+          },
+          getSecret: (slot) => secretAt(slot, elapsed),
+        };
+      },
+    };
+    const seen: [Slot, string | null][] = [];
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { runner, headless } = await setup(module, 2, {
+      onSecret: (slot, secret) => seen.push([slot, secret ? (secret.pick ?? '-') : null]),
+    });
+    await runner.prepare();
+    expect(seen).toEqual([]);
+    runner.start();
+    expect(seen).toEqual([
+      [1, '-'],
+      [2, '-'],
+    ]);
+    runner.step(30);
+    expect(seen).toHaveLength(2);
+    runner.step(60);
+    expect(seen.at(-1)).toEqual([2, 'rechts']);
+    expect(seen).toHaveLength(3);
+    runner.step(60);
+    // Slot 1 ungültig: nicht gemeldet, Fehler protokolliert.
+    expect(seen).toHaveLength(3);
+    expect(errors).toHaveBeenCalled();
+    runner.step(60);
+    expect(seen.slice(3)).toEqual([
+      [1, null],
+      [2, null],
+    ]);
     errors.mockRestore();
     runner.dispose();
     headless.dispose();

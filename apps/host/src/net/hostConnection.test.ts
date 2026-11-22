@@ -264,6 +264,45 @@ describe('connectHost', () => {
     expect(cues()).toEqual([encode(createMessage('minigame-cue', { ...cue, cue: null }))]);
   });
 
+  it('meldet private Rückmeldungen je Slot und wiederholt die letzten nach Neuverbinden (CHAOS-242)', () => {
+    const t = setup();
+    const secret = {
+      prompt: 'Runde 1/8: deine Tür',
+      options: [
+        { id: 'links', icon: '←', label: '5 Münzen' },
+        { id: 'rechts', icon: '→', label: '2 Münzen' },
+      ],
+      aim: 'links',
+      pick: null,
+      locked: false,
+    };
+    const one = { minigameId: 'drei-tueren', round: 2, slot: 1 as const, secret };
+    const two = { ...one, slot: 2 as const, secret: { ...secret, aim: null, pick: 'rechts' } };
+    const secrets = () => t.last().sent.filter((m) => m.includes('"minigame-secret"'));
+    // Ohne Verbindung gemerkt, mit dem ersten Stand gesendet.
+    expect(t.connection.sendMinigameSecret(one)).toBe(false);
+    t.last().open();
+    t.last().receive(encode(LOBBY));
+    expect(secrets()).toHaveLength(1);
+    expect(parseHostMessage(secrets()[0] ?? '')).toEqual({
+      ok: true,
+      message: { v: 4, type: 'minigame-secret', ...one },
+    });
+    // Ein zweiter Slot geht einzeln raus, ohne den ersten zu wiederholen.
+    expect(t.connection.sendMinigameSecret(two)).toBe(true);
+    t.last().receive(encode(LOBBY));
+    expect(secrets()).toHaveLength(2);
+    // Neue Verbindung: die letzte Rückmeldung je Slot kommt noch einmal.
+    t.last().drop();
+    t.fire(2000);
+    t.last().open();
+    t.last().receive(encode(LOBBY));
+    expect(secrets()).toEqual([
+      encode(createMessage('minigame-secret', one)),
+      encode(createMessage('minigame-secret', two)),
+    ]);
+  });
+
   it('sendet start mit Modus und Rundenzahl (M2)', () => {
     const t = setup();
     t.last().open();

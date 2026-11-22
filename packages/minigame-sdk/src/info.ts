@@ -69,6 +69,47 @@ export interface MinigameCue {
   readonly double: boolean;
 }
 
+/** Grenzen einer privaten Rückmeldung ({@link MinigameSecret}, gleich im zod-Schema). */
+export const MINIGAME_SECRET_LIMITS = {
+  /** Frage über den Optionen („Runde 3/8: deine Tür“). */
+  prompt: 24,
+  /** Höchstzahl Optionen (mindestens zwei). */
+  options: 4,
+  /** Piktogramm je Option (ein Emoji oder Pfeil). */
+  icon: 8,
+  /** Text je Option („9 Münzen“). */
+  label: 16,
+} as const;
+
+/** Kennung einer Option: Kleinbuchstaben, Ziffern, Bindestrich, 1–16 Zeichen. */
+export const MINIGAME_SECRET_OPTION_PATTERN = /^[a-z0-9-]{1,16}$/;
+
+/** Eine Option der geheimen Wahl (CHAOS-242). */
+export interface MinigameSecretOption {
+  readonly id: string;
+  readonly icon: string;
+  readonly label: string;
+}
+
+/**
+ * Private Rückmeldung an genau einen Controller (CHAOS-242, optional): Spiele mit geheimer Wahl
+ * (Familie Bluff, `secretChoice`) zeigen dem wählenden Slot die Optionen, wohin sein Stick
+ * gerade zeigt (`aim`) und was er festgelegt hat (`pick`). Der Server legt sie nur in den
+ * Kontext dieses Slots; Host-Bildschirm und andere Controller sehen sie nie. An einer
+ * iPad-Zone sieht die Nachbarin sie mit (bewusst, README §7 Nr. 4).
+ */
+export interface MinigameSecret {
+  readonly prompt: string;
+  /** 2 … `MINIGAME_SECRET_LIMITS.options` Optionen, Kennungen eindeutig. */
+  readonly options: readonly MinigameSecretOption[];
+  /** Option, auf die die Eingabe gerade zeigt (noch nicht festgelegt), `null` = keine. */
+  readonly aim: string | null;
+  /** Festgelegte Wahl, `null` = noch keine. */
+  readonly pick: string | null;
+  /** `true` = Wahl geschlossen (Aufdecken, Zwischenzeit); `pick` bleibt sichtbar. */
+  readonly locked: boolean;
+}
+
 /**
  * Steckbrief eines Minispiels. Wird vom Server für Auswahl, Fristen und Controller-Kontext
  * genutzt und vom Host für Anleitung und Ergebnis – darum rein und serialisierbar.

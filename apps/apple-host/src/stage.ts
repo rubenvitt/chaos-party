@@ -27,6 +27,7 @@ import type {
   MinigameBotSeat,
   MinigameCue,
   MinigamePlacement,
+  MinigameSecret,
   MinigameTeams,
   Slot,
 } from '@chaos-party/minigame-sdk';
@@ -85,6 +86,8 @@ export interface HeadlessStageOptions {
   readonly onResult: (result: RunnerResult) => void;
   /** Controller-Hinweis hat gewechselt (CHAOS-231, nur Minispiele mit Abschnitten). */
   readonly onCue?: (cue: MinigameCue | null) => void;
+  /** Private Rückmeldung eines Slots hat gewechselt (CHAOS-242, geheime Wahl). */
+  readonly onSecret?: (slot: Slot, secret: MinigameSecret | null) => void;
   readonly log: (line: string) => void;
   /**
    * Verteilt den Aufbau auf mehrere `tick` (CHAOS-141). Fehlt er, baut die Bühne am Stück
@@ -364,6 +367,7 @@ export function createHeadlessStage(options: HeadlessStageOptions): HeadlessStag
     }),
     onResult: options.onResult,
     ...(options.onCue ? { onCue: options.onCue } : {}),
+    ...(options.onSecret ? { onSecret: options.onSecret } : {}),
     ...(options.pacing ? { pacing: options.pacing } : {}),
   });
   /** Lage je Mesh, gültig solange sich die Weltmatrix nicht ändert (`updateFlag`). */

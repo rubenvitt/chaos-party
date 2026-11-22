@@ -19,6 +19,7 @@ import {
   VOTE_QUESTION,
   type ControlLegendItem,
   type CueView,
+  type SecretView,
 } from '../minigame/view.ts';
 import { ITEM_INFO } from '../board/items.ts';
 import { LOOK_AT_SCREEN } from '../board/status.ts';
@@ -414,6 +415,46 @@ export function MinigameHeader({
     <div className={`minigame-header ${className ?? ''}`} data-testid="minigame-header">
       <Icon name="star" size={18} />
       <span className="minigame-header-title ui-text">{title}</span>
+    </div>
+  );
+}
+
+/**
+ * Private Rückmeldung bei geheimer Wahl (CHAOS-242): Optionen mit Ziel (Stick) und Wahl. Kommt
+ * nur im Kontext des eigenen Slots an; der Host-Bildschirm zeigt sie nie. Nicht antippbar –
+ * gewählt wird mit Stick und Knopf, darum ohne Zeiger-Ereignisse.
+ */
+export function MinigameSecretStrip({
+  secret,
+  className,
+}: {
+  secret: SecretView;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`minigame-secret ${className ?? ''}`}
+      data-testid="minigame-secret"
+      data-locked={secret.locked ? 'true' : 'false'}
+      role="status"
+      aria-label={`${secret.prompt}. ${secret.spoken}`}
+    >
+      <span className="minigame-secret-prompt ui-text" aria-hidden="true">
+        {`🔒 ${secret.prompt}`}
+      </span>
+      <span className="minigame-secret-options" aria-hidden="true">
+        {secret.options.map((option) => (
+          <span
+            key={option.id}
+            className="minigame-secret-option"
+            data-testid={`minigame-secret-${option.id}`}
+            data-state={option.state}
+          >
+            <span className="minigame-secret-icon">{option.icon}</span>
+            <span className="minigame-secret-label ui-text">{option.label}</span>
+          </span>
+        ))}
+      </span>
     </div>
   );
 }

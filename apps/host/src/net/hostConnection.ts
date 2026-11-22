@@ -31,6 +31,7 @@ import {
   type LobbyMessage,
   type MinigameResultAckMessage,
   type MinigameCueMessage,
+  type MinigameSecretMessage,
   type MinigameResultMessage,
   type RatingsMessage,
   type SlotNumber,
@@ -41,6 +42,39 @@ import {
 export type MinigameResultPayload = Omit<MinigameResultMessage, 'v' | 'type'>;
 /** Hinweis des laufenden Abschnitts (CHAOS-231) ohne Umschlag. */
 export type MinigameCuePayload = Omit<MinigameCueMessage, 'v' | 'type'>;
+/** Private Rückmeldung an einen Slot (CHAOS-242) ohne Umschlag. */
+export type MinigameSecretPayload = Omit<MinigameSecretMessage, 'v' | 'type'>;
+
+/** Rückmeldung aus der Laufzeit (nur lesbar) als Nachrichteninhalt (CHAOS-242). */
+export function secretPayload(
+  minigameId: string,
+  round: number,
+  slot: MinigameSecretPayload['slot'],
+  secret: {
+    readonly prompt: string;
+    readonly options: readonly {
+      readonly id: string;
+      readonly icon: string;
+      readonly label: string;
+    }[];
+    readonly aim: string | null;
+    readonly pick: string | null;
+    readonly locked: boolean;
+  } | null,
+): MinigameSecretPayload {
+  return {
+    minigameId,
+    round,
+    slot,
+    secret: secret && {
+      prompt: secret.prompt,
+      options: secret.options.map((option) => ({ ...option })),
+      aim: secret.aim,
+      pick: secret.pick,
+      locked: secret.locked,
+    },
+  };
+}
 
 /**
  * Steuerbefehle des Hosts (Protokoll v4, ADR-015): Rundenzahl, „Mehr Zeit zum Reagieren“
@@ -208,6 +242,12 @@ export interface HostConnection {
    * vorbei ist). `false`, wenn gerade keine Verbindung besteht.
    */
   sendMinigameCue(cue: MinigameCuePayload): boolean;
+  /**
+   * Meldet die private Rückmeldung eines Slots (CHAOS-242). Die letzte je Slot wird gemerkt und
+   * nach einer neuen Verbindung erneut gesendet (der Server verwirft sie, wenn ihr Lauf vorbei
+   * ist). `false`, wenn gerade keine Verbindung besteht.
+   */
+  sendMinigameSecret(secret: MinigameSecretPayload): boolean;
   /** Sendet einen Steuerbefehl (v4); `false`, wenn gerade keine Verbindung besteht. */
   sendCommand(command: HostCommand): boolean;
   /**
@@ -275,6 +315,22 @@ export function connectHost(
     if (cueSentOn === current) return true;
     cueSentOn = current;
     current.send(encode(createMessage('minigame-cue', lastCue)));
+    return true;
+  };
+
+  /** Letzte private Rückmeldung je Slot (CHAOS-242) und die Verbindung, die sie schon hat. */
+  const lastSecrets = new Map<number, MinigameSecretPayload>();
+  const secretsSentOn = new Map<number, SocketLike>();
+  /** Sendet fällige Rückmeldungen; `true`, wenn die aktuelle Verbindung `slot` (bzw. alle) hat. */
+  const sendSecretsIfDue = (only?: number): boolean => {
+    const current = socket;
+    if (status !== 'connected' || current?.readyState !== OPEN) return false;
+    for (const [slot, payload] of lastSecrets) {
+      if (only !== undefined && slot !== only) continue;
+      if (secretsSentOn.get(slot) === current) continue;
+      secretsSentOn.set(slot, current);
+      current.send(encode(createMessage('minigame-secret', payload)));
+    }
     return true;
   };
 
@@ -386,6 +442,7 @@ export function connectHost(
           handlers.onLobby?.(message);
           sendReadyIfDue();
           sendCueIfDue();
+          sendSecretsIfDue();
           break;
         case 'board':
           // Kommt nur nach angenommenem `host-hello`; zählt wie `lobby` als verbunden.
@@ -393,6 +450,7 @@ export function connectHost(
           handlers.onBoard?.(message);
           sendReadyIfDue();
           sendCueIfDue();
+          sendSecretsIfDue();
           break;
         case 'input':
           handlers.onInput?.(message.intent, message.at);
@@ -457,6 +515,11 @@ export function connectHost(
       lastCue = cue;
       cueSentOn = undefined;
       return sendCueIfDue();
+    },
+    sendMinigameSecret(secret) {
+      lastSecrets.set(secret.slot, secret);
+      secretsSentOn.delete(secret.slot);
+      return sendSecretsIfDue(secret.slot);
     },
     sendCommand(command) {
       if (socket?.readyState !== OPEN || status !== 'connected') return false;

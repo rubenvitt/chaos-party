@@ -518,6 +518,7 @@ export function App({ config }: AppProps) {
             hub={hub}
             onResult={submitMinigameResult}
             onCue={session.sendMinigameCue}
+            onSecret={session.sendMinigameSecret}
             onReady={setMinigameReady}
             getResultState={getResultState}
             resultAck={session.resultAck}

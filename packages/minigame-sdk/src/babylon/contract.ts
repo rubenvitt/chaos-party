@@ -47,6 +47,7 @@ import type {
   MinigameInfo,
   MinigameInput,
   MinigameResult,
+  MinigameSecret,
   Slot,
 } from '../info.ts';
 import type { MinigameRng } from '../rng.ts';
@@ -236,6 +237,13 @@ export interface Minigame {
    * (`RunnerOptions.onCue`); günstig halten. Minispiele ohne Abschnitte lassen es weg.
    */
   getCue?(): MinigameCue | null;
+  /**
+   * Optional (CHAOS-242): private Rückmeldung an den Controller von `slot` (geheime Wahl:
+   * Optionen, Ziel, festgelegte Wahl), `null` = keine. Die Laufzeit fragt nach jedem Schritt für
+   * jeden Slot und meldet nur Wechsel (`RunnerOptions.onSecret`); günstig halten. Nie auf dem
+   * Host-Bildschirm zeigen, was hier steht.
+   */
+  getSecret?(slot: Slot): MinigameSecret | null;
   /** Alles entfernen, was das Minispiel angelegt hat (idempotent). */
   dispose(): void;
   /**
