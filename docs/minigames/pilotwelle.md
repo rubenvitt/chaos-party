@@ -82,7 +82,9 @@ Abbruchkriterium der Fabrik (README §5.5): Fühlen sich die Spiele gleich an? B
 ## Nachweise
 
 - Automatisch: Vertragstest, Vielfalt, Fairness, KI-Stärke, Darstellungs-Rollen, Apple-Darstellungs-Vertrag (`pnpm test`), Bild-E2E mit Linux-Baselines je Rotationsspiel (`tests/e2e/m3-minispiele-bild.spec.ts`), Apple-Host-Bot-Partien im Node-Bündel (`pnpm --filter @chaos-party/apple-host bots --full --matches 3`).
-- Bilder: [`../screenshots/`](../screenshots/) `chaos91-<id>.png` (PC-Host, Testmodus) und `chaos91-<id>-tvos.png` (tvOS-Simulator), soweit vorhanden.
+- Bilder: [`../screenshots/chaos91-pilotwelle-pc-tvos.jpg`](../screenshots/chaos91-pilotwelle-pc-tvos.jpg), je Spiel links der PC-Host (Babylon, Testmodus), rechts der tvOS-Simulator (RealityKit) aus einer Bot-Partie mit allen acht Spielen (`--minispiele=…`, vier Bot-Controller, alle Ergebnisse angenommen).
+- Apple-Host: Swift-Harness `apps/apple-host/harness/run.sh full` spielt jetzt 16 Runden, damit alle zwölf Rotationsspiele drankommen (auch mit `hz=10`).
+- Gerätecheckliste §49 für Rubens Spieltest.
 - Nicht geprüft: Spaß mit Menschen, echte iPhones/iPads, Bildrate auf dem Ziel-PC und der echten Apple TV (Gerätecheckliste).
 
 ## Folgeaufgaben

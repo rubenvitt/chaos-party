@@ -938,3 +938,19 @@ Automatisch geprüft (Mac): Mikro-Vertrag, Kette, Bots und Fairness-Vorlage (Uni
 | SF9 | Bildwort am Controller (CHAOS-231): iPhone, iPad-Zone und native App während der Kette | Im Kopf steht dasselbe Bildwort wie am Fernseher („⏰ HAUEN!“, „1/5“), synchron zum Bildwort am Host; nur die Knöpfe des Mikro-Spiels (Wecker/Spaghetti/Kerze: nur A, Fliege/Kuchen: Stick + A); Finale mit „×2“ | | Video |
 | SF10 | Knöpfe wechseln während des Bildworts (CHAOS-231) | Der Stick erscheint bzw. verschwindet im Bildwort, nicht mitten im Spiel; kein Druck geht dabei verloren; nach WLAN-Wackler zeigt der Controller wieder das laufende Bildwort | | Video |
 
+
+## 49. Pilotwelle: acht neue Minispiele (für CHAOS-91, Zwischenabnahme CHAOS-92)
+
+**Stand:** 2026-11-22 · **Aufgabe:** CHAOS-91 · **Bericht:** [`minigames/pilotwelle.md`](minigames/pilotwelle.md) · **Experiment:** EXP-042
+
+Automatisch geprüft (Mac/Linux): Vertragstest, Vielfalt, Fairness (200 Seeds), KI-Stärke, Darstellungs-Rollen und Apple-Darstellungs-Vertrag je Spiel; Linux-Bildbaselines der sieben Rotationsspiele; Swift-Harness `run.sh full` (16 Runden, alle zwölf Rotationsspiele, auch mit 10 Hz); Bot-Partie im **tvOS-Simulator** (Apple TV 4K, `--minispiele=<alle acht>`, vier Bot-Controller): alle acht Spiele aufgebaut, Ergebnisse angenommen, Bilder in `docs/screenshots/chaos91-pilotwelle-pc-tvos.jpg`. **Nicht** geprüft: Spielspaß und Tempo mit Menschen, echte iPhones/iPads, Bildrate auf dem Ziel-PC und auf der echten Apple TV.
+
+| ID  | Schritt | Erwartung | Ergebnis | Nachweis |
+| --- | ------- | --------- | -------- | -------- |
+| PW1 | Lobby „Minispiele ›“: alle acht Pilotspiele nacheinander „Üben“ (4 Personen) | Jede Anleitung in einem Blick verständlich, Bedienung am iPhone passt (Rodeo nur Stick, Toaster/Käse nur A, Bienen A+B) | | Video |
+| PW2 | Abbruchkriterium README §5.5 | Die Spiele fühlen sich verschieden an; besonders Toaster-Timing ↔ Schnapp den Käse | | Notiz |
+| PW3 | Eiswürfel-Sumo und Bienenstock-Honig | Tempo lustig, nicht frustig; Stich-Anflug rechtzeitig erkennbar | | Notiz |
+| PW4 | Matschmaler | Eigene Felder auch ohne Farbe am Muster erkennbar | | Foto |
+| PW5 | Drei Türen am iPhone | Wahl per Stickrichtung + A ist verständlich, obwohl das iPhone die gewählte Tür nicht zeigt (CHAOS-242) | | Notiz |
+| PW6 | iPad-Zone: Toaster-Timing, Schnapp den Käse, Bienenstock-Honig | Knöpfe in beiden Zonen gleichzeitig bedienbar | | Video |
+| PW7 | Partie mit Rotation am Mac oder auf der Apple TV | Pilotspiele erscheinen, Requisiten als Grundkörper sichtbar, kein Ruckeln beim Aufbau | | Log |
