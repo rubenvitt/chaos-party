@@ -1,7 +1,8 @@
 /**
- * Rasensprenger-Rodeo (MG-011) – Ansicht: Garten von oben. Vorwarnung = Reichweiten-Ring und
- * wippende Düse, der Strahl ist ein gedrehter, gestreckter Kasten, Nasse stehen in einer Pfütze.
- * Die Requisiten-GLBs (rasensprenger, schlauchtrommel) haben keinen Ladeweg: Grundkörper.
+ * Rasensprenger-Rodeo (MG-011) – Ansicht: Garten von oben. Je Sprenger ein Requisit
+ * `rasensprenger` (dreht als Ganzes mit dem Strahl) mit Schlauch zur `schlauchtrommel` am Rand.
+ * Vorwarnung = Reichweiten-Ring und wippende Düse (roter Zeiger in Strahlrichtung, Grundkörper),
+ * der Strahl ist ein gedrehter, gestreckter Kasten, Nasse stehen in einer Pfütze.
  */
 import { CreateBox } from '@babylonjs/core/Meshes/Builders/boxBuilder.js';
 import { CreateCylinder } from '@babylonjs/core/Meshes/Builders/cylinderBuilder.js';
@@ -24,8 +25,14 @@ import { RODEO_RULES, RodeoLogic, type RodeoEvent, type Sprinkler } from './logi
 const ARENA = arenaLayout({ form: 'rund', radius: RODEO_RULES.radius });
 const WATER = '#2a9df4';
 const JET_Y = 0.55;
+/** Sprenger in Spielgröße: Fuß ≈ 1 m wie vorher, Arm ≈ 1,7 m (Modell 0,84 × 0,45 × 0,52 m). */
+const SPRINKLER_SCALE = 2;
+/** Schlauchtrommel ≈ 0,9 m breit (Modell 0,58 m), knapp außerhalb des Rasens. */
+const REEL_SCALE = 1.6;
+const REEL_RADIUS = RODEO_RULES.radius + 1.1;
 
 interface SprinklerView {
+  readonly body: TransformNode;
   readonly head: TransformNode;
   readonly jet: TransformNode;
   readonly range: TransformNode;
@@ -143,6 +150,8 @@ class RasensprengerRodeo implements Sdk.Minigame {
       if (!view) continue;
       // Babylon dreht um y im Uhrzeigersinn: Winkel in x/z negativ übernehmen.
       view.head.rotation.y = view.jet.rotation.y = -sprinkler.angle;
+      // Die Düse des Modells sitzt bei −X: um eine halbe Drehung versetzt, zeigt sie mit dem Strahl.
+      view.body.rotation.y = Math.PI - sprinkler.angle;
       view.head.position.y = sprinkler.phase === 'warn' ? Math.abs(Math.sin(now * 18)) * 0.12 : 0;
       view.range.setEnabled(sprinkler.phase !== 'idle');
       view.range.scaling.set(sprinkler.reach, 1, sprinkler.reach);
@@ -169,17 +178,38 @@ class RasensprengerRodeo implements Sdk.Minigame {
   private async createSprinkler(stage: MinigameStage, at: Sprinkler): Promise<SprinklerView> {
     const { scene } = stage;
     const key = at.index;
-    const root = stage.node('sprenger', 'rasensprenger', key);
-    root.position.set(at.x, 0, at.z);
-    const foot = CreateCylinder(stage.name('fuss', key), { diameter: 1.1, height: 0.18 }, scene);
-    stage.add(foot, '#2f8f4e', { finish: 'lack', parent: root }).position.y = 0.09;
-    const post = CreateCylinder(stage.name('rohr', key), { diameter: 0.28, height: 0.5 }, scene);
-    stage.add(post, '#ffd43b', { finish: 'lack', parent: root }).position.y = 0.4;
+    // Grundkörper in Modell-Maßen (Rückfall ohne Requisiten-Modell): Fuß, Rohr, Sprühbalken, Düse bei −X.
+    const sprinkler = stage.prop('rasensprenger', {
+      role: 'rasensprenger',
+      key,
+      fallback: (root) => {
+        const size = { diameter: 0.6, height: 0.1 };
+        const foot = CreateCylinder(stage.name('fuss', key), size, scene);
+        stage.add(foot, '#2f8f4e', { finish: 'lack', parent: root }).position.y = 0.05;
+        const pipe = { diameter: 0.14, height: 0.3 };
+        const post = CreateCylinder(stage.name('rohr', key), pipe, scene);
+        stage.add(post, '#ffd43b', { finish: 'lack', parent: root }).position.y = 0.25;
+        const bar = { width: 0.84, height: 0.06, depth: 0.08 };
+        const beam = CreateBox(stage.name('balken', key), bar, scene);
+        stage.add(beam, '#c9ced6', { finish: 'metall', parent: root }).position.y = 0.41;
+        const tip = CreateBox(
+          stage.name('spitze', key),
+          { width: 0.06, height: 0.1, depth: 0.1 },
+          scene,
+        );
+        stage.add(tip, '#3b3b44', { parent: root }).position.set(-0.39, 0.4, 0);
+      },
+    });
+    const body = sprinkler.root;
+    body.position.set(at.x, 0, at.z);
+    body.scaling.setAll(SPRINKLER_SCALE);
+    await this.createReel(stage, at);
     await stage.pace();
+    // Düse: eigener Knoten (nicht unter dem Requisit), roter Zeiger zeigt die Strahlrichtung.
     const head = stage.node('duese', 'duese', key);
-    head.parent = root;
-    const arm = CreateBox(stage.name('arm', key), { width: 0.9, height: 0.16, depth: 0.2 }, scene);
-    stage.add(arm, '#e8574d', { finish: 'lack', parent: head }).position.set(0.3, JET_Y, 0);
+    head.position.set(at.x, 0, at.z);
+    const arm = CreateBox(stage.name('arm', key), { width: 0.6, height: 0.1, depth: 0.16 }, scene);
+    stage.add(arm, '#e8574d', { finish: 'lack', parent: head }).position.set(0.3, 0.95, 0);
     const jet = stage.node('strahl', 'wasserstrahl', key);
     jet.position.set(at.x, 0, at.z);
     const size = { width: 1, height: 0.2, depth: RODEO_RULES.jetHalfWidth * 2 };
@@ -196,7 +226,44 @@ class RasensprengerRodeo implements Sdk.Minigame {
       scene,
     );
     stage.add(ring, '#e8f7ff', { emissive: 0.5, alpha: 0.5, parent: range });
-    return { head, jet, range };
+    return { body, head, jet, range };
+  }
+
+  /** Schlauchtrommel am Rasenrand hinter dem Sprenger, Schlauch am Boden bis zum Sprenger. */
+  private async createReel(stage: MinigameStage, at: Sprinkler): Promise<void> {
+    const { scene } = stage;
+    const key = at.index;
+    const out = Math.atan2(at.z, at.x);
+    const reelX = Math.cos(out) * REEL_RADIUS;
+    const reelZ = Math.sin(out) * REEL_RADIUS;
+    await stage.pace();
+    const reel = stage.prop('schlauchtrommel', {
+      role: 'schlauchtrommel',
+      key,
+      fallback: (root) => {
+        const frame = CreateBox(
+          stage.name('gestell', key),
+          { width: 0.58, height: 0.06, depth: 0.3 },
+          scene,
+        );
+        stage.add(frame, '#c9ced6', { finish: 'metall', parent: root }).position.y = 0.03;
+        const size = { diameter: 0.5, height: 0.42 };
+        const drum = CreateCylinder(stage.name('trommel', key), size, scene);
+        const mesh = stage.add(drum, '#2f8f4e', { finish: 'lack', parent: root });
+        mesh.position.y = 0.34;
+        mesh.rotation.z = Math.PI / 2;
+      },
+    });
+    reel.root.position.set(reelX, 0, reelZ);
+    // Vorderseite (+Z im Modell) zum Sprenger.
+    reel.root.rotation.y = -out - Math.PI / 2;
+    reel.root.scaling.setAll(REEL_SCALE);
+    const length = Math.hypot(reelX - at.x, reelZ - at.z);
+    const size = { diameter: 0.08, height: length, tessellation: 8 };
+    const hose = CreateCylinder(stage.name('schlauch', key), size, scene);
+    const mesh = stage.add(hose, '#3f8a32', { finish: 'matt' });
+    mesh.position.set((reelX + at.x) / 2, 0.04, (reelZ + at.z) / 2);
+    mesh.rotation.set(Math.PI / 2, -out + Math.PI / 2, 0);
   }
 }
 
