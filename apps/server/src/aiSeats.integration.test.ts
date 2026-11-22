@@ -2,13 +2,14 @@
  * KI-Plätze in der Session (CHAOS-179, ADR-020): Lobby-Verwaltung durch Host und Spielleitung,
  * Verdrängen beim Beitritt, Start mit 1–2 Menschen und KI, KI-Sitz als virtueller Controller
  * (gleiche Prüfungen wie Menschen), Reconnect, Host-Verlust, „kein Mensch mehr da“ und Revanche.
- * Künstliche Uhr, feste Seeds; die KI antwortet mit dem Platzhalter (Standardoption nach
- * fester Denkpause) oder einer Test-Politik.
+ * Künstliche Uhr, feste Seeds; die KI antwortet mit der Brett-KI (CHAOS-181), wo Zeiten genau
+ * stimmen müssen mit der festen Test-Politik, oder einer eigenen Test-Politik.
  */
 import { rotationInfos } from '@chaos-party/minigames/catalog';
 import { type AiStrength } from '@chaos-party/protocol';
 import { describe, expect, it } from 'vitest';
 import {
+  PLACEHOLDER_AI_POLICY,
   PLACEHOLDER_DECISION_MS,
   PLACEHOLDER_READY_MS,
   type AiPromptRequest,
@@ -25,12 +26,15 @@ import {
 import { minigameSpecOf } from './game.ts';
 
 const MINIGAME = rotationInfos()[0];
+/** Feste Denkpausen für Tests, die genaue Zeiten prüfen (die Brett-KI streut sie). */
+const FIXED_POLICY = () => PLACEHOLDER_AI_POLICY;
 
 /** Partie mit einem echten Minispiel (synthetischer Host), 1 Mensch + KI auf Platz 2. */
 function minigameHarness(): Harness {
   if (!MINIGAME) throw new Error('Rotation leer');
   const h = new Harness({
     game: { seed: INTEGRATION_SEEDS.two, rounds: 1, minigames: [minigameSpecOf(MINIGAME)] },
+    aiPolicy: FIXED_POLICY,
   });
   h.host();
   h.join(1);
@@ -238,7 +242,10 @@ describe('Start mit Menschen und KI (CHAOS-179)', () => {
   });
 
   it('KI antwortet erst nach der Denkpause und drückt in der Minispiel-Anleitung „Bereit“', () => {
-    const h = setupGame(1, INTEGRATION_SEEDS.two, { ai: ['mittel'] });
+    const h = setupGame(1, INTEGRATION_SEEDS.two, {
+      ai: ['mittel'],
+      session: { aiPolicy: FIXED_POLICY },
+    });
     // Warten, bis die KI am Zug ist und würfeln soll.
     h.runUntil((x) => x.boards.at(-1)?.view.prompt?.slot === 2);
     const promptId = h.boards.at(-1)?.view.prompt?.id;
@@ -278,7 +285,7 @@ describe('KI-Sitz als virtueller Controller: gleiche Prüfungen wie Menschen', (
     const h = setupGame(1, INTEGRATION_SEEDS.two, {
       ai: ['mittel'],
       rounds: 1,
-      session: { aiPolicy: policy(pick) },
+      session: { aiPolicy: () => policy(pick) },
     });
     h.runToEnd();
     expect(h.gamePhase).toBe('game-results');
@@ -306,7 +313,7 @@ describe('KI-Sitz als virtueller Controller: gleiche Prüfungen wie Menschen', (
       ai: ['mittel'],
       rounds: 2,
       policy: { useItems: true },
-      session: { aiPolicy: slow },
+      session: { aiPolicy: () => slow },
     });
     h.runToEnd();
     expect(h.gamePhase).toBe('game-results');
@@ -351,7 +358,11 @@ describe('Lebenszyklus mit KI-Plätzen (CHAOS-179)', () => {
   });
 
   it('Host-Verlust: Auto-Pause verwirft die KI-Denkpause; nach host-ready beginnt sie neu', () => {
-    const h = setupGame(1, INTEGRATION_SEEDS.two, { ai: ['mittel'], rounds: 2 });
+    const h = setupGame(1, INTEGRATION_SEEDS.two, {
+      ai: ['mittel'],
+      rounds: 2,
+      session: { aiPolicy: FIXED_POLICY },
+    });
     h.runUntil((x) => x.boards.at(-1)?.view.prompt?.slot === 2);
     const promptId = h.boards.at(-1)?.view.prompt?.id;
     idle(h, PLACEHOLDER_DECISION_MS - 3 * TICK_MS);

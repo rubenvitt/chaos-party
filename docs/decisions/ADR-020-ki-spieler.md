@@ -176,7 +176,20 @@ Umsetzungsentscheidungen von Claude im Rahmen von §1–§10:
 - **Pausen:** Pause, Auto-Pause und Spielende verwerfen geplante Antworten; danach beginnt die Denkpause neu. Neuer Pausengrund `no-humans`: Ist in einer Partie mit KI kein Mensch mehr verbunden, pausiert die Session. Kommt ein Mensch zurück, geht es weiter, fehlt dann der Host, wird daraus die Auto-Pause `host-lost`. Kommt der Host ohne Menschen zurück, wird aus `host-lost` wieder `no-humans`. `resume` des Hosts ohne Menschen lehnt der Server mit `paused` ab. Partien nur mit Menschen verhalten sich wie bisher.
 - **Apple-Host-Vertrag:** `renderState().lobby.players[]` hat `kind` und `strength`. `hostCommand('configure:aiSeat=<platz>:<stärke|aus>')` verwaltet KI-Plätze. Die native Controller-App kennt `ai-seat`, `not-lead` und `lead`/`seats` (Fixtures), eine Oberfläche dafür folgt mit CHAOS-182.
 
-## Nachtrag 3 (2026-11-22, CHAOS-182): Lobby, Kennzeichnung, Übergabe an die Minispiel-Bots
+## Nachtrag 3 (2026-11-22, CHAOS-181): Brett-KI im Live-Spiel
+
+Umsetzungsentscheidungen von Claude im Rahmen von §3, §4, §6 und §8:
+
+- **Modul `packages/game-core/src/ai/`:** `board.ts` (`decideBoardPrompt`, Wegwahl, `distanceTo`, gezielter Item-Einsatz), `timing.ts` (`DelayModel`, `sampleDelay`), `strength.ts` (Eckwerte, `boardAiParams`), `seat.ts` (KI-Platz mit Strömen, `answerBoardPrompt`). `simulate.ts` nutzt `decideBoardPrompt` und die Zeitmodelle von dort und exportiert die alten Namen weiter. **Regressionsvergleich:** Alle Balance-Experimente (`runAllExperiments`, Balance, Brett, Aufholhilfe, M4, Teams, Schnellfeuer; Seeds 1–12, 2–4 Spieler) und 30 Roh-Simulationen liefern vor und nach dem Umzug byte-gleiche Ergebnisse. Dauerhaft prüft `ai/board.test.ts` jede Wahl und den Zufallsverbrauch gegen eine eingefrorene Kopie der alten Logik.
+- **Was die KI sieht:** den Spielstand, den der Bildschirm zeigt (Felder, Figuren, Münzen, Trophäen-Felder, sichtbare Fallen, Stellung drehender Felder), nie `state.internal` (künftige Würfel). Der Server reicht dazu `game.state`, das Brett und den Prompt in game-core-Form an die Politik (`AiPromptRequest.game`).
+- **Stärke:** benannte Eckwerte für leicht, mittel **und** schwer (`BOARD_AI_LEICHT/MITTEL/SCHWER`), stückweise linear interpoliert. Ein dritter Eckwert bei mittel trifft das „typische“ Reaktionsprofil aus EXP-004 genau; zwischen leicht und schwer allein läge mittel bei 1,7 statt 1,5 s. „Dynamisch“ ist bis CHAOS-187 mittel. Was `s` steuert: zufälliger Item-Einsatz, **gezielter** Item-Einsatz (Klau nur bei einem Ziel mit ≥ 6 Münzen, Doppelwürfel nur mit Geld für eine Trophäe und weitem Weg, Falle nur mit einem Mitspieler dahinter, sonst Item aufheben), Klau auf den Reichsten, Trophäe kaufen (leicht vergisst es manchmal), Weg zur Trophäe, Fallen meiden, Reaktionschance und Reaktionszeit (EXP-004: abgelenkt, typisch, fokussiert), Denkpause (leicht 1,0–2,5 s, schwer 0,8–1,8 s), Pause bis „Bereit“. Auch schwer reagiert nur mit 90 % und nie unter 500 ms. Die Werte stellt CHAOS-183 nach Messung ein.
+- **Persönlichkeit:** Haken `BoardAiWeights` (Zuschlag je Wahrscheinlichkeit, auf [0, 1] begrenzt); die Zuordnung Stil → Gewichte kommt mit CHAOS-186.
+- **Ströme:** `aiStreamSeed(partieSeed, platz, zweck)` mit den Zwecken `decision`, `delay` und (reserviert) `personality`. Die Session erzeugt die Politik bei jedem Partiestart neu (`SessionOptions.aiPolicy` ist ein Erzeuger `(seed) => AiSeatPolicy`), auch bei „Nochmal spielen“.
+- **Reaktion verpasst:** Die Politik darf `option: null` liefern. Die Session antwortet dann nicht, die Frist entscheidet (`timeout`) wie bei einem Menschen, der nicht reagiert. Eine Reaktionszeit hinter der Frist kommt nicht mehr an, weil der Prompt dann schon zu ist.
+- **Fristen:** Bei Prompts mit Frist (außer Reaktion) bleibt die Denkpause mindestens 300 ms vor der Frist (`AI_DEADLINE_MARGIN_MS`).
+- **Platzhalter:** `PLACEHOLDER_AI_POLICY` bleibt als feste Test-Politik für Tests, die genaue Zeiten prüfen.
+
+## Nachtrag 4 (2026-11-22, CHAOS-182): Lobby, Kennzeichnung, Übergabe an die Minispiel-Bots
 
 Umsetzungsentscheidungen von Claude im Rahmen von §1, §2, §4 und §7:
 

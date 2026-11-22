@@ -940,9 +940,9 @@ Automatisch geprüft (Mac): Mikro-Vertrag, Kette, Bots und Fairness-Vorlage (Uni
 
 ## 49. KI-Spieler in Lobby, HUD und Ergebnis (für CHAOS-182)
 
-**Stand:** 2026-11-22 · **Aufgabe:** CHAOS-182 (Epic CHAOS-177) · **Entscheidung:** ADR-020 (Nachtrag 3) · **Playtest:** CHAOS-185
+**Stand:** 2026-11-22 · **Aufgabe:** CHAOS-182 (Epic CHAOS-177) · **Entscheidung:** ADR-020 (Nachtrag 4) · **Playtest:** CHAOS-185
 
-Automatisch geprüft: PC-Lobby mit 1 Mensch (synthetischer Controller) und KI per Maus und Tastatur bis zum Endstand (Playwright, SwiftShader), Spielleitung am Browser-iPhone (Chromium-Emulation) setzt, ändert und entfernt eine KI, ein zweites iPhone sieht sie nur; Apple-Host-Kern (Node) mit KI-Platz bis zum ersten Minispiel-Ergebnis. Swift-Teile (Apple-Host-Lobby, native Controller-App) nur im macOS-CI gebaut und mit Logik-Tests. Bilder: `docs/screenshots/chaos182-host-lobby-ki.jpg`, `chaos182-host-brett-ki.jpg`, `chaos182-host-endstand-ki.jpg`. **Nicht** geprüft: echte Geräte, Siri Remote, Lesbarkeit am Fernseher, ob die KI Spaß macht (Brett-KI antwortet bis CHAOS-181 nur mit einer sicheren Platzhalter-Wahl).
+Automatisch geprüft: PC-Lobby mit 1 Mensch (synthetischer Controller) und KI per Maus und Tastatur bis zum Endstand (Playwright, SwiftShader), Spielleitung am Browser-iPhone (Chromium-Emulation) setzt, ändert und entfernt eine KI, ein zweites iPhone sieht sie nur; Apple-Host-Kern (Node) mit KI-Platz bis zum ersten Minispiel-Ergebnis. Swift-Teile (Apple-Host-Lobby, native Controller-App) nur im macOS-CI gebaut und mit Logik-Tests. Bilder: `docs/screenshots/chaos182-host-lobby-ki.jpg`, `chaos182-host-brett-ki.jpg`, `chaos182-host-endstand-ki.jpg`. **Nicht** geprüft: echte Geräte, Siri Remote, Lesbarkeit am Fernseher, ob die KI Spaß macht.
 
 | ID  | Schritt | Erwartung | Ergebnis | Nachweis |
 | --- | ------- | --------- | -------- | -------- |
