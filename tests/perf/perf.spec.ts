@@ -227,6 +227,10 @@ test.describe('Messläufe (SwiftShader, nur relative Vergleiche)', () => {
       playMs: PLAY_MS,
       scoring: info.scoring,
     }));
+    // Eine Runde je Minispiel der Rotation; unter SwiftShader ≈ 1 min je Runde (seit der
+    // Pilotwelle CHAOS-91 zwölf Runden), dazu Lobby, Finale und Podest.
+    const matchMinutes = 4 + minigames.length * 1.2;
+    test.setTimeout((matchMinutes + 3) * 60_000);
     const server = await startChaosServer({
       game: {
         rounds: minigames.length,
@@ -266,7 +270,7 @@ test.describe('Messläufe (SwiftShader, nur relative Vergleiche)', () => {
           }
         })();
       }, HEAP_SAMPLE_MS);
-      await waitForPodium(host.page, 10 * 60_000);
+      await waitForPodium(host.page, matchMinutes * 60_000);
       await host.page.waitForTimeout(PODIUM_MS);
       clearInterval(sampler);
 
