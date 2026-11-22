@@ -200,3 +200,11 @@ Umsetzungsentscheidungen von Claude im Rahmen von §1, §2, §4 und §7:
 - **Start (§1):** Der Knopf leuchtet ab zwei Plätzen (Menschen und KI) mit mindestens einem verbundenen Menschen, wenn alle Menschen bereit sind. **Abweichung:** Ein einzelner Mensch ohne KI kann weiter einen Probelauf starten (wie seit M1, für Demos und bestehende Tests), der Knopf leuchtet dann aber nicht und der Hinweis schlägt eine KI vor. Ohne verbundenen Menschen bleibt der Knopf aus.
 - **Minispiel-Bots:** Beide Hosts übergeben die KI-Plätze aus dem Brett-Stand an `createMinigameRunner({ bots })` (`botSeatsFromView` in `apps/host/src/minigame/plan.ts`). „Dynamisch“ spielt dort bis CHAOS-187 wie „mittel“ (`s = 0,5`).
 - **Apple-Host-Vertrag:** optionales Feld `ai` (Abzeichen-Text) an HUD-Spielern, Minispiel-Spielern (Punkte, Bereitschaft, Teams, Ergebnis) und Finale-Spielern; fehlt bei Menschen.
+
+## Nachtrag (2026-11-22, CHAOS-243): Stärke-Test bei geheimer Wahl
+
+Ruben hat am 22.11.2026 eine Ausnahme für den KI-Stärke-Test (`packages/minigames/src/checks/botStrength.test.ts`) angenommen:
+
+- **Spiele mit `info.secretChoice`** messen **einen** stärkeren gegen drei leichte Plätze (Aufstellung `allein`, Sitz wechselt je Seed, 64 Seeds). Schwellen: schwer ≥ 0,375 Siege (1,5 × fairer Anteil 0,25), mittel > 0,25, jeweils mehr Punkte als leicht.
+- **Grund:** In Anti-Koordinations-Spielen (nur wer allein steht, punktet) stehen zwei gleich kluge Spieler ohne Absprache spieltheoretisch in ≥ 50 % der Runden an derselben Stelle. Das Duell 2 gegen 2 misst dort vor allem diese Kollision; selbst ein Orakel-Bot, der die Wahl der anderen kennt, gewinnt nur 0,81. Mehr Runden, Gedränge-Strafe, ohne Doppelrunde und ein Gleichgewichts-Bot mit Rang-Stil hoben Drei Türen nicht über 0,64 (EXP-043).
+- Alle anderen Spiele bleiben beim Duell 2 gegen 2 (schwer ≥ 0,65, mittel > 0,5).

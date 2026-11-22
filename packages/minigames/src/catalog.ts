@@ -76,6 +76,8 @@ export const ROTATION: readonly string[] = [
   SCHNAPP_DEN_KAESE_INFO.id,
   EISWUERFEL_SUMO_INFO.id,
   BIENENSTOCK_HONIG_INFO.id,
+  // CHAOS-243: nach Umbau der KI-Stärke (EXP-043)
+  DREI_TUEREN_INFO.id,
 ];
 
 /**

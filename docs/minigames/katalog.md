@@ -12,7 +12,7 @@ Schon vorhanden (nicht im Katalog gezählt): Sockenregen, Pudding-Gerangel, Wack
 
 **Gemeinsame Prüfungen (CHAOS-84):** Bot-Fairness, Vielfalts-Steckbrief und Screenshots je Spiel der Rotation, Regeln in [`pruefungen.md`](pruefungen.md), Messwerte in [`pruefbericht.md`](pruefbericht.md). Begründete Ausnahmen: keine. Die frühere Wackelturm-Ausnahme (Neuling 32 %, Profi 17 %) war ein Bot-Artefakt und ist mit `CHAOS-215` (EXP-039) entfallen.
 
-**Pilotwelle** (von Ruben freigegeben, 2026-11-16): MG-001, MG-011, MG-023, MG-033, MG-045, MG-101, MG-111, MG-121 – im Katalog mit ★ markiert. **Umgesetzt (CHAOS-91, 2026-11-22):** sieben in der Rotation, MG-111 Drei Türen spielbar (Galerie), Zahlen in EXP-042, Bericht für die Zwischenabnahme in [`pilotwelle.md`](pilotwelle.md).
+**Pilotwelle** (von Ruben freigegeben, 2026-11-16): MG-001, MG-011, MG-023, MG-033, MG-045, MG-101, MG-111, MG-121 – im Katalog mit ★ markiert. **Umgesetzt (CHAOS-91, 2026-11-22):** sieben in der Rotation, MG-111 Drei Türen zunächst nur in der Galerie, seit CHAOS-243 (2026-11-22) ebenfalls in der Rotation, Zahlen in EXP-042, Bericht für die Zwischenabnahme in [`pilotwelle.md`](pilotwelle.md).
 
 ---
 
@@ -200,7 +200,7 @@ Nutzt die privaten Bildschirme der iPhones. Am geteilten iPad sieht die Nachbari
 
 | Nr | Name | Kat | Bed. | Idee | Kniff |
 |---|---|---|---|---|---|
-| MG-111 ★ | Drei Türen | Hy | SA | Alle wählen geheim eine Tür. | Nur Türen mit genau einer Person zahlen aus; volle Türen gehen leer aus. · **Spielbar**, nicht in der Rotation: KI-Stärke mittel/leicht verfehlt (`drei-tueren`, CHAOS-91, EXP-042) |
+| MG-111 ★ | Drei Türen | Hy | SA | Alle wählen geheim eine Tür. | Nur Türen mit genau einer Person zahlen aus; volle Türen gehen leer aus. · **Rotation** (`drei-tueren`, CHAOS-91, EXP-042; seit CHAOS-243 mit Ausnahme beim KI-Stärke-Test: einer gegen drei, EXP-043) |
 | MG-112 ✗ | ~~Brücke für zwei~~ | Hy | SA | **Verworfen** (Dublette von MG-111 ★, ersetzt durch MG-214). Geheim eine von drei Brücken wählen. | Mehr als zwei auf einer Brücke: Sie bricht und alle fallen in den Bach. |
 | MG-113 | Schere-Stein-Socke | Hy | SA | Vier Personen wählen gleichzeitig aus vier Zeichen. | Die Socke schlägt alles, verliert aber, wenn zwei sie wählen. |
 | MG-114 | Eichel-Auktion | Hy | SA | Geheim Eicheln auf einen Preis bieten. | Das höchste Gebot gewinnt, aber alle zahlen ihr Gebot. |

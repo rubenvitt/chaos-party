@@ -49,6 +49,7 @@ export const ROTATION_SPECS: readonly MinigameSpec[] = [
   { id: 'schnapp-den-kaese', playMs: 25_000, scoring: 'higher' },
   { id: 'eiswuerfel-sumo', playMs: 30_000, scoring: 'higher' },
   { id: 'bienenstock-honig', playMs: 25_000, scoring: 'higher' },
+  { id: 'drei-tueren', playMs: 27_000, scoring: 'higher' },
 ];
 
 /**

@@ -2989,3 +2989,36 @@ Reaktionszeit, Lenk-Drehrate, Zielstreuung, Greiftempo, Ausweichen und Strategie
 **Aufwand:** Mittel 607 Zeilen Spielcode (Ziel ≤ 500, verfehlt), 118 Zeilen Tests (≤ 300); Bestandsspiele ohne Baukasten 1 430–1 880. Etwa 1,5 h je Spiel (0,75–2,5 h). Größter Posten ist die Szene (Rahmen und Grundkörper-Requisiten), bei Havok die Figuren-Physik.
 
 **Entscheidung:** **Behalten**: sieben Spiele in die Rotation (`ROTATION`, hinten angehängt), Drei Türen **spielbar, nicht in der Rotation** (Galerie). Fabrik grundsätzlich bestätigt (Ausfall 1/8, alle Familien und Bedienungen machbar), Zeilenziel nur mit Baukasten-Rahmen erreichbar (Folgeaufgabe). Offen für Ruben (CHAOS-92): Fühlen sich die Spiele verschieden an (besonders Toaster-Timing ↔ Schnapp den Käse)? Tempo von Eiswürfel-Sumo und Bienenstock-Honig? Lohnt Drei Türen den Umbau?
+
+## EXP-043: Drei Türen – KI-Stärke in einem Anti-Koordinations-Spiel (2026-11-22, CHAOS-243)
+
+**Hypothese / gewünschtes Spielerlebnis:** Drei Türen (MG-111) soll in die Rotation. Es besteht die Fairness (EXP-042), verfehlt aber den KI-Stärke-Test (zwei „schwer“ gegen zwei „leicht“ ≥ 0,65, mittel > 0,5). Annahme aus CHAOS-91: Ein Regel-Hebel (mehr Runden, weniger Glück) oder eine Mischstrategie für starke Bots lässt Können deutlicher wirken. Ruben hat das Probieren am 22.11.2026 freigegeben („Ja, Regel-Hebel probieren“; scheitert das, begründete Ausnahme).
+
+**Verfahren:** Stellgrößen nur für die Messung über Umgebungsvariablen einstellbar gemacht (nicht eingecheckt), gemessen mit `botStrengthDuel` über die echte Laufzeit (200 Seeds) und einer Diagnose-Simulation auf `DoorLogic` (Kollisionen, Allein-Quote, Orakel-Obergrenze). Alles Bot gegen Bot.
+
+**Messgrößen:** Siegquote schwer/leicht und mittel/leicht (2 gegen 2, 200 Seeds, dazu CI-Stichprobe 16), mittlere Münzen je Seite, Anteil Runden mit beiden starken Bots an derselben Tür.
+
+**Ergebnisse** (schwer/leicht · mittel/leicht, 200 Seeds):
+
+| Variante | schwer/leicht | mittel/leicht |
+| --- | --- | --- |
+| Ausgang (8 Runden à 2,3 + 1,0 s, Bot aus CHAOS-91) | 0,61 (14,0/10,9 Münzen) | 0,55 |
+| 10 Runden à 2,0 + 0,9 s (30 s) | 0,60 | 0,56 |
+| 12 Runden à 1,8 + 0,7 s | 0,60 | 0,56 |
+| Schärfe 1 statt 2 (gleichmäßiger gemischt) | 0,64 | 0,55 |
+| Schärfe 1 + 10 Runden | 0,65 | 0,51 |
+| Persönlicher Rang-Stil ×2/×4 | 0,58–0,61 | 0,54–0,55 |
+| Ohne zweiten Denkschritt | 0,58 | 0,59 |
+| Bester statt gezogener Tür (deterministisch) | 0,45 | 0,50 |
+| Letzte Runde nicht doppelt | 0,62 | 0,57 |
+| Gedränge kostet 2 bzw. 3 Münzen | 0,56 | 0,56–0,57 |
+| Gedränge-Strafe 2 + Gleichgewicht (30 Iterationen) | 0,63 | 0,56 |
+| Gleichgewicht + Rang-Stil, Berechenbarkeit nach Rang gelesen | 0,63–0,64 | 0,54–0,56 |
+
+Diagnose (DoorLogic, 200 Seeds): Im Ausgang stehen die beiden starken Bots in **34 %** der Runden an derselben Tür; ein **Orakel**, das die Pläne der anderen kennt, senkt das auf 13 % und gewinnt trotzdem nur **0,81** (32 gegen 20 Münzen).
+
+**Deutung:** Bei vier Personen und drei Türen kollidieren in jeder Runde mindestens zwei. Zwei gleich kluge Spieler ohne Absprache, die um dieselben freien Türen ringen, landen im Gleichgewicht in ≥ 50 % der Fälle zusammen. Die Aufstellung 2 gegen 2 misst deshalb vor allem, wie oft die Starken sich gegenseitig im Weg stehen, nicht ob Können zählt. Mehr Runden senken nur das Rauschen, nicht diese Kollision.
+
+**Gegenprobe einer gegen drei** (fairer Anteil 0,25, 200 Seeds, Spiel und Bot unverändert): Drei Türen schwer 0,45 (16,4 gegen 9,7 Münzen), mittel 0,35; bei 64 Seeds 0,45/0,33. Zum Vergleich: Toaster-Timing 0,93/0,58, Nussregen-Netz 0,75/0,40, Schnapp den Käse 0,63/0,34, Bienenstock-Honig 0,82/0,52, Matschmaler 0,57/0,40.
+
+**Entscheidung:** Regeln und Bot **unverändert** (keine Variante war klar besser, jede Regeländerung hätte die knappe Fairness gefährdet). Ruben hat am 22.11.2026 die **Ausnahme** angenommen: Spiele mit `info.secretChoice` misst `checks/botStrength.test.ts` einer gegen drei (64 Seeds, schwer ≥ 0,375 = 1,5 × fair, mittel > 0,25, jeweils mehr Punkte). Drei Türen ist damit in `ROTATION`. Offen bleibt die private Rückmeldung der Wahl am Controller (CHAOS-242) und ob das Spiel Menschen Spaß macht (Spieltest, Gerätecheckliste §50).
