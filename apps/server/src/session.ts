@@ -20,9 +20,17 @@
  * Host im laufenden Brettspiel die Verbindung, pausiert die Session die Partie selbst
  * (Auto-Pause, CHAOS-38) und setzt sie fort, sobald wieder ein Host da ist und Szene und
  * Figuren geladen hat (`host-ready`, CHAOS-68).
+ *
+ * KI-Plätze (CHAOS-179, ADR-020): Ein Platz ist Mensch (Controller) oder KI (ohne Verbindung,
+ * kein Token, kein Herzschlag, nie getrennt). KI-Plätze verwalten Host (`configure.aiSeat`) und
+ * Spielleitung (`ai-seat`) in der Lobby; wer beitritt, verdrängt bei vollem Haus den KI-Platz mit
+ * der höchsten Nummer. Im Brettspiel antwortet ein KI-Sitz als virtueller Controller über
+ * dieselben Prüfungen wie ein Mensch (`aiSeat.ts`). Ist kein Mensch mehr verbunden, pausiert
+ * die Partie (`no-humans`): Die KI spielt nie allein weiter.
  */
 import {
   CHARACTER_IDS,
+  CHARACTER_NAMES,
   createError,
   createMessage,
   createSeqGuard,
@@ -36,6 +44,8 @@ import {
   PLAYER_SLOTS,
   SLOT_NUMBERS,
   type Action,
+  type AiSeatMessage,
+  type AiStrength,
   type CharacterId,
   type ContextMessage,
   type ControllerMessage,
@@ -48,6 +58,7 @@ import {
   type LobbyMessage,
   type LobbyMinigame,
   type LobbyPlayer,
+  type LobbySeat,
   type Phase,
   type ProtocolError,
   type ReconnectMessage,
@@ -64,6 +75,13 @@ import {
 import type { MinigameRotationOptions } from '@chaos-party/game-core';
 import { getMinigameInfo } from '@chaos-party/minigames/catalog';
 import { randomInt } from 'node:crypto';
+import {
+  PLACEHOLDER_AI_POLICY,
+  safeOption,
+  type AiPending,
+  type AiPromptRequest,
+  type AiSeatPolicy,
+} from './aiSeat.ts';
 import { boardChoiceName, isBoardChoice, lobbyBoards, resolveBoardChoice } from './boardChoice.ts';
 import {
   BoardGame,
@@ -177,6 +195,11 @@ export interface SessionOptions {
    * verloren); der Node-Server übergibt eine Datei (`ratingsFile.ts`).
    */
   ratings?: RatingStore | undefined;
+  /**
+   * Entscheidungen der KI-Sitze im Brettspiel (CHAOS-179). Standard: Platzhalter, der nach fester
+   * Denkpause die Standardoption nimmt (bis die Brett-KI aus CHAOS-181 kommt).
+   */
+  aiPolicy?: AiSeatPolicy | undefined;
 }
 
 export interface GameStartInfo {
@@ -210,8 +233,14 @@ interface Connection {
 interface Player {
   readonly slot: SlotNumber;
   readonly color: string;
-  readonly label: string;
+  /** Anzeigename; bei KI in der Lobby „KI <Farbe>“, ab dem Start der Name der Figur. */
+  label: string;
+  /** Token der Verbindung; KI-Plätze haben keins (leer, nie in `tokens`). */
   readonly token: string;
+  /** Mensch mit Controller oder KI ohne Verbindung (CHAOS-179). */
+  readonly kind: 'human' | 'ai';
+  /** Stärke eines KI-Platzes, bei Menschen `null`. */
+  strength: AiStrength | null;
   /** Aktuelle Verbindung oder `null`, solange der Controller getrennt ist (Slot bleibt reserviert). */
   connectionId: ConnectionId | null;
   ready: boolean;
@@ -226,6 +255,11 @@ interface Player {
 export interface SessionPlayerSnapshot {
   slot: SlotNumber;
   label: string;
+  /** Mensch oder KI (CHAOS-179). */
+  kind: 'human' | 'ai';
+  /** Stärke eines KI-Platzes, bei Menschen `null`. */
+  strength: AiStrength | null;
+  /** KI-Plätze sind immer verbunden. */
   connected: boolean;
   ready: boolean;
   character: CharacterId | null;
@@ -262,14 +296,23 @@ export interface SessionSnapshot {
    * verbunden, lädt aber noch Szene und Figuren.
    */
   awaitingHostReady: boolean;
+  /** Abgewiesene KI-Antworten (CHAOS-179): sollte 0 bleiben, sonst irrt die KI-Logik. */
+  aiRejected: number;
 }
 
-/** Auslöser einer Pause (nur Server-intern und Diagnose; das Protokoll kennt nur `paused`). */
-export type PauseCause = 'host' | 'host-lost';
+/**
+ * Auslöser einer Pause (nur Server-intern und Diagnose; das Protokoll kennt nur `paused`):
+ * `no-humans` (CHAOS-179) = kein Mensch der Partie mehr verbunden, nur KI übrig.
+ */
+export type PauseCause = 'host' | 'host-lost' | 'no-humans';
 
 type InputMessage = Exclude<
   SlotIntentMessage,
-  { type: 'ready' } | { type: 'choose' } | { type: 'pick-character' } | { type: 'rate' }
+  | { type: 'ready' }
+  | { type: 'choose' }
+  | { type: 'pick-character' }
+  | { type: 'rate' }
+  | { type: 'ai-seat' }
 >;
 
 interface SlotContext {
@@ -286,6 +329,14 @@ const PLAY_CONTEXT: SlotContext = {
   layout: 'joystick-buttons',
   actions: ['move', 'button-a', 'button-b'],
 };
+
+/** Lobby-Name eines KI-Platzes, bis er beim Start den Namen seiner Figur bekommt. */
+function aiLobbyLabel(slot: SlotNumber): string {
+  return `KI ${PLAYER_SLOTS[slot].label}`;
+}
+
+/** Höchstzahl Planungsdurchläufe der KI-Sitze je Ereignis (Antwort öffnet nächsten Prompt). */
+const MAX_AI_STEPS = 8;
 
 /** Ein Prompt-Kontext ändert sich nur bei neuer Entscheidung, nicht mit der Restzeit. */
 function contextKey(context: SlotContext): string {
@@ -355,6 +406,13 @@ export class Session {
   /** Stimmen zum laufenden bzw. eben beendeten Minispiel-Lauf: Lauf-Kennung und Daumen je Slot. */
   private currentVotes: { play: string; bySlot: Map<SlotNumber, Vote> } | null = null;
 
+  /** Entscheidungen der KI-Sitze (CHAOS-179). */
+  private readonly aiPolicy: AiSeatPolicy;
+  /** Geplante Antwort je KI-Platz (Denkpause läuft). */
+  private readonly aiPending = new Map<SlotNumber, AiPending>();
+  /** Abgewiesene KI-Antworten (Diagnose). */
+  private aiRejected = 0;
+
   /** Gesammelte Aktionen des laufenden Ereignisses. */
   private out: Outgoing[] = [];
   private lobbyDirty = false;
@@ -407,6 +465,7 @@ export class Session {
     this.onGameStart = options.onGameStart;
     this.ratings = options.ratings ?? createMemoryRatingStore();
     this.sessionKey = generateToken().slice(0, 12);
+    this.aiPolicy = options.aiPolicy ?? PLACEHOLDER_AI_POLICY;
   }
 
   get phase(): Phase {
@@ -515,7 +574,9 @@ export class Session {
       players: this.sortedPlayers().map((player) => ({
         slot: player.slot,
         label: player.label,
-        connected: player.connectionId !== null,
+        kind: player.kind,
+        strength: player.strength,
+        connected: isPresent(player),
         ready: player.ready,
         character: player.character,
         connectionId: player.connectionId,
@@ -531,6 +592,7 @@ export class Session {
       minigameFavorites: [...this.minigameFavorites],
       pausedBy: this.game?.paused ? this.pauseCause : null,
       awaitingHostReady: this.hostReadyDeadline !== null,
+      aiRejected: this.aiRejected,
     };
   }
 
@@ -676,6 +738,11 @@ export class Session {
             this.lobbyDirty = true;
           }
         }
+        // KI-Platz am Host (CHAOS-179): gleiche Regeln wie `ai-seat` der Spielleitung.
+        if (message.aiSeat !== undefined) {
+          const error = this.setAiSeat(message.aiSeat.seat, message.aiSeat.strength);
+          if (error !== null) this.reject(conn, 'bad-message', error);
+        }
         return;
       case 'pause':
       case 'resume':
@@ -740,11 +807,20 @@ export class Session {
       this.reject(host, 'out-of-phase', 'Kein Spiel läuft');
       return;
     }
-    if (type === 'pause' && game.paused && this.pauseCause === 'host-lost') {
-      // Host pausiert, während die Auto-Pause noch auf sein `host-ready` wartet (CHAOS-68):
-      // daraus wird seine eigene Pause, die bis `resume` bleibt.
+    if (
+      type === 'pause' &&
+      game.paused &&
+      (this.pauseCause === 'host-lost' || this.pauseCause === 'no-humans')
+    ) {
+      // Host pausiert, während die Auto-Pause noch auf sein `host-ready` wartet (CHAOS-68) bzw.
+      // auf einen Menschen (CHAOS-179): daraus wird seine eigene Pause, die bis `resume` bleibt.
       this.pauseCause = 'host';
       this.hostReadyDeadline = null;
+      return;
+    }
+    if (type === 'resume' && game.paused && this.gameHasAi() && !this.humansPresent()) {
+      // Die KI spielt nie allein weiter (ADR-020 §6): erst fortsetzen, wenn ein Mensch da ist.
+      this.reject(host, 'paused', 'Kein Mensch verbunden – die KI spielt nicht allein weiter');
       return;
     }
     const result = game.apply({ type: type === 'end-game' ? 'end' : type, at: this.now() });
@@ -788,7 +864,14 @@ export class Session {
     this.hostReadyDeadline = null;
     this.phaseValue = 'lobby';
     this.contextKeys.clear();
+    this.aiPending.clear();
     for (const player of this.sortedPlayers()) {
+      if (player.kind === 'ai') {
+        // KI-Plätze bleiben mit Stärke (ADR-020 §9), geben ihre Figur aber frei (§7).
+        player.character = null;
+        player.label = aiLobbyLabel(player.slot);
+        continue;
+      }
       player.ready = false;
       if (player.connectionId === null) player.disconnectedAt = now;
       else this.sendContext(player.connectionId, player.slot);
@@ -830,14 +913,22 @@ export class Session {
       return;
     }
     const free = SLOT_NUMBERS.filter((slot) => !this.players.has(slot));
-    if (message.seats > free.length) {
+    // Volles Haus (ADR-020 §1): Ein Mensch verdrängt KI-Plätze, höchste Nummer zuerst.
+    const aiSlots = this.sortedPlayers()
+      .filter((player) => player.kind === 'ai')
+      .map((player) => player.slot)
+      .reverse();
+    const missing = Math.max(0, message.seats - free.length);
+    if (missing > aiSlots.length) {
       this.invalid(conn, {
         code: 'session-full',
-        message: `Nur noch ${free.length} Platz/Plätze frei`,
+        message: `Nur noch ${free.length + aiSlots.length} Platz/Plätze frei`,
       });
       return;
     }
-    const slots = free.slice(0, message.seats);
+    const displaced = aiSlots.slice(0, missing);
+    for (const slot of displaced) this.players.delete(slot);
+    const slots = [...free.slice(0, message.seats), ...displaced].sort((a, b) => a - b);
     const token = this.uniqueToken();
     slots.forEach((slot, index) => {
       const style = PLAYER_SLOTS[slot];
@@ -847,6 +938,8 @@ export class Session {
         color: style.color,
         label: message.names?.[index] ?? style.label,
         token,
+        kind: 'human',
+        strength: null,
         connectionId: conn.id,
         ready: false,
         lastSeenAt: now,
@@ -965,6 +1058,11 @@ export class Session {
       return;
     }
 
+    if (message.type === 'ai-seat') {
+      this.aiSeatIntent(conn, player, message);
+      return;
+    }
+
     if (this.game?.paused) {
       // Pause (ADR-015): Minispiel-Eingaben gehen nicht an den Host.
       this.reject(conn, 'paused', 'Spiel ist pausiert', seq);
@@ -1075,11 +1173,17 @@ export class Session {
   }
 
   private start(host: Connection, message: StartMessage): void {
-    const connected = this.sortedPlayers().filter((player) => player.connectionId !== null);
-    if (connected.length === 0) {
+    // Mitspieler: verbundene Menschen und alle KI-Plätze (ADR-020 §1), Menschen zuerst für die
+    // Figurenvergabe; das Spiel selbst bekommt sie nach Platznummer.
+    const humans = this.sortedPlayers().filter(
+      (player) => player.kind === 'human' && player.connectionId !== null,
+    );
+    if (humans.length === 0) {
       this.reject(host, 'out-of-phase', 'Mindestens ein verbundener Spieler nötig');
       return;
     }
+    const ais = this.sortedPlayers().filter((player) => player.kind === 'ai');
+    const connected = [...humans, ...ais].sort((a, b) => a.slot - b.slot);
     const mode = message.mode ?? 'board';
     const practice = message.practice === undefined ? undefined : catalogMinigame(message.practice);
     if (message.practice !== undefined && (practice === undefined || mode !== 'board')) {
@@ -1093,7 +1197,11 @@ export class Session {
       return;
     }
     if (message.rounds !== undefined) this.rounds = message.rounds;
-    this.assignCharacters(connected);
+    this.assignCharacters([...humans, ...ais]);
+    // Ein KI-Platz heißt ab dem Start nach seiner Figur (ADR-020 §7).
+    for (const ai of ais) {
+      if (ai.character !== null) ai.label = CHARACTER_NAMES[ai.character].name;
+    }
     if (mode === 'board') {
       this.startBoardGame(connected, practice === undefined ? this.rounds : 1, practice);
     } else {
@@ -1131,6 +1239,9 @@ export class Session {
         slot: player.slot,
         name: player.label,
         character: player.character ?? pickFreeCharacter(player.slot, []) ?? CHARACTER_IDS[0],
+        ...(player.kind === 'ai' && player.strength !== null
+          ? { ai: { strength: player.strength } }
+          : {}),
       })),
       settings,
       seed,
@@ -1140,6 +1251,7 @@ export class Session {
     this.game = game;
     this.gameCount += 1;
     this.currentVotes = null;
+    this.aiPending.clear();
     this.phaseValue = 'board';
     this.contextKeys.clear();
     this.onGameStart?.({
@@ -1189,54 +1301,304 @@ export class Session {
 
   /** „Bereit“ in der Minispiel-Anleitung (CHAOS-214); verspätet/doppelt ist kein Missbrauch. */
   private minigameReady(conn: Connection, player: Player, seq: number, now: number): void {
-    if (this.game?.paused) {
-      this.reject(conn, 'paused', 'Spiel ist pausiert', seq);
-      return;
-    }
-    if (!this.contextFor(player).actions.includes('ready')) {
-      this.reject(conn, 'out-of-phase', 'Gerade wartet keine Anleitung auf „Bereit“', seq);
+    const offered = this.checkReady(player);
+    if (offered !== null) {
+      this.reject(conn, offered.code, offered.message, seq);
       // Den aktuellen Stand erneut schicken, damit der Controller den Knopf löst.
-      this.contextKeys.delete(player.slot);
+      if (offered.code !== 'paused') this.contextKeys.delete(player.slot);
       return;
     }
     if (!conn.seq.accept(seq)) {
       this.reject(conn, 'stale-seq', 'Veraltete Sequenznummer', seq);
       return;
     }
-    const result = this.game?.apply({ type: 'minigame-ready', slot: player.slot, at: now });
-    if (result && !result.ok) {
-      this.reject(conn, 'out-of-phase', result.error.message, seq);
+    const error = this.applyReady(player, now);
+    if (error !== null) {
+      this.reject(conn, error.code, error.message, seq);
       this.contextKeys.delete(player.slot);
     }
   }
 
+  /** Bietet der Kontext „Bereit“ gerade an? Gilt für Menschen und KI-Sitze gleich. */
+  private checkReady(player: Player): ProtocolError | null {
+    if (this.game?.paused) return { code: 'paused', message: 'Spiel ist pausiert' };
+    if (!this.contextFor(player).actions.includes('ready')) {
+      return { code: 'out-of-phase', message: 'Gerade wartet keine Anleitung auf „Bereit“' };
+    }
+    return null;
+  }
+
+  private applyReady(player: Player, now: number): ProtocolError | null {
+    const result = this.game?.apply({ type: 'minigame-ready', slot: player.slot, at: now });
+    return result && !result.ok ? { code: 'out-of-phase', message: result.error.message } : null;
+  }
+
   private choose(conn: Connection, player: Player, message: ChooseMessage, now: number): void {
     const { seq } = message;
-    if (this.game?.paused) {
-      this.reject(conn, 'paused', 'Spiel ist pausiert', seq);
-      return;
-    }
-    if (!this.contextFor(player).actions.includes('choose')) {
-      this.reject(conn, 'invalid-choice', 'Gerade ist keine Entscheidung offen', seq);
+    const offered = this.checkChoose(player);
+    if (offered !== null) {
+      this.reject(conn, offered.code, offered.message, seq);
       return;
     }
     if (!conn.seq.accept(seq)) {
       this.reject(conn, 'stale-seq', 'Veraltete Sequenznummer', seq);
       return;
     }
-    const result = this.game?.apply({
-      type: 'choose',
-      slot: player.slot,
-      promptId: message.promptId,
-      option: message.option,
-      at: now,
-    });
-    if (result && !result.ok) {
+    const error = this.applyChoose(player, message.promptId, message.option, now);
+    if (error !== null) {
       // Kommt im normalen Ablauf vor (Frist abgelaufen, doppelt getippt): zählt nicht als Missbrauch.
-      this.reject(conn, 'invalid-choice', result.error.message, seq);
+      this.reject(conn, error.code, error.message, seq);
       // Den aktuellen Stand erneut schicken, damit der Controller die Sperre löst.
       this.contextKeys.delete(player.slot);
     }
+  }
+
+  /** Ist für diesen Platz eine Entscheidung offen? Gilt für Menschen und KI-Sitze gleich. */
+  private checkChoose(player: Player): ProtocolError | null {
+    if (this.game?.paused) return { code: 'paused', message: 'Spiel ist pausiert' };
+    if (!this.contextFor(player).actions.includes('choose')) {
+      return { code: 'invalid-choice', message: 'Gerade ist keine Entscheidung offen' };
+    }
+    return null;
+  }
+
+  /** Wahl an game-core: prüft Prompt, Option, Besitz und Frist (Mensch und KI). */
+  private applyChoose(
+    player: Player,
+    promptId: number,
+    option: string,
+    now: number,
+  ): ProtocolError | null {
+    const result = this.game?.apply({
+      type: 'choose',
+      slot: player.slot,
+      promptId,
+      option,
+      at: now,
+    });
+    return result && !result.ok ? { code: 'invalid-choice', message: result.error.message } : null;
+  }
+
+  // -------------------------------------------------------------------------
+  // KI-Plätze (CHAOS-179, ADR-020)
+  // -------------------------------------------------------------------------
+
+  /** Spielleitung: verbundener Mensch mit der niedrigsten Platznummer (ADR-020 §2). */
+  private leadSlot(): SlotNumber | null {
+    return (
+      this.sortedPlayers().find((player) => player.kind === 'human' && player.connectionId !== null)
+        ?.slot ?? null
+    );
+  }
+
+  /** `ai-seat` vom Controller: nur die Spielleitung, nur in der Lobby (prüft `slotIntent`). */
+  private aiSeatIntent(conn: Connection, player: Player, message: AiSeatMessage): void {
+    const { seq } = message;
+    if (this.leadSlot() !== player.slot) {
+      // Kein Missbrauch: Die Spielleitung kann gerade gewechselt haben.
+      this.reject(conn, 'not-lead', 'Nur die Spielleitung verwaltet KI-Plätze', seq);
+      return;
+    }
+    if (!conn.seq.accept(seq)) {
+      this.reject(conn, 'stale-seq', 'Veraltete Sequenznummer', seq);
+      return;
+    }
+    const error = this.setAiSeat(message.seat, message.strength);
+    if (error !== null) this.reject(conn, 'invalid-choice', error, seq);
+  }
+
+  /**
+   * KI-Platz setzen, Stärke ändern (`strength`) oder entfernen (`null`). Ein Platz mit Mensch
+   * bleibt unberührt (Fehlertext); Entfernen eines freien Platzes ist kein Fehler.
+   */
+  private setAiSeat(seat: SlotNumber, strength: AiStrength | null): string | null {
+    const current = this.players.get(seat);
+    if (current?.kind === 'human') return `Platz ${String(seat)} ist von einem Menschen belegt`;
+    if (strength === null) {
+      if (current) {
+        this.players.delete(seat);
+        this.contextKeys.delete(seat);
+        this.lobbyDirty = true;
+      }
+      return null;
+    }
+    if (current) {
+      if (current.strength !== strength) {
+        current.strength = strength;
+        this.lobbyDirty = true;
+      }
+      return null;
+    }
+    const style = PLAYER_SLOTS[seat];
+    this.players.set(seat, {
+      slot: seat,
+      color: style.color,
+      label: aiLobbyLabel(seat),
+      token: '',
+      kind: 'ai',
+      strength,
+      connectionId: null,
+      // Eine KI ist immer bereit und wählt keine Figur (ADR-020 §7).
+      ready: true,
+      lastSeenAt: this.now(),
+      disconnectedAt: null,
+      character: null,
+    });
+    this.lobbyDirty = true;
+    return null;
+  }
+
+  /** Spielen in der laufenden Partie KI-Sitze mit? */
+  private gameHasAi(): boolean {
+    const game = this.game;
+    if (!game) return false;
+    return this.sortedPlayers().some((player) => player.kind === 'ai' && game.hasSlot(player.slot));
+  }
+
+  /** Ist ein Mensch der laufenden Partie (oder ohne Partie: irgendeiner) verbunden? */
+  private humansPresent(): boolean {
+    const game = this.game;
+    return this.sortedPlayers().some(
+      (player) =>
+        player.kind === 'human' &&
+        player.connectionId !== null &&
+        (game === null || game.hasSlot(player.slot)),
+    );
+  }
+
+  /**
+   * Die KI spielt nie allein weiter (ADR-020 §6): Ist in einer Partie mit KI kein Mensch mehr
+   * verbunden, pausiert sie (`no-humans`, zum zuletzt verarbeiteten Zeitpunkt wie bei
+   * Host-Verlust). Kommt ein Mensch zurück, geht es weiter – fehlt dann der Host, wartet die
+   * Partie als Auto-Pause auf ihn.
+   */
+  private syncHumanPresence(): void {
+    const game = this.game;
+    if (this.phaseValue !== 'board' || !game || game.finished || !this.gameHasAi()) return;
+    const humans = this.humansPresent();
+    if (!humans && !game.paused) {
+      const result = game.apply({ type: 'pause', at: game.state.now });
+      if (result.ok) this.pauseCause = 'no-humans';
+      return;
+    }
+    if (humans && game.paused && this.pauseCause === 'no-humans') {
+      if (this.hostId === null) {
+        this.pauseCause = 'host-lost';
+        return;
+      }
+      const result = game.apply({ type: 'resume', at: this.now() });
+      if (!result.ok) throw new Error(`Fortsetzen mit Mensch abgelehnt: ${result.error.message}`);
+      this.pauseCause = null;
+    }
+  }
+
+  /**
+   * KI-Sitze als virtuelle Controller (ADR-020 §3): je Platz den Kontext lesen wie ein Controller,
+   * bei offenem Prompt bzw. „Bereit“ eine Antwort mit Denkpause planen und fällig über dieselben
+   * Prüfungen wie bei Menschen anwenden. Pause und Spielende verwerfen geplante Antworten; nach
+   * dem Fortsetzen beginnt die Denkpause neu (ADR-020 §6).
+   */
+  private driveAiSeats(): void {
+    const game = this.game;
+    if (this.phaseValue !== 'board' || !game || this.aiHalted(game)) {
+      this.aiPending.clear();
+      return;
+    }
+    for (let step = 0; step < MAX_AI_STEPS; step++) {
+      let acted = false;
+      for (const player of this.sortedPlayers()) {
+        if (player.kind !== 'ai' || !game.hasSlot(player.slot)) continue;
+        // Eine KI-Antwort kann die Partie beenden; dann antwortet niemand mehr.
+        if (this.aiHalted(game)) return;
+        if (this.driveAiSeat(game, player)) acted = true;
+      }
+      if (!acted) return;
+    }
+  }
+
+  /** Partie vorbei, pausiert oder ersetzt: KI-Sitze antworten nicht. */
+  private aiHalted(game: BoardGame): boolean {
+    return this.game !== game || game.paused || game.finished;
+  }
+
+  /** Ein KI-Sitz: planen bzw. fällige Antwort geben. `true`, wenn er geantwortet hat. */
+  private driveAiSeat(game: BoardGame, player: Player): boolean {
+    const now = this.now();
+    const slot = player.slot;
+    const strength = player.strength ?? 'mittel';
+    const context = this.boardContextFor(slot);
+    const prompt = context.actions.includes('choose') ? context.prompt : undefined;
+    const round = game.state.minigame?.round;
+    const key =
+      prompt !== undefined
+        ? `prompt:${String(prompt.id)}`
+        : context.actions.includes('ready') && round !== undefined
+          ? `ready:${String(round)}`
+          : null;
+    if (key === null) {
+      this.aiPending.delete(slot);
+      return false;
+    }
+    let pending = this.aiPending.get(slot);
+    if (pending?.key !== key) {
+      pending = this.planAi(player, strength, key, prompt, context.board, now);
+      this.aiPending.set(slot, pending);
+    }
+    if (pending.done || pending.dueAt > now) return false;
+    const error =
+      pending.option === undefined
+        ? (this.checkReady(player) ?? this.applyReady(player, now))
+        : (this.checkChoose(player) ??
+          this.applyChoose(player, prompt?.id ?? -1, pending.option, now));
+    if (error === null) {
+      this.aiPending.set(slot, { ...pending, done: true });
+      return true;
+    }
+    // Abgewiesen wie bei einem Menschen: zählen, einmal auf die sichere Option zurückfallen
+    // (sonst hinge ein Prompt ohne Frist), danach nichts mehr bis zum nächsten Anlass.
+    this.aiRejected += 1;
+    const defaultOption = game.state.prompt?.defaultOption;
+    const fallback =
+      pending.fallback || prompt === undefined || defaultOption === undefined
+        ? undefined
+        : safeOption(prompt, defaultOption);
+    this.aiPending.set(
+      slot,
+      fallback === undefined || pending.option === undefined
+        ? { ...pending, done: true }
+        : { key, dueAt: now, option: fallback, fallback: true, done: false },
+    );
+    return false;
+  }
+
+  private planAi(
+    player: Player,
+    strength: AiStrength,
+    key: string,
+    prompt: SlotContext['prompt'],
+    board: SlotContext['board'],
+    now: number,
+  ): AiPending {
+    const defaultOption = this.game?.state.prompt?.defaultOption;
+    if (prompt === undefined || board === undefined || defaultOption === undefined) {
+      const delay = this.aiPolicy.readyDelayMs(player.slot, strength);
+      return { key, dueAt: now + Math.max(0, delay), fallback: false, done: false };
+    }
+    const request: AiPromptRequest = {
+      slot: player.slot,
+      strength,
+      prompt,
+      defaultOption,
+      board,
+    };
+    const decision = this.aiPolicy.decide(request);
+    return {
+      key,
+      dueAt: now + Math.max(0, decision.delayMs),
+      option: decision.option,
+      fallback: false,
+      done: false,
+    };
   }
 
   // -------------------------------------------------------------------------
@@ -1395,6 +1757,11 @@ export class Session {
     this.hostReadyDeadline = null;
     const game = this.game;
     if (!game?.paused || this.pauseCause !== 'host-lost') return;
+    if (this.gameHasAi() && !this.humansPresent()) {
+      // Host ist zurück, aber nur KI übrig (CHAOS-179): weiter warten, jetzt auf einen Menschen.
+      this.pauseCause = 'no-humans';
+      return;
+    }
     const result = game.apply({ type: 'resume', at: this.now() });
     if (!result.ok)
       throw new Error(`Fortsetzen nach Host-Verlust abgelehnt: ${result.error.message}`);
@@ -1438,12 +1805,20 @@ export class Session {
       const slot = owners.get(character);
       return slot === undefined ? [] : [{ character, slot }];
     });
+    const seats: LobbySeat[] = this.sortedPlayers().map((seat) =>
+      seat.kind === 'ai' && seat.strength !== null
+        ? { slot: seat.slot, kind: 'ai', strength: seat.strength }
+        : { slot: seat.slot, kind: 'human' },
+    );
     const lobby = {
       character: player.character,
       takenCharacters: takenBy.map((entry) => entry.character),
       takenBy,
       rounds: this.rounds,
       board: { id: this.board, name: boardChoiceName(this.board) },
+      // CHAOS-179: Spielleitung darf KI-Plätze verwalten; belegte Plätze mit Art.
+      lead: this.leadSlot() === player.slot,
+      seats,
     };
     return player.ready
       ? { layout: 'wait', actions: ['pick-character'], lobby }
@@ -1545,9 +1920,13 @@ export class Session {
       slot: player.slot,
       color: player.color,
       label: player.label,
-      connected: player.connectionId !== null,
+      connected: isPresent(player),
       ready: player.ready,
       character: player.character,
+      // CHAOS-179: nur KI-Plätze tragen Art und Stärke; fehlt = Mensch.
+      ...(player.kind === 'ai' && player.strength !== null
+        ? { kind: 'ai' as const, strength: player.strength }
+        : {}),
     }));
     // Optionale Felder nur setzen, wenn vorhanden (strikte Schemas, exactOptionalPropertyTypes).
     return createMessage('lobby', {
@@ -1578,6 +1957,9 @@ export class Session {
     // `out` und `lobbyDirty` sind zwischen Ereignissen immer leer bzw. false.
     try {
       handler();
+      // KI-Plätze (CHAOS-179): ohne Menschen pausieren, sonst KI-Sitze antworten lassen.
+      this.syncHumanPresence();
+      this.driveAiSeats();
       // Übungsrunde (CHAOS-87) vorbei – regulär oder per `end-game`: gleich zurück in die Lobby.
       if (this.game?.practice && this.game.finished) this.backToLobby();
       this.syncContexts();
@@ -1595,6 +1977,11 @@ export class Session {
     this.lobbyDirty = false;
     return out;
   }
+}
+
+/** KI-Plätze sind immer da; Menschen nur mit Verbindung. */
+function isPresent(player: Player): boolean {
+  return player.kind === 'ai' || player.connectionId !== null;
 }
 
 /** Welche angebotene Aktion eine Eingabe voraussetzt. */

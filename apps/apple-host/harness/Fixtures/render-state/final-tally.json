@@ -72,7 +72,9 @@
         "color": "#0072B2",
         "connected": true,
         "ready": true,
-        "character": "raccoon"
+        "character": "raccoon",
+        "kind": "human",
+        "strength": null
       },
       {
         "slot": 2,
@@ -80,7 +82,9 @@
         "color": "#E69F00",
         "connected": true,
         "ready": true,
-        "character": "sock"
+        "character": "sock",
+        "kind": "human",
+        "strength": null
       },
       {
         "slot": 3,
@@ -88,7 +92,9 @@
         "color": "#009E73",
         "connected": true,
         "ready": true,
-        "character": "robot"
+        "character": "robot",
+        "kind": "human",
+        "strength": null
       },
       {
         "slot": 4,
@@ -96,7 +102,9 @@
         "color": "#CC79A7",
         "connected": false,
         "ready": true,
-        "character": "cactus"
+        "character": "cactus",
+        "kind": "human",
+        "strength": null
       }
     ]
   },

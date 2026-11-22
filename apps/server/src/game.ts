@@ -34,6 +34,8 @@ import {
 } from '@chaos-party/minigames/catalog';
 import {
   MAX_BOARD_EVENTS,
+  type AiPersonality,
+  type AiStrength,
   type BoardEvent,
   type CharacterId,
   type BoardMessage,
@@ -191,6 +193,8 @@ export interface BoardGamePlayer {
   readonly name: string;
   /** Gewählte bzw. beim Start zugewiesene Figur (nur Darstellung, ADR-015). */
   readonly character: CharacterId;
+  /** KI-Platz (CHAOS-179, ADR-020) mit Stärke und ggf. Spielstil; fehlt = Mensch. */
+  readonly ai?: { readonly strength: AiStrength; readonly personality?: AiPersonality } | undefined;
 }
 
 /** Entfernt `readonly` rekursiv (game-core-Typen sind unveränderlich, zod-Typen nicht). */
@@ -229,12 +233,17 @@ export class BoardGame {
   readonly seed: number;
   /** Figur je Slot (kosmetisch, nicht Teil der Regeln). */
   private readonly characters: ReadonlyMap<Slot, CharacterId>;
+  /** KI-Plätze dieser Partie (CHAOS-179). */
+  private readonly aiSeats: ReadonlyMap<Slot, NonNullable<BoardGamePlayer['ai']>>;
 
   constructor(players: readonly BoardGamePlayer[], settings: BoardGameSettings, seed: number) {
     const board = getBoard(settings.boardId);
     if (!board) throw new Error(`Unbekanntes Brett: ${settings.boardId}`);
     this.seed = seed;
     this.characters = new Map(players.map((player) => [player.slot, player.character]));
+    this.aiSeats = new Map(
+      players.flatMap((player) => (player.ai ? [[player.slot, player.ai] as const] : [])),
+    );
     this.stateValue = createGame({
       board,
       rules: settings.rules,
@@ -289,6 +298,26 @@ export class BoardGame {
   /** Endstand erreicht (regulär oder per `end`); dann ist `rematch` möglich. */
   get finished(): boolean {
     return this.stateValue.phase === 'game-results';
+  }
+
+  /** Ist dieser Slot ein KI-Platz (CHAOS-179)? */
+  isAi(slot: Slot): boolean {
+    return this.aiSeats.has(slot);
+  }
+
+  /** KI-Felder für `BoardPlayer` (nur bei KI-Plätzen). */
+  private aiFieldsOf(slot: Slot): {
+    kind?: 'ai';
+    strength?: AiStrength;
+    personality?: AiPersonality;
+  } {
+    const ai = this.aiSeats.get(slot);
+    if (!ai) return {};
+    return {
+      kind: 'ai',
+      strength: ai.strength,
+      ...(ai.personality === undefined ? {} : { personality: ai.personality }),
+    };
   }
 
   /** Figur eines Slots dieser Partie. */
@@ -349,6 +378,7 @@ export class BoardGame {
         character: this.characterOf(player.slot),
         minigameWins: player.minigameWins,
         stats: { ...player.stats },
+        ...this.aiFieldsOf(player.slot),
       })),
       trophySpaces: [...state.trophySpaces],
       trophyPrice: state.config.rules.trophy.price,

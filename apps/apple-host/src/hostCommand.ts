@@ -11,6 +11,8 @@
  *   `configure:rounds=12,moreReactionTime=1` (Lobby-Einstellungen, CHAOS-166)
  * - `minigame:favorite=<id>`, `minigame:blocked=<id>` (CHAOS-216): Minispiel umschalten; wirkt
  *   im Kern (Stand ausrechnen, speichern) und geht als `configure` an den Server
+ * - `configure:aiSeat=3:mittel` setzt eine KI auf Platz 3 bzw. ändert ihre Stärke
+ *   (`leicht`/`mittel`/`schwer`/`dynamisch`), `configure:aiSeat=3:aus` entfernt sie (CHAOS-179)
  *
  * Alles andere ist ungültig (`null`): unbekannte oder doppelte Schlüssel, Runden außerhalb
  * 1–`MAX_ROUNDS`, Brett-IDs außerhalb von `BoardChoiceSchema`, Minispiel-Kennungen außerhalb
@@ -19,10 +21,13 @@
  * Unbekanntes weg).
  */
 import {
+  AI_STRENGTHS,
   BoardChoiceSchema,
   MAX_ROTATION_MINIGAMES,
   MAX_ROUNDS,
   MinigameIdSchema,
+  type AiStrength,
+  type SlotNumber,
 } from '@chaos-party/protocol';
 import type { HostCommand } from '../../host/src/net/hostConnection.ts';
 import {
@@ -66,10 +71,24 @@ function parseMinigameIds(value: string): string[] | null {
   return ids.every((id) => MinigameIdSchema.safeParse(id).success) ? ids : null;
 }
 
+/** Wert von `aiSeat`: `<platz>:<stärke>` oder `<platz>:aus` (CHAOS-179). */
+const AI_SEAT_OFF = 'aus';
+
+function parseAiSeat(value: string): ConfigureCommand['aiSeat'] | null {
+  const match = /^([1-4]):([a-z]+)$/.exec(value);
+  if (!match) return null;
+  const seat = Number(match[1]) as SlotNumber;
+  const strength = match[2] ?? '';
+  if (strength === AI_SEAT_OFF) return { seat, strength: null };
+  if (!(AI_STRENGTHS as readonly string[]).includes(strength)) return null;
+  return { seat, strength: strength as AiStrength };
+}
+
 function parseConfigure(spec: string): ConfigureCommand | null {
   let rounds: number | undefined;
   let moreReactionTime: boolean | undefined;
   let board: string | undefined;
+  let aiSeat: ConfigureCommand['aiSeat'];
   let minigameBlocklist: string[] | undefined;
   let minigameFavorites: string[] | undefined;
   for (const pair of spec.split(',')) {
@@ -85,6 +104,10 @@ function parseConfigure(spec: string): ConfigureCommand | null {
     } else if (key === 'board' && board === undefined) {
       if (!BoardChoiceSchema.safeParse(value).success) return null;
       board = value;
+    } else if (key === 'aiSeat' && aiSeat === undefined) {
+      const parsed = parseAiSeat(value);
+      if (!parsed) return null;
+      aiSeat = parsed;
     } else if (key === 'minigameBlocklist' && minigameBlocklist === undefined) {
       const ids = parseMinigameIds(value);
       if (ids === null) return null;
@@ -102,6 +125,7 @@ function parseConfigure(spec: string): ConfigureCommand | null {
     ...(rounds === undefined ? {} : { rounds }),
     ...(moreReactionTime === undefined ? {} : { moreReactionTime }),
     ...(board === undefined ? {} : { board }),
+    ...(aiSeat === undefined ? {} : { aiSeat }),
     ...(minigameBlocklist === undefined ? {} : { minigameBlocklist }),
     ...(minigameFavorites === undefined ? {} : { minigameFavorites }),
   };

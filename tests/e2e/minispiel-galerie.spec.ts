@@ -1,9 +1,13 @@
 /**
- * Minispiel-Galerie und Daumen (CHAOS-87): echte Seiten gegen den echten Server.
+ * Minispiel-Galerie und Daumen (CHAOS-87) in der einen Minispiel-Ansicht der Lobby (CHAOS-228):
+ * echte Seiten gegen den echten Server.
  *
- * Abgedeckt (Akzeptanzkriterium): Galerie in der PC-Lobby öffnen → ein Minispiel üben → Spiel
- * mit Controller-Eingabe → Ergebnis ohne Münzen → Daumen am Handy → zurück in der Lobby zeigt
- * die Galerie die Stimme; der Export unter `/ratings.json` enthält sie auch.
+ * Abgedeckt (Akzeptanzkriterien): „Minispiele“ in der PC-Lobby öffnen → ein Minispiel der
+ * Rotation üben → Spiel mit Controller-Eingabe → Ergebnis ohne Münzen → Daumen am Handy → zurück
+ * in der Lobby zeigt dieselbe Ansicht die Stimme; der Export unter `/ratings.json` enthält sie
+ * auch. Im selben Dialog gesperrt, zieht die nächste Partie das Spiel nicht (Sperrliste in der
+ * Rotation der Partie; dass gesperrte Spiele nie gezogen werden, prüft
+ * `apps/server/src/minigameRotation.integration.test.ts`).
  *
  * - Host im Testmodus (`?test=1`): Die Minispiel-Bühne rechnet nur auf
  *   `window.__chaosMinigame.step(n)`. Ergebnisanzeige verlängert, damit die Stimme in Ruhe
@@ -23,7 +27,10 @@ import { startChaosServer, type RunningServer } from './fixtures/server.ts';
 import { expect, test as base } from './fixtures/test.ts';
 import { centerOf, TouchScreen } from './fixtures/touch.ts';
 
-const ID = 'pump-parade';
+/** Ein Spiel der Rotation, damit es sich im selben Dialog sperren lässt. */
+const ID = 'sockenregen';
+/** Spielbar, aber nicht in der Rotation: üben ja, sperren nein. */
+const PLAYABLE_ID = 'pump-parade';
 const INFO = (() => {
   const info = getMinigameInfo(ID);
   if (!info) throw new Error('Referenz-Minispiel fehlt im Katalog');
@@ -57,10 +64,10 @@ const test = base.extend<{ chaosServer: RunningServer }>({
   },
 });
 
-test.describe('Minispiel-Galerie (CHAOS-87)', () => {
+test.describe('Minispiel-Galerie (CHAOS-87, CHAOS-228)', () => {
   test.setTimeout(120_000);
 
-  test('Spiel aus der Galerie üben, Daumen am Handy, Übersicht zeigt die Stimme', async ({
+  test('Spiel üben, Daumen am Handy, im selben Dialog sperren – nächste Partie ohne das Spiel', async ({
     page: host,
     openDevice,
     chaosServer,
@@ -69,20 +76,33 @@ test.describe('Minispiel-Galerie (CHAOS-87)', () => {
     await host.goto('/host/?test=1');
     await expect(host.getByTestId('connection')).toHaveAttribute('data-status', 'connected');
 
-    // Galerie ohne Controller: alles sichtbar, Üben noch aus.
-    await host.getByTestId('gallery-button').click();
+    // Ein Knopf für alles (CHAOS-228): ohne Controller alles sichtbar, Üben noch aus.
+    await expect(host.getByTestId('gallery-button')).toHaveCount(0);
+    await host.getByTestId('minigames-open').click();
     const gallery = host.getByTestId('minigame-gallery');
     await expect(gallery).toBeVisible();
+    await expect(host.getByTestId('gallery-close')).toBeFocused();
     const item = host.getByTestId(`gallery-item-${ID}`);
     await expect(item).toContainText(INFO.title);
-    await expect(item).toHaveAttribute('data-status', 'spielbar');
-    await expect(host.getByTestId('gallery-item-sockenregen')).toHaveAttribute(
-      'data-status',
-      'rotation',
+    await expect(item).toHaveAttribute('data-status', 'rotation');
+    await expect(item).toHaveAttribute('data-blocked', 'false');
+    await expect(host.getByTestId(`gallery-blocked-${ID}`)).toHaveAttribute(
+      'aria-pressed',
+      'false',
     );
+    // Nur spielbar: üben ja, aber nichts an der Rotation umzuschalten.
+    await expect(host.getByTestId(`gallery-item-${PLAYABLE_ID}`)).toHaveAttribute(
+      'data-status',
+      'spielbar',
+    );
+    await expect(host.getByTestId(`gallery-blocked-${PLAYABLE_ID}`)).toHaveCount(0);
     await expect(host.getByTestId(`gallery-votes-${ID}`)).toContainText('Noch keine Stimmen');
     await expect(host.getByTestId(`gallery-practice-${ID}`)).toBeDisabled();
-    await expect(gallery).toHaveScreenshot('galerie-leer.png');
+    // ★ und ⦸ kommen aus einer Ersatzschrift, die je Rechner anders ausfällt (ADR-004):
+    // Knopf-Beschriftungen und Einleitung maskiert, Knöpfe und Zustände bleiben im Bild.
+    await expect(gallery).toHaveScreenshot('galerie-leer.png', {
+      mask: [host.locator('.gallery-pick-label, .gallery-lead')],
+    });
     await host.keyboard.press('Escape');
     await expect(gallery).toHaveCount(0);
 
@@ -91,7 +111,7 @@ test.describe('Minispiel-Galerie (CHAOS-87)', () => {
     const phoneProblems = collectProblems(phone);
     await phone.goto(chaosServer.joinUrl);
     await expect(phone.getByTestId('ready-button')).toBeVisible();
-    await host.getByTestId('gallery-button').click();
+    await host.getByTestId('minigames-open').click();
     await host.getByTestId(`gallery-practice-${ID}`).click();
     await expect(gallery).toHaveCount(0);
 
@@ -145,16 +165,33 @@ test.describe('Minispiel-Galerie (CHAOS-87)', () => {
     });
     await expect(phone).toHaveScreenshot('daumen-handy.png');
 
-    // Nach der Ergebnisanzeige zurück in die Lobby; die Galerie zeigt die Stimme.
+    // Nach der Ergebnisanzeige zurück in die Lobby; dieselbe Ansicht zeigt die Stimme.
     await expect(host.locator('main.host')).toHaveAttribute('data-phase', 'lobby', {
       timeout: RESULTS_MS + 10_000,
     });
     await expect(phone.getByTestId('ready-button')).toBeVisible();
-    await host.getByTestId('gallery-button').click();
+    await host.getByTestId('minigames-open').click();
     const votes = host.getByTestId(`gallery-votes-${ID}`);
     await expect(votes).toHaveAttribute('data-up', '1');
     await expect(votes).toHaveAttribute('data-down', '0');
     await expect(votes).toContainText('1 Stimme');
+
+    // Im selben Dialog sperren: Server übernimmt, Zeile und Lobby-Knopf zeigen es.
+    await host.getByTestId(`gallery-blocked-${ID}`).click();
+    await expect(item).toHaveAttribute('data-blocked', 'true');
+    await expect(host.getByTestId(`gallery-blocked-${ID}`)).toHaveAttribute('aria-pressed', 'true');
+    await expect.poll(() => chaosServer.server.session.snapshot().minigameBlocklist).toEqual([ID]);
+    await host.keyboard.press('Escape');
+    await expect(gallery).toHaveCount(0);
+    await expect(host.getByTestId('minigames-summary')).toContainText('1 ⦸');
+
+    // Nächste Partie: Die Rotation der Partie führt das Spiel als gesperrt.
+    await phone.getByTestId('ready-button').tap();
+    await host.getByTestId('start-button').click();
+    await expect(host.locator('main.host')).not.toHaveAttribute('data-phase', 'lobby');
+    const game = chaosServer.server.session.snapshot().game;
+    expect(game?.state.config.practice).not.toBe(true);
+    expect(game?.state.config.minigameRotation?.blocked).toEqual([ID]);
 
     // Export für den Katalog.
     const exported = await host.request.get('/ratings.json');
@@ -187,7 +224,7 @@ test.describe('Minispiel-Galerie (CHAOS-87)', () => {
     for (const slot of [1, 2]) await expect(zone(slot)).toHaveAttribute('data-screen', 'lobby');
     const touch = await TouchScreen.create(ipad);
 
-    await host.getByTestId('gallery-button').click();
+    await host.getByTestId('minigames-open').click();
     await host.getByTestId(`gallery-practice-${ID}`).click();
     await expect(host.getByTestId('minigame-screen')).toHaveAttribute('data-stage', 'intro');
 
@@ -233,7 +270,7 @@ test.describe('Minispiel-Galerie (CHAOS-87)', () => {
     await expect(host.locator('main.host')).toHaveAttribute('data-phase', 'lobby', {
       timeout: RESULTS_MS + 10_000,
     });
-    await host.getByTestId('gallery-button').click();
+    await host.getByTestId('minigames-open').click();
     const tally = host.getByTestId(`gallery-votes-${ID}`);
     await expect(tally).toHaveAttribute('data-up', '1');
     await expect(tally).toHaveAttribute('data-down', '1');

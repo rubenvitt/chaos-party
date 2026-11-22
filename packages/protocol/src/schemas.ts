@@ -85,6 +85,22 @@ export const COIN_REASONS = [
 export const BUTTONS = ['a', 'b'] as const;
 /** Daumen nach einem Minispiel (v4-Nachtrag CHAOS-87). */
 export const VOTES = ['up', 'down'] as const;
+/**
+ * Art eines Spielerplatzes (v4-Nachtrag CHAOS-179, ADR-020): Mensch mit Controller oder KI ohne
+ * Verbindung. In Nachrichten fehlt das Feld bei Menschen; es steht nur bei KI-Plätzen.
+ */
+export const SEAT_KINDS = ['human', 'ai'] as const;
+/**
+ * Stärke eines KI-Platzes (ADR-020 §4): feste Stufen und `dynamisch` (passt sich am Rundenende
+ * an den Abstand zu den Menschen an, CHAOS-187). Standard ist `DEFAULT_AI_STRENGTH`.
+ */
+export const AI_STRENGTHS = ['leicht', 'mittel', 'schwer', 'dynamisch'] as const;
+export const DEFAULT_AI_STRENGTH = 'mittel';
+/**
+ * Spielstil eines KI-Platzes (ADR-020 §5, CHAOS-186): beim Partiestart per Seed vergeben, nicht
+ * wählbar, ändert nur was die KI tut, nicht wie gut.
+ */
+export const AI_PERSONALITIES = ['saboteur', 'sammler', 'draufgaenger', 'fuchs'] as const;
 export const GESTURE_KINDS = ['swipe-up', 'swipe-down', 'swipe-left', 'swipe-right'] as const;
 /** Was ein Controller-Slot in der aktuellen Phase anbieten soll. */
 export const ACTIONS = [
@@ -125,6 +141,11 @@ export const ERROR_CODES = [
   'character-taken',
   /** v4: Partie ist pausiert (Wahl, Eingaben, erneutes `pause`). */
   'paused',
+  /**
+   * v4-Nachtrag (CHAOS-179): `ai-seat` kam nicht von der Spielleitung (verbundener Mensch mit
+   * der niedrigsten Platznummer). Bekommen nur Controller, die `ai-seat` senden.
+   */
+  'not-lead',
   'internal',
 ] as const;
 
@@ -142,6 +163,9 @@ export const PromptKindSchema = z.enum(PROMPT_KINDS);
 export const BoardEventKindSchema = z.enum(BOARD_EVENT_KINDS);
 export const CoinReasonSchema = z.enum(COIN_REASONS);
 export const VoteSchema = z.enum(VOTES);
+export const SeatKindSchema = z.enum(SEAT_KINDS);
+export const AiStrengthSchema = z.enum(AI_STRENGTHS);
+export const AiPersonalitySchema = z.enum(AI_PERSONALITIES);
 /** Figuren-ID (v4, Quelle `./characters.ts`). */
 export const CharacterIdSchema = z.enum(CHARACTER_IDS);
 /**
@@ -255,6 +279,24 @@ function hasUniqueSlots(items: readonly { slot: number }[]): boolean {
 function hasUniqueSlotList(slots: readonly number[]): boolean {
   return new Set(slots).size === slots.length;
 }
+
+/**
+ * KI-Felder eines Platzes (CHAOS-179): `strength` (und `personality`) nur bei `kind: 'ai'`, ein
+ * KI-Platz hat immer eine Stärke. Ohne `kind` ist es ein Mensch.
+ */
+function hasConsistentSeatKind(seat: {
+  kind?: string | undefined;
+  strength?: string | undefined;
+  personality?: string | undefined;
+}): boolean {
+  if (seat.kind === 'ai') return seat.strength !== undefined;
+  return seat.strength === undefined && seat.personality === undefined;
+}
+
+const SEAT_KIND_ISSUE = {
+  message: 'strength/personality nur bei kind "ai", KI-Platz braucht strength',
+  path: ['kind'],
+};
 
 function stickInRange(stick: { x: number; y: number }): boolean {
   return Math.hypot(stick.x, stick.y) <= 1 + STICK_EPSILON;
@@ -550,6 +592,20 @@ export const RateMessageSchema = z.strictObject({
   vote: VoteSchema,
 });
 
+/**
+ * KI-Platz verwalten (v4-Nachtrag CHAOS-179, ADR-020 §2), nur in der Lobby und nur von der
+ * Spielleitung (sonst `not-lead`). `slot` ist der eigene Platz (Absender), `seat` der Platz, um
+ * den es geht. `strength` setzt eine KI auf einen freien Platz bzw. ändert ihre Stärke; `null`
+ * entfernt sie. Ein Platz mit Mensch → `invalid-choice`.
+ */
+export const AiSeatMessageSchema = z.strictObject({
+  v: VersionSchema,
+  type: z.literal('ai-seat'),
+  ...slotSeq,
+  seat: SlotSchema,
+  strength: AiStrengthSchema.nullable(),
+});
+
 /** Herzschlag von Controller oder Host. `t` ist die Client-Uhr und wird nur zurückgespiegelt (B8). */
 export const HeartbeatMessageSchema = z.strictObject({
   v: VersionSchema,
@@ -569,6 +625,7 @@ const controllerMessageOptions = [
   ChooseMessageSchema,
   PickCharacterMessageSchema,
   RateMessageSchema,
+  AiSeatMessageSchema,
   HeartbeatMessageSchema,
 ] as const;
 
@@ -632,6 +689,12 @@ export const ConfigureMessageSchema = z
     minigameBlocklist: MinigameIdListSchema.optional(),
     /** v4-Nachtrag (CHAOS-85): Favoriten der Rotation (ersetzt die ganze Liste). */
     minigameFavorites: MinigameIdListSchema.optional(),
+    /**
+     * v4-Nachtrag (CHAOS-179): KI-Platz am Host verwalten, wie `ai-seat` am Controller. Stärke
+     * setzt eine KI auf einen freien Platz bzw. ändert sie, `null` entfernt sie. Ein Platz mit
+     * Mensch lehnt der Server mit `bad-message` ab.
+     */
+    aiSeat: z.strictObject({ seat: SlotSchema, strength: AiStrengthSchema.nullable() }).optional(),
   })
   .refine(
     (message) =>
@@ -639,10 +702,11 @@ export const ConfigureMessageSchema = z
       message.moreReactionTime !== undefined ||
       message.board !== undefined ||
       message.minigameBlocklist !== undefined ||
-      message.minigameFavorites !== undefined,
+      message.minigameFavorites !== undefined ||
+      message.aiSeat !== undefined,
     {
       message:
-        'configure braucht rounds, moreReactionTime, board, minigameBlocklist oder minigameFavorites',
+        'configure braucht rounds, moreReactionTime, board, minigameBlocklist, minigameFavorites oder aiSeat',
     },
   );
 
@@ -797,6 +861,16 @@ export const ControllerBoardInfoSchema = z.strictObject({
   tailwind: z.int().positive().optional(),
 });
 
+/** Ein belegter Platz in `ControllerLobbyInfo.seats` (v4-Nachtrag CHAOS-179). */
+export const LobbySeatSchema = z
+  .strictObject({
+    slot: SlotSchema,
+    kind: SeatKindSchema,
+    /** Nur bei KI. */
+    strength: AiStrengthSchema.optional(),
+  })
+  .refine(hasConsistentSeatKind, SEAT_KIND_ISSUE);
+
 /** Eigener Stand in der Lobby (v4, CHAOS-36): Figurenwahl und Rundenzahl. */
 export const ControllerLobbyInfoSchema = z.strictObject({
   /** Eigene Figur oder `null` = noch nicht gewählt (beim Start automatisch zugewiesen). */
@@ -823,6 +897,20 @@ export const ControllerLobbyInfoSchema = z.strictObject({
       id: BoardChoiceSchema,
       name: z.string().min(1).max(MAX_BOARD_NAME_LENGTH),
     })
+    .optional(),
+  /**
+   * v4-Nachtrag (CHAOS-179, optional): Dieser Platz ist Spielleitung und darf KI-Plätze mit
+   * `ai-seat` verwalten. Fehlt = nein (bzw. älterer Server).
+   */
+  lead: z.boolean().optional(),
+  /**
+   * v4-Nachtrag (CHAOS-179, optional): alle belegten Plätze mit Art (KI mit Stärke), nach
+   * Platznummer. Freie Plätze fehlen. Fehlt bei älteren Servern.
+   */
+  seats: z
+    .array(LobbySeatSchema)
+    .max(MAX_PLAYERS)
+    .refine(hasUniqueSlots, 'Slots doppelt')
     .optional(),
 });
 
@@ -877,15 +965,24 @@ export const ServerToControllerMessageSchema = z.discriminatedUnion('type', [
 // Server → Host
 // ---------------------------------------------------------------------------
 
-export const LobbyPlayerSchema = z.strictObject({
-  slot: SlotSchema,
-  color: ColorSchema,
-  label: PlayerLabelSchema,
-  connected: z.boolean(),
-  ready: z.boolean(),
-  /** v4: gewählte Figur oder `null` (noch keine Wahl; Auto-Zuweisung beim Start). */
-  character: CharacterIdSchema.nullable(),
-});
+export const LobbyPlayerSchema = z
+  .strictObject({
+    slot: SlotSchema,
+    color: ColorSchema,
+    label: PlayerLabelSchema,
+    connected: z.boolean(),
+    ready: z.boolean(),
+    /** v4: gewählte Figur oder `null` (noch keine Wahl; Auto-Zuweisung beim Start). */
+    character: CharacterIdSchema.nullable(),
+    /**
+     * v4-Nachtrag (CHAOS-179, ADR-020): `ai` = KI-Platz ohne Controller (immer `connected` und
+     * `ready`, wählt keine Figur). Fehlt = Mensch.
+     */
+    kind: SeatKindSchema.optional(),
+    /** v4-Nachtrag (CHAOS-179): Stärke, nur und immer bei `kind: 'ai'`. */
+    strength: AiStrengthSchema.optional(),
+  })
+  .refine(hasConsistentSeatKind, SEAT_KIND_ISSUE);
 
 function hasUniqueCharacters(players: readonly { character: string | null }[]): boolean {
   const picked = players.flatMap((player) => (player.character === null ? [] : [player.character]));
@@ -1010,26 +1107,34 @@ export const InputMessageSchema = z.strictObject({
 // Brett-Schnappschuss Server → Host (M2, ADR-011)
 // ---------------------------------------------------------------------------
 
-export const BoardPlayerSchema = z.strictObject({
-  slot: SlotSchema,
-  name: PlayerLabelSchema,
-  spaceId: SpaceIdSchema,
-  coins: CountSchema,
-  trophies: CountSchema,
-  items: z.array(ItemKindSchema).max(8),
-  connected: z.boolean(),
-  /** v4: gewählte (oder beim Start zugewiesene) Figur. */
-  character: CharacterIdSchema,
-  /** v4: gewonnene Minispiele (Gleichstand auf Platz 1 zählt für alle). */
-  minigameWins: CountSchema,
-  /** v4: Statistik nur für Bonus-Anzeigen am Ende, ohne Einfluss auf die Wertung. */
-  stats: z.strictObject({
-    coinsEarned: CountSchema,
-    coinsLost: CountSchema,
-    spacesMoved: CountSchema,
-    itemsUsed: CountSchema,
-  }),
-});
+export const BoardPlayerSchema = z
+  .strictObject({
+    slot: SlotSchema,
+    name: PlayerLabelSchema,
+    spaceId: SpaceIdSchema,
+    coins: CountSchema,
+    trophies: CountSchema,
+    items: z.array(ItemKindSchema).max(8),
+    connected: z.boolean(),
+    /** v4: gewählte (oder beim Start zugewiesene) Figur. */
+    character: CharacterIdSchema,
+    /** v4: gewonnene Minispiele (Gleichstand auf Platz 1 zählt für alle). */
+    minigameWins: CountSchema,
+    /** v4: Statistik nur für Bonus-Anzeigen am Ende, ohne Einfluss auf die Wertung. */
+    stats: z.strictObject({
+      coinsEarned: CountSchema,
+      coinsLost: CountSchema,
+      spacesMoved: CountSchema,
+      itemsUsed: CountSchema,
+    }),
+    /** v4-Nachtrag (CHAOS-179, ADR-020): `ai` = KI-Platz. Fehlt = Mensch. */
+    kind: SeatKindSchema.optional(),
+    /** v4-Nachtrag (CHAOS-179): Stärke, nur und immer bei `kind: 'ai'`. */
+    strength: AiStrengthSchema.optional(),
+    /** v4-Nachtrag (CHAOS-179/186): Spielstil, nur bei `kind: 'ai'`; fehlt, solange keiner vergeben ist. */
+    personality: AiPersonalitySchema.optional(),
+  })
+  .refine(hasConsistentSeatKind, SEAT_KIND_ISSUE);
 
 export const RankingEntrySchema = z.strictObject({
   slot: SlotSchema,

@@ -1,0 +1,29 @@
+{
+  "v": 4,
+  "type": "context",
+  "slot": 1,
+  "phase": "lobby",
+  "layout": "lobby",
+  "actions": [
+    "ready",
+    "pick-character"
+  ],
+  "lobby": {
+    "character": null,
+    "takenCharacters": [],
+    "takenBy": [],
+    "rounds": 5,
+    "lead": true,
+    "seats": [
+      {
+        "slot": 1,
+        "kind": "human"
+      },
+      {
+        "slot": 3,
+        "kind": "ai",
+        "strength": "schwer"
+      }
+    ]
+  }
+}

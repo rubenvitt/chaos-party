@@ -667,111 +667,6 @@ body,
   flex: 1 1 0;
 }
 
-/* Dialog „Minispiele“: Favoriten und Sperrliste der Rotation (CHAOS-85). */
-.rotation-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  display: grid;
-  place-items: center;
-  padding: 16px;
-  background: rgb(27 21 48 / 55%);
-}
-
-.rotation-dialog {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: min(560px, 100%);
-  max-height: calc(100vh - 32px);
-  padding: 20px 22px;
-  border: 4px solid #1b1530;
-  border-radius: 22px;
-  background: #fff8ec;
-  box-shadow: 0 8px 0 #1b1530;
-  color: #1b1530;
-}
-
-.rotation-dialog h2 {
-  margin: 0;
-  font-size: 26px;
-  font-weight: 900;
-}
-
-.rotation-lead,
-.rotation-warning {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 800;
-}
-
-.rotation-warning {
-  color: #a3361f;
-}
-
-.rotation-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  overflow-y: auto;
-  list-style: none;
-}
-
-.rotation-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px 6px 14px;
-  border: 3px solid #1b1530;
-  border-radius: 14px;
-  background: #fff;
-}
-
-.rotation-item[data-blocked='true'] .rotation-title {
-  opacity: 0.45;
-  text-decoration: line-through;
-}
-
-.rotation-title {
-  flex: 1;
-  min-width: 0;
-  font-size: 18px;
-  font-weight: 900;
-}
-
-.rotation-toggle,
-.rotation-close {
-  padding: 6px 12px;
-  border: 3px solid #1b1530;
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 3px 0 #1b1530;
-  color: #1b1530;
-  font: inherit;
-  font-size: 15px;
-  font-weight: 900;
-  cursor: pointer;
-}
-
-.rotation-toggle--favorite[aria-pressed='true'] {
-  background: #ffc83d;
-}
-
-.rotation-toggle--blocked[aria-pressed='true'] {
-  background: #1b1530;
-  color: #fff;
-}
-
-.rotation-close {
-  align-self: flex-end;
-  padding: 8px 22px;
-  background: #6b3fa0;
-  color: #fff;
-  font-size: 18px;
-}
-
 /* Sichtbarer Tastaturfokus für alle Knöpfe am PC. */
 .host button:focus-visible,
 .host select:focus-visible {
@@ -2195,29 +2090,13 @@ body,
   }
 }
 
-/* Minispiel-Galerie (CHAOS-87): Übersicht über der Lobby, im Stil der Lobby-Karte. */
-.lobby-gallery-button {
-  margin-top: 12px;
-  padding: 6px 14px;
-  border: 3px solid #1b1530;
-  border-radius: 999px;
-  background: #fff;
-  box-shadow: 0 3px 0 #1b1530;
-  color: #1b1530;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.lobby-gallery-button:hover {
-  background: #fff1d6;
-}
-
-.lobby-gallery-button:focus-visible,
+/* Minispiele (CHAOS-87, CHAOS-228): eine Übersicht über der Lobby, im Stil der Lobby-Karte –
+   Üben, Daumen, Favoriten und Sperrliste der Rotation (CHAOS-85). */
 .gallery-close:focus-visible,
 .gallery-export:focus-visible,
-.gallery-practice:focus-visible {
+.gallery-practice:focus-visible,
+.gallery-pick:focus-visible,
+.gallery-removal-block:focus-visible {
   outline: 3px solid #0072b2;
   outline-offset: 3px;
 }
@@ -2233,11 +2112,13 @@ body,
 }
 
 .gallery-card {
-  display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 14px;
+  box-sizing: border-box;
   width: min(1040px, 100%);
-  /* Höhe am Bildschirm begrenzen, damit die Liste scrollt statt die Karte zu verlängern. */
+  /* Höhe am Bildschirm begrenzen (mit Rand und Polster, sonst ragt die Karte bei 720 px unten
+     heraus), damit die Liste scrollt statt die Karte zu verlängern. */
   max-height: calc(100dvh - 48px);
   padding: 22px 26px;
   border: 4px solid #1b1530;
@@ -2247,10 +2128,9 @@ body,
 }
 
 .gallery-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
   gap: 12px 24px;
 }
 
@@ -2275,6 +2155,11 @@ body,
   opacity: 1;
 }
 
+.gallery-notes {
+  display: grid;
+  gap: 4px;
+}
+
 .gallery-actions {
   display: flex;
   gap: 10px;
@@ -2297,7 +2182,9 @@ body,
 
 .gallery-list {
   display: grid;
+  flex: 1 1 auto;
   gap: 10px;
+  min-height: 0;
   margin: 0;
   padding: 0 4px 6px 0;
   list-style: none;
@@ -2306,7 +2193,7 @@ body,
 
 .gallery-item {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
   align-items: center;
   gap: 18px;
   padding: 12px 16px;
@@ -2347,6 +2234,16 @@ body,
   background: #fde7a8;
 }
 
+.gallery-status--blocked {
+  background: #1b1530;
+  color: #fff;
+}
+
+.gallery-item[data-blocked='true'] .gallery-item-name {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
 .gallery-item-tagline {
   margin: 2px 0 0;
   font-size: 15px;
@@ -2361,10 +2258,49 @@ body,
 }
 
 .gallery-removal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
   margin: 6px 0 0;
   color: #9a3d00;
   font-size: 13px;
   font-weight: 800;
+}
+
+.gallery-removal-block,
+.gallery-pick {
+  padding: 4px 10px;
+  border: 3px solid #1b1530;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 3px 0 #1b1530;
+  color: #1b1530;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.gallery-removal-block {
+  background: #1b1530;
+  color: #fff;
+}
+
+/* Favorit/Sperren: feste Spalte, damit Zeilen ohne Umschalter (nur spielbar) bündig bleiben. */
+.gallery-picks {
+  display: grid;
+  gap: 6px;
+  min-width: 112px;
+}
+
+.gallery-pick--favorite[aria-pressed='true'] {
+  background: #ffc83d;
+}
+
+.gallery-pick--blocked[aria-pressed='true'] {
+  background: #1b1530;
+  color: #fff;
 }
 
 .gallery-votes {
@@ -2406,11 +2342,25 @@ body,
 }
 
 @media (max-width: 720px) {
+  .gallery-head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .gallery-item {
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
+  .gallery-picks {
+    grid-template-columns: 1fr 1fr;
+    min-width: 0;
+  }
+
+  .gallery-picks,
   .gallery-practice {
     grid-column: 1 / -1;
+  }
+
+  .gallery-picks:empty {
+    display: none;
   }
 }

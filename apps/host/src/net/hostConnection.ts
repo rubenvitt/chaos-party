@@ -23,6 +23,7 @@ import {
   createMessage,
   encode,
   parseServerToHostMessage,
+  type AiStrength,
   type BoardMessage,
   type ErrorMessage,
   type GameMode,
@@ -32,6 +33,7 @@ import {
   type MinigameCueMessage,
   type MinigameResultMessage,
   type RatingsMessage,
+  type SlotNumber,
   type StartMessage,
 } from '@chaos-party/protocol';
 
@@ -55,6 +57,9 @@ export type HostCommand =
       /** Sperrliste und Favoriten der Minispiel-Rotation (CHAOS-85), je ganze Liste. */
       readonly minigameBlocklist?: readonly string[] | undefined;
       readonly minigameFavorites?: readonly string[] | undefined;
+      /** KI-Platz setzen, ändern oder entfernen (`strength: null`, CHAOS-179). */
+      readonly aiSeat?:
+        { readonly seat: SlotNumber; readonly strength: AiStrength | null } | undefined;
     }
   | { readonly type: 'pause' }
   | { readonly type: 'resume' }
@@ -75,6 +80,7 @@ export function createHostCommandMessage(command: HostCommand) {
         ...(command.minigameBlocklist === undefined
           ? {}
           : { minigameBlocklist: [...command.minigameBlocklist] }),
+        ...(command.aiSeat === undefined ? {} : { aiSeat: { ...command.aiSeat } }),
         ...(command.minigameFavorites === undefined
           ? {}
           : { minigameFavorites: [...command.minigameFavorites] }),
